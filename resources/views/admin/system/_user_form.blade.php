@@ -3,7 +3,7 @@
 <div class="form-group"><label>Mật khẩu {{ $user ? '(để trống nếu không đổi)' : '*' }}</label><input type="password" name="password" class="form-control" {{ $user ? '' : 'required' }}></div>
 <div class="form-group"><label>Vai trò *</label>
     <select name="role" class="form-control" required>
-        @foreach(['super_admin'=>'Super Admin','admin'=>'Admin','sales'=>'Sales','teacher'=>'Giáo viên'] as $k=>$v)
+        @foreach(config('permissions.roles') as $k=>$v)
             <option value="{{ $k }}" @selected(old('role', $user->role ?? 'admin')===$k)>{{ $v }}</option>
         @endforeach
     </select>

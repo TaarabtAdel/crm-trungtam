@@ -88,6 +88,7 @@ class User extends Authenticatable
             ?? match ($this->role) {
                 'super_admin' => 'Super Admin',
                 'admin' => 'Admin',
+                'accountant' => 'Kế toán',
                 'sales' => 'Sales',
                 'teacher' => 'Giáo viên',
                 default => $this->role,

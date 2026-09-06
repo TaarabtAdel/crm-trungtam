@@ -31,6 +31,16 @@ class Interaction extends Model
         return $this->belongsTo(Branch::class);
     }
 
+    public static function typeOptions(): array
+    {
+        return [
+            'Cuộc gọi' => 'Cuộc gọi',
+            'Lịch hẹn Test' => 'Lịch hẹn Test',
+            'Nhắn tin' => 'Nhắn tin',
+            'Gặp trực tiếp' => 'Gặp trực tiếp',
+        ];
+    }
+
     public static function statusOptions(): array
     {
         return [
@@ -49,10 +59,21 @@ class Interaction extends Model
     public function statusBadgeClass(): string
     {
         return match ($this->status) {
-            'done' => 'success',
-            'cancelled' => 'secondary',
-            'no_show' => 'warning',
-            default => 'info',
+            'done' => 'interaction-status-done',
+            'cancelled' => 'interaction-status-cancelled',
+            'no_show' => 'interaction-status-noshow',
+            default => 'interaction-status-upcoming',
+        };
+    }
+
+    public function typeIcon(): string
+    {
+        return match ($this->type) {
+            'Cuộc gọi' => 'telephone',
+            'Lịch hẹn Test' => 'clipboard-check',
+            'Nhắn tin' => 'chat-dots',
+            'Gặp trực tiếp' => 'people',
+            default => 'calendar-event',
         };
     }
 }

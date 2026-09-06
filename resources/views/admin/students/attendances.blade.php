@@ -27,27 +27,42 @@
                 <input type="hidden" name="class_id" value="{{ $courseClass->id }}">
                 <input type="hidden" name="session_date" value="{{ $date }}">
                 <div class="table-responsive">
-                    <table class="table table-bordered">
-                        <thead><tr><th>Học viên</th><th>Có mặt</th><th>Muộn</th><th>Vắng</th></tr></thead>
+                    <table class="table table-hover mb-0 attendances-table">
+                        <thead>
+                        <tr>
+                            <th>Học viên</th>
+                            @foreach(\App\Models\Attendance::statusOptions() as $label)
+                                <th class="text-center text-nowrap">{{ $label }}</th>
+                            @endforeach
+                            <th style="min-width:220px">Ghi chú</th>
+                        </tr>
+                        </thead>
                         <tbody>
                         @forelse($courseClass->students as $student)
-                            @php $st = $attendances[$student->id] ?? 'present'; @endphp
+                            @php
+                                $row = $attendances->get($student->id);
+                                $st = $row?->status ?? 'present';
+                                $note = $row?->note ?? '';
+                            @endphp
                             <tr>
-                                <td>{{ $student->name }}</td>
-                                @foreach(['present','late','absent'] as $opt)
-                                    <td class="text-center">
+                                <td class="font-weight-bold text-dark">{{ $student->name }}</td>
+                                @foreach(array_keys(\App\Models\Attendance::statusOptions()) as $opt)
+                                    <td class="text-center align-middle">
                                         <input type="radio" name="statuses[{{ $student->id }}]" value="{{ $opt }}" {{ $st===$opt?'checked':'' }}>
                                     </td>
                                 @endforeach
+                                <td>
+                                    <input type="text" name="notes[{{ $student->id }}]" value="{{ $note }}" class="form-control form-control-sm" placeholder="Ghi chú...">
+                                </td>
                             </tr>
                         @empty
-                            <tr><td colspan="4" class="text-center text-muted">Lớp chưa có học viên.</td></tr>
+                            <tr><td colspan="6" class="text-center text-muted py-4">Lớp chưa có học viên.</td></tr>
                         @endforelse
                         </tbody>
                     </table>
                 </div>
                 @if($courseClass->students->count())
-                <div class="form-check mb-3">
+                <div class="form-check mt-3 mb-3">
                     <input type="checkbox" class="form-check-input" name="mark_session_completed" value="1" id="markSession" checked>
                     <label class="form-check-label" for="markSession">Đánh dấu buổi học hoàn thành (tính lương GV)</label>
                 </div>

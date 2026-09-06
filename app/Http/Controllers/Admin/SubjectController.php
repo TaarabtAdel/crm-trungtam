@@ -13,15 +13,25 @@ class SubjectController extends Controller
     public function index(Request $request)
     {
         $q = $request->get('q');
+        $status = $request->get('status');
+
         $subjects = Subject::with('branch')
+            ->withCount('classes')
             ->tap(fn ($query) => CurrentBranch::apply($query))
-            ->when($q, fn ($query) => $query->where('name', 'like', "%{$q}%"))
+            ->when($q, function ($query) use ($q) {
+                $query->where(function ($inner) use ($q) {
+                    $inner->where('name', 'like', "%{$q}%")
+                        ->orWhere('description', 'like', "%{$q}%");
+                });
+            })
+            ->when($status, fn ($query) => $query->where('status', $status))
             ->latest()
             ->paginate(15)
             ->withQueryString();
+
         $branches = Branch::where('is_active', true)->orderBy('name')->get();
 
-        return view('admin.training.subjects', compact('subjects', 'branches', 'q'));
+        return view('admin.training.subjects', compact('subjects', 'branches', 'q', 'status'));
     }
 
     public function store(Request $request)

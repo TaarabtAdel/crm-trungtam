@@ -25,4 +25,14 @@ class Attendance extends Model
     {
         return $this->belongsTo(Student::class);
     }
+
+    public static function statusOptions(): array
+    {
+        return [
+            'present' => 'Có mặt',
+            'late' => 'Muộn',
+            'absent' => 'Vắng',
+            'excused' => 'Vắng có phép',
+        ];
+    }
 }

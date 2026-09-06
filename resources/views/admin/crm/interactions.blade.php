@@ -7,41 +7,105 @@
     <div class="card-header-custom">
         <div>
             <h5 class="mb-0 font-weight-bold">Lịch hẹn / Tương tác</h5>
-            <small class="text-muted">Quản lý lịch gọi điện chăm sóc khách hàng và lịch hẹn test năng lực.</small>
+            <small class="text-muted">
+                @if(auth()->user()->isSales())
+                    Chỉ hiển thị lịch hẹn / tương tác do bạn phụ trách.
+                @else
+                    Quản lý lịch gọi, nhắn tin, gặp mặt và lịch hẹn test năng lực.
+                @endif
+            </small>
         </div>
-        <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalCreate">+ Thêm lịch hẹn mới</button>
+        <div class="d-flex align-items-center" style="gap:.5rem">
+            @canPerm('crm.interactions.manage')
+            <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalCreate">+ Thêm lịch hẹn mới</button>
+            @endcanPerm
+        </div>
     </div>
     <div class="card-body-custom">
         <form class="filter-bar" method="GET">
-            <input type="text" name="q" value="{{ $q }}" class="form-control form-control-sm" style="max-width:260px" placeholder="Tìm theo tên khách, SĐT...">
-            <select name="type" class="form-control form-control-sm" style="max-width:200px">
-                <option value="">Tất cả</option>
-                @foreach(['Cuộc gọi','Lịch hẹn Test','Nhắn tin','Gặp trực tiếp'] as $t)
-                    <option value="{{ $t }}" @selected($type===$t)>{{ $t }}</option>
+            <input type="text" name="q" value="{{ $q }}" class="form-control form-control-sm" style="max-width:240px" placeholder="Tìm khách, SĐT, ghi chú...">
+            <select name="type" class="form-control form-control-sm" style="max-width:180px">
+                <option value="">Tất cả loại</option>
+                @foreach(\App\Models\Interaction::typeOptions() as $k=>$v)
+                    <option value="{{ $k }}" @selected(($type ?? '')===$k)>{{ $v }}</option>
+                @endforeach
+            </select>
+            <select name="status" class="form-control form-control-sm" style="max-width:160px">
+                <option value="">Tất cả trạng thái</option>
+                @foreach(\App\Models\Interaction::statusOptions() as $k=>$v)
+                    <option value="{{ $k }}" @selected(($status ?? '')===$k)>{{ $v }}</option>
                 @endforeach
             </select>
             <button class="btn btn-sm btn-outline-secondary">Lọc</button>
         </form>
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead><tr><th>Khách hàng</th><th>Loại tương tác</th><th>Thời gian</th><th>Chi nhánh</th><th>Ghi chú</th><th>Sales phụ trách</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
+            <table class="table table-hover mb-0 interactions-table">
+                <thead>
+                <tr>
+                    <th>Khách hàng</th>
+                    <th>Tương tác</th>
+                    <th>Thời gian</th>
+                    <th>Phân bổ</th>
+                    <th>Ghi chú</th>
+                    <th></th>
+                </tr>
+                </thead>
                 <tbody>
                 @forelse($interactions as $item)
                     <tr>
-                        <td>{{ $item->lead?->name }}<br><small>{{ $item->lead?->phone }}</small></td>
-                        <td>{{ $item->type }}</td>
-                        <td>{{ optional($item->scheduled_at)->format('d/m/Y H:i') }}</td>
-                        <td>{{ $item->branch?->name }}</td>
-                        <td>{{ \Illuminate\Support\Str::limit($item->notes, 40) }}</td>
-                        <td>{{ $item->sales?->name }}</td>
-                        <td><span class="badge badge-warning">{{ $item->status }}</span></td>
                         <td>
-                            <button class="btn btn-sm btn-outline-primary" data-toggle="modal" data-target="#edit{{ $item->id }}"><i class="bi bi-pencil"></i></button>
-                            <form action="{{ route('admin.interactions.destroy', $item) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa?')">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
+                            <div class="d-flex align-items-start" style="gap:.5rem">
+                                <div class="interaction-avatar">{{ strtoupper(mb_substr($item->lead?->name ?? '?', 0, 1)) }}</div>
+                                <div>
+                                    @if($item->lead)
+                                        <a href="{{ route('admin.leads.show', ['lead' => $item->lead, 'tab' => 'history']) }}" class="font-weight-bold text-dark">{{ $item->lead->name }}</a>
+                                        @if($item->lead->phone)
+                                            <div class="small text-muted"><i class="bi bi-telephone mr-1"></i>{{ $item->lead->phone }}</div>
+                                        @endif
+                                    @else
+                                        <span class="text-muted">Lead đã xóa</span>
+                                    @endif
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center flex-wrap" style="gap:.35rem">
+                                <span class="badge lead-status {{ $item->statusBadgeClass() }}">{{ $item->statusLabel() }}</span>
+                                <span class="lead-meta-chip"><i class="bi bi-{{ $item->typeIcon() }}"></i> {{ $item->type }}</span>
+                            </div>
+                        </td>
+                        <td class="text-nowrap">
+                            @if($item->scheduled_at)
+                                <div class="font-weight-bold">{{ $item->scheduled_at->format('d/m/Y') }}</div>
+                                <div class="small text-muted">{{ $item->scheduled_at->format('H:i') }}</div>
+                            @else
+                                <span class="text-muted">Chưa hẹn giờ</span>
+                            @endif
+                        </td>
+                        <td>
+                            <div>{{ $item->branch?->name ?? '—' }}</div>
+                            <div class="small text-muted">
+                                <i class="bi bi-person-badge mr-1"></i>{{ $item->sales?->name ?? 'Chưa gán Sales' }}
+                            </div>
+                        </td>
+                        <td>
+                            @if($item->notes)
+                                <div class="small text-muted" style="max-width:220px">{{ \Illuminate\Support\Str::limit($item->notes, 80) }}</div>
+                            @else
+                                <span class="text-muted">—</span>
+                            @endif
+                        </td>
+                        <td class="text-nowrap text-right">
+                            @canPerm('crm.interactions.manage')
+                            <button class="btn btn-sm btn-primary" data-toggle="modal" data-target="#edit{{ $item->id }}">Sửa</button>
+                            <form action="{{ route('admin.interactions.destroy', $item) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa?')">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger" title="Xóa"><i class="bi bi-trash"></i></button></form>
+                            @else
+                            <span class="text-muted small">—</span>
+                            @endcanPerm
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="8" class="text-center text-muted py-4">Không có dữ liệu.</td></tr>
+                    <tr><td colspan="6" class="text-center text-muted py-4">Không tìm thấy dữ liệu phù hợp.</td></tr>
                 @endforelse
                 </tbody>
             </table>
@@ -50,6 +114,7 @@
     </div>
 </div>
 
+@canPerm('crm.interactions.manage')
 @foreach($interactions as $item)
 <div class="modal fade" id="edit{{ $item->id }}" tabindex="-1">
     <div class="modal-dialog">
@@ -73,4 +138,5 @@
         </form>
     </div>
 </div>
+@endcanPerm
 @endsection

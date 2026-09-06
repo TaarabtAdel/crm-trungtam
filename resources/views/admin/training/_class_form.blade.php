@@ -46,7 +46,7 @@
     <div class="col-md-4"><div class="form-group"><label>Ngày kết thúc</label><input type="date" name="end_date" class="form-control" value="{{ old('end_date', optional($class->end_date ?? null)->format('Y-m-d')) }}"></div></div>
     <div class="col-md-4"><div class="form-group"><label>Trạng thái</label>
         <select name="status" class="form-control">
-            @foreach(['active'=>'Đang học','inactive'=>'Ngưng','completed'=>'Kết thúc'] as $k=>$v)
+            @foreach(\App\Models\CourseClass::statusOptions() as $k=>$v)
                 <option value="{{ $k }}" @selected(old('status', $class->status ?? 'active')===$k)>{{ $v }}</option>
             @endforeach
         </select>

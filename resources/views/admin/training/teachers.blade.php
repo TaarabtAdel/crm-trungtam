@@ -5,46 +5,96 @@
 @section('content')
 <div class="page-card">
     <div class="card-header-custom">
-        <div><h5 class="mb-0 font-weight-bold">Quản lý Giáo viên</h5></div>
         <div>
+            <h5 class="mb-0 font-weight-bold">Danh sách Giáo viên</h5>
+            <small class="text-muted">Quản lý hồ sơ giáo viên, chuyên môn và đơn giá giảng dạy.</small>
+        </div>
+        <div class="d-flex align-items-center" style="gap:.5rem">
             @canPerm('training.teachers.payroll')
-            <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#modalPayroll"><i class="bi bi-calculator"></i> Bảng lương</button>
+            <button class="btn btn-outline-success btn-sm" data-toggle="modal" data-target="#modalPayroll">
+                <i class="bi bi-calculator"></i> Bảng lương
+            </button>
             @endcanPerm
             @canPerm('training.teachers.manage')
-            <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalCreate">+ Thêm mới</button>
+            <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalCreate">+ Thêm giáo viên</button>
             @endcanPerm
         </div>
     </div>
     <div class="card-body-custom">
         <form class="filter-bar" method="GET">
-            <select name="status" class="form-control form-control-sm" style="max-width:140px">
-                <option value="">Tất cả</option>
-                <option value="active" @selected($status==='active')>Hoạt động</option>
-                <option value="inactive" @selected($status==='inactive')>Ngưng</option>
+            <input type="text" name="q" value="{{ $q }}" class="form-control form-control-sm" style="max-width:240px" placeholder="Tìm tên, SĐT, email, chuyên môn...">
+            <select name="status" class="form-control form-control-sm" style="max-width:160px">
+                <option value="">Tất cả trạng thái</option>
+                @foreach(\App\Models\Teacher::statusOptions() as $k=>$v)
+                    <option value="{{ $k }}" @selected(($status ?? '')===$k)>{{ $v }}</option>
+                @endforeach
             </select>
-            <input type="text" name="q" value="{{ $q }}" class="form-control form-control-sm" style="max-width:240px" placeholder="Tìm kiếm giáo viên...">
             <button class="btn btn-sm btn-outline-secondary">Lọc</button>
         </form>
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead><tr><th>Họ và tên</th><th>Email</th><th>SĐT</th><th>Chuyên môn</th><th>Chi nhánh</th><th>Lương/h</th><th>Trạng thái</th><th>Chức năng</th></tr></thead>
+            <table class="table table-hover mb-0 teachers-table">
+                <thead>
+                <tr>
+                    <th>Giáo viên</th>
+                    <th>Liên hệ</th>
+                    <th>Chuyên môn</th>
+                    <th>Chi nhánh</th>
+                    <th>Đơn giá</th>
+                    <th></th>
+                </tr>
+                </thead>
                 <tbody>
                 @forelse($teachers as $teacher)
                     <tr>
-                        <td>{{ $teacher->name }}</td>
-                        <td>{{ $teacher->email }}</td>
-                        <td>{{ $teacher->phone }}</td>
-                        <td>{{ $teacher->specialty }}</td>
-                        <td>{{ $teacher->branch?->name }}</td>
-                        <td>@vnd($teacher->hourly_rate)</td>
-                        <td><span class="badge badge-{{ $teacher->status==='active'?'success':'secondary' }}">{{ $teacher->status==='active'?'Hoạt động':'Ngưng' }}</span></td>
                         <td>
-                            <button class="btn btn-sm btn-outline-primary" data-toggle="modal" data-target="#edit{{ $teacher->id }}"><i class="bi bi-pencil"></i></button>
-                            <form action="{{ route('admin.teachers.destroy', $teacher) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa?')">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
+                            <div class="d-flex align-items-start" style="gap:.5rem">
+                                <div class="teacher-avatar">{{ strtoupper(mb_substr($teacher->name, 0, 1)) }}</div>
+                                <div>
+                                    <div class="font-weight-bold text-dark">{{ $teacher->name }}</div>
+                                    <div class="mt-1 d-flex align-items-center flex-wrap" style="gap:.35rem">
+                                        <span class="badge lead-status {{ $teacher->statusBadgeClass() }}">{{ $teacher->statusLabel() }}</span>
+                                        @if(($teacher->classes_count ?? 0) > 0)
+                                            <span class="lead-meta-chip"><i class="bi bi-journal-bookmark"></i> {{ $teacher->classes_count }} lớp</span>
+                                        @endif
+                                        @if($teacher->joined_at)
+                                            <span class="lead-meta-chip">Từ {{ $teacher->joined_at->format('m/Y') }}</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            @if($teacher->phone)
+                                <div><i class="bi bi-telephone text-muted mr-1"></i>{{ $teacher->phone }}</div>
+                            @else
+                                <div class="text-muted">—</div>
+                            @endif
+                            @if($teacher->email)
+                                <div class="small text-muted"><i class="bi bi-envelope mr-1"></i>{{ $teacher->email }}</div>
+                            @endif
+                        </td>
+                        <td>
+                            <div>{{ $teacher->specialty ?: '—' }}</div>
+                            @if($teacher->qualification)
+                                <div class="small text-muted">{{ $teacher->qualification }}</div>
+                            @endif
+                        </td>
+                        <td>{{ $teacher->branch?->name ?? '—' }}</td>
+                        <td>
+                            <div class="font-weight-bold">{{ number_format((float) $teacher->hourly_rate, 0, ',', '.') }} đ</div>
+                            <div class="small text-muted">/ giờ</div>
+                        </td>
+                        <td class="text-nowrap text-right">
+                            @canPerm('training.teachers.manage')
+                            <button class="btn btn-sm btn-primary" data-toggle="modal" data-target="#edit{{ $teacher->id }}">Sửa</button>
+                            <form action="{{ route('admin.teachers.destroy', $teacher) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa?')">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger" title="Xóa"><i class="bi bi-trash"></i></button></form>
+                            @else
+                            <span class="text-muted small">—</span>
+                            @endcanPerm
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="8" class="text-center text-muted py-4">Không có dữ liệu giáo viên.</td></tr>
+                    <tr><td colspan="6" class="text-center text-muted py-4">Không tìm thấy dữ liệu phù hợp.</td></tr>
                 @endforelse
                 </tbody>
             </table>
@@ -53,6 +103,7 @@
     </div>
 </div>
 
+@canPerm('training.teachers.manage')
 @foreach($teachers as $teacher)
 <div class="modal fade" id="edit{{ $teacher->id }}" tabindex="-1">
     <div class="modal-dialog modal-lg">
@@ -70,13 +121,15 @@
     <div class="modal-dialog modal-lg">
         <form method="POST" action="{{ route('admin.teachers.store') }}" class="modal-content">
             @csrf
-            <div class="modal-header"><h5 class="modal-title">Thêm mới Giáo viên</h5><button type="button" class="close" data-dismiss="modal"><span>&times;</span></button></div>
+            <div class="modal-header"><h5 class="modal-title">Thêm giáo viên mới</h5><button type="button" class="close" data-dismiss="modal"><span>&times;</span></button></div>
             <div class="modal-body">@include('admin.training._teacher_form', ['teacher'=>null,'branches'=>$branches])</div>
-            <div class="modal-footer"><button type="button" class="btn btn-light" data-dismiss="modal">Hủy</button><button class="btn btn-primary">Lưu thay đổi</button></div>
+            <div class="modal-footer"><button type="button" class="btn btn-light" data-dismiss="modal">Hủy</button><button class="btn btn-primary">Lưu giáo viên</button></div>
         </form>
     </div>
 </div>
+@endcanPerm
 
+@canPerm('training.teachers.payroll')
 <div class="modal fade" id="modalPayroll" tabindex="-1">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
@@ -125,6 +178,7 @@
         </div>
     </div>
 </div>
+@endcanPerm
 @endsection
 
 @if(request()->has('payroll_month'))

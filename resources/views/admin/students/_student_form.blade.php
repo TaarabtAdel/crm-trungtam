@@ -15,14 +15,14 @@
     </div></div>
     <div class="col-md-4"><div class="form-group"><label>Trạng thái</label>
         <select name="status" class="form-control">
-            @foreach(['studying'=>'Đang học','paused'=>'Bảo lưu','graduated'=>'Hoàn thành','dropped'=>'Nghỉ'] as $k=>$v)
+            @foreach(\App\Models\Student::statusOptions() as $k=>$v)
                 <option value="{{ $k }}" @selected(old('status', $student->status ?? 'studying')===$k)>{{ $v }}</option>
             @endforeach
         </select>
     </div></div>
-    <div class="col-md-4"><div class="form-group"><label>SĐT phụ huynh</label><input name="parent_phone" class="form-control" value="{{ old('parent_phone', $student->parent_phone ?? '') }}"></div></div>
-    <div class="col-md-4"><div class="form-group"><label>Tên phụ huynh</label><input name="parent_name" class="form-control" value="{{ old('parent_name', $student->parent_name ?? '') }}"></div></div>
-    <div class="col-md-4"><div class="form-group"><label>Email phụ huynh</label><input type="email" name="parent_email" class="form-control" value="{{ old('parent_email', $student->parent_email ?? '') }}"></div></div>
+    <div class="col-md-4"><div class="form-group"><label>SĐT người thân</label><input name="parent_phone" class="form-control" value="{{ old('parent_phone', $student->parent_phone ?? '') }}"></div></div>
+    <div class="col-md-4"><div class="form-group"><label>Tên người thân</label><input name="parent_name" class="form-control" value="{{ old('parent_name', $student->parent_name ?? '') }}"></div></div>
+    <div class="col-md-4"><div class="form-group"><label>Email người thân</label><input type="email" name="parent_email" class="form-control" value="{{ old('parent_email', $student->parent_email ?? '') }}"></div></div>
     <div class="col-md-12"><div class="form-group"><label>Lớp học</label>
         <select name="class_ids[]" class="form-control" multiple size="4">
             @foreach($classes as $c)

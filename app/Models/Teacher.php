@@ -35,4 +35,26 @@ class Teacher extends Model
     {
         return $this->hasMany(ClassSession::class);
     }
+
+    public static function statusOptions(): array
+    {
+        return [
+            'active' => 'Hoạt động',
+            'inactive' => 'Ngưng',
+        ];
+    }
+
+    public function statusLabel(): string
+    {
+        return self::statusOptions()[$this->status] ?? $this->status;
+    }
+
+    public function statusBadgeClass(): string
+    {
+        return match ($this->status) {
+            'active' => 'teacher-status-active',
+            'inactive' => 'teacher-status-inactive',
+            default => 'teacher-status-inactive',
+        };
+    }
 }

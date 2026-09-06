@@ -17,8 +17,16 @@ class TeacherController extends Controller
         $q = $request->get('q');
         $status = $request->get('status');
         $teachers = Teacher::with('branch')
+            ->withCount('classes')
             ->tap(fn ($query) => CurrentBranch::apply($query))
-            ->when($q, fn ($query) => $query->where('name', 'like', "%{$q}%")->orWhere('email', 'like', "%{$q}%")->orWhere('phone', 'like', "%{$q}%"))
+            ->when($q, function ($query) use ($q) {
+                $query->where(function ($inner) use ($q) {
+                    $inner->where('name', 'like', "%{$q}%")
+                        ->orWhere('email', 'like', "%{$q}%")
+                        ->orWhere('phone', 'like', "%{$q}%")
+                        ->orWhere('specialty', 'like', "%{$q}%");
+                });
+            })
             ->when($status, fn ($query) => $query->where('status', $status))
             ->latest()
             ->paginate(15)

@@ -57,7 +57,7 @@
                 <div class="d-flex justify-content-between align-items-start flex-wrap" style="gap:.5rem">
                     <div>
                         <strong>{{ $item->type }}</strong>
-                        <span class="badge badge-{{ $item->statusBadgeClass() }} ml-1">{{ $item->statusLabel() }}</span>
+                        <span class="badge lead-status {{ $item->statusBadgeClass() }} ml-1">{{ $item->statusLabel() }}</span>
                         <div class="small text-muted mt-1">
                             {{ optional($item->scheduled_at)->format('d/m/Y H:i') ?? $item->created_at->format('d/m/Y H:i') }}
                             · {{ $item->sales?->name ?? '—' }}

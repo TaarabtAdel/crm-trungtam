@@ -15,23 +15,30 @@ class StudentController extends Controller
     {
         $q = $request->get('q');
         $status = $request->get('status');
+        $classId = $request->get('class_id');
+
         $students = Student::with(['branch', 'classes'])
             ->tap(fn ($query) => CurrentBranch::apply($query))
             ->when($q, function ($query) use ($q) {
                 $query->where(function ($inner) use ($q) {
                     $inner->where('name', 'like', "%{$q}%")
                         ->orWhere('parent_phone', 'like', "%{$q}%")
-                        ->orWhere('parent_name', 'like', "%{$q}%");
+                        ->orWhere('parent_name', 'like', "%{$q}%")
+                        ->orWhere('parent_email', 'like', "%{$q}%");
                 });
             })
             ->when($status, fn ($query) => $query->where('status', $status))
+            ->when($classId, fn ($query) => $query->whereHas('classes', fn ($c) => $c->where('classes.id', $classId)))
             ->latest()
             ->paginate(15)
             ->withQueryString();
+
         $branches = Branch::where('is_active', true)->orderBy('name')->get();
         $classes = CurrentBranch::apply(CourseClass::query())->where('status', 'active')->orderBy('name')->get();
 
-        return view('admin.students.students', compact('students', 'branches', 'classes', 'q', 'status'));
+        return view('admin.students.students', compact(
+            'students', 'branches', 'classes', 'q', 'status', 'classId'
+        ));
     }
 
     public function store(Request $request)

@@ -3,14 +3,20 @@
 use App\Http\Controllers\Admin\AttendanceController;
 use App\Http\Controllers\Admin\BranchController;
 use App\Http\Controllers\Admin\ClassController;
+use App\Http\Controllers\Admin\CommissionController;
 use App\Http\Controllers\Admin\CrmDashboardController;
 use App\Http\Controllers\Admin\CurrentBranchController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DebtController;
 use App\Http\Controllers\Admin\DemoDataController;
+use App\Http\Controllers\Admin\ExpenseController;
+use App\Http\Controllers\Admin\FinanceDashboardController;
+use App\Http\Controllers\Admin\FinanceReportController;
 use App\Http\Controllers\Admin\InteractionController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\LeadController;
 use App\Http\Controllers\Admin\PermissionController;
+use App\Http\Controllers\Admin\RefundController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\StudentController;
@@ -109,15 +115,67 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('attendances', [AttendanceController::class, 'index'])->middleware('permission:attendances.view')->name('attendances.index');
     Route::post('attendances', [AttendanceController::class, 'store'])->middleware('permission:attendances.manage')->name('attendances.store');
 
+    Route::middleware('permission:finance.dashboard.view')->group(function () {
+        Route::get('finance', [FinanceDashboardController::class, 'index'])->name('finance.dashboard');
+    });
+
     Route::middleware('permission:finance.invoices.view')->group(function () {
         Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');
         Route::get('invoices-suggest', [InvoiceController::class, 'suggest'])->name('invoices.suggest');
+        Route::get('invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
+        Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');
     });
     Route::middleware('permission:finance.invoices.manage')->group(function () {
         Route::post('invoices', [InvoiceController::class, 'store'])->name('invoices.store');
         Route::put('invoices/{invoice}', [InvoiceController::class, 'update'])->name('invoices.update');
         Route::delete('invoices/{invoice}', [InvoiceController::class, 'destroy'])->name('invoices.destroy');
-        Route::post('invoices/{invoice}/paid', [InvoiceController::class, 'markPaid'])->name('invoices.paid');
+        Route::post('invoices/{invoice}/installments', [InvoiceController::class, 'storeInstallments'])->name('invoices.installments.store');
+    });
+    Route::middleware('permission:finance.payments.manage')->group(function () {
+        Route::post('invoices/{invoice}/payments', [InvoiceController::class, 'storePayment'])->name('invoices.payments.store');
+    });
+
+    Route::middleware('permission:finance.debts.view')->group(function () {
+        Route::get('debts', [DebtController::class, 'index'])->name('debts.index');
+    });
+
+    Route::middleware('permission:finance.expenses.view')->group(function () {
+        Route::get('expenses', [ExpenseController::class, 'index'])->name('expenses.index');
+    });
+    Route::middleware('permission:finance.expenses.manage')->group(function () {
+        Route::post('expenses', [ExpenseController::class, 'store'])->name('expenses.store');
+        Route::delete('expenses/{expense}', [ExpenseController::class, 'destroy'])->name('expenses.destroy');
+        Route::post('expenses/{expense}/paid', [ExpenseController::class, 'markPaid'])->name('expenses.paid');
+    });
+    Route::middleware('permission:finance.expenses.approve')->group(function () {
+        Route::post('expenses/{expense}/approve', [ExpenseController::class, 'approve'])->name('expenses.approve');
+        Route::post('expenses/{expense}/reject', [ExpenseController::class, 'reject'])->name('expenses.reject');
+    });
+
+    Route::middleware('permission:finance.refunds.manage')->group(function () {
+        Route::get('refunds', [RefundController::class, 'index'])->name('refunds.index');
+        Route::post('refunds', [RefundController::class, 'store'])->name('refunds.store');
+        Route::post('refunds/{refund}/approve', [RefundController::class, 'approve'])->name('refunds.approve');
+        Route::post('refunds/{refund}/reject', [RefundController::class, 'reject'])->name('refunds.reject');
+    });
+
+    Route::middleware('permission:finance.commissions.view')->group(function () {
+        Route::get('commissions', [CommissionController::class, 'index'])->name('commissions.index');
+    });
+    Route::middleware('permission:finance.commissions.manage')->group(function () {
+        Route::post('commissions/{commission}/paid', [CommissionController::class, 'markPaid'])->name('commissions.paid');
+        Route::get('commission-rules', [CommissionController::class, 'rules'])->name('commission-rules.index');
+        Route::post('commission-rules', [CommissionController::class, 'storeRule'])->name('commission-rules.store');
+        Route::put('commission-rules/{rule}', [CommissionController::class, 'updateRule'])->name('commission-rules.update');
+        Route::delete('commission-rules/{rule}', [CommissionController::class, 'destroyRule'])->name('commission-rules.destroy');
+    });
+
+    Route::middleware('permission:finance.reports.view')->group(function () {
+        Route::get('finance/reports', [FinanceReportController::class, 'index'])->name('finance.reports');
+    });
+    Route::middleware('permission:finance.reports.export')->group(function () {
+        Route::get('finance/reports/export-excel', [FinanceReportController::class, 'exportExcel'])->name('finance.reports.excel');
+        Route::get('finance/reports/export-pdf', [FinanceReportController::class, 'exportPdf'])->name('finance.reports.pdf');
     });
 
     Route::middleware('permission:system.branches.view')->group(function () {

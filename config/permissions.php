@@ -4,13 +4,11 @@ return [
     'roles' => [
         'super_admin' => 'Super Admin',
         'admin' => 'Admin',
+        'accountant' => 'Kế toán',
         'sales' => 'Sales',
         'teacher' => 'Giáo viên',
     ],
 
-    /*
-    | Quyền theo nhóm. key dùng trong middleware / sidebar / @canPerm
-    */
     'groups' => [
         'overview' => [
             'label' => 'Tổng quan',
@@ -53,8 +51,19 @@ return [
         'finance' => [
             'label' => 'Quản trị tài chính',
             'permissions' => [
+                'finance.dashboard.view' => 'Dashboard tài chính',
                 'finance.invoices.view' => 'Xem hóa đơn học phí',
-                'finance.invoices.manage' => 'Tạo / thu / xóa hóa đơn',
+                'finance.invoices.manage' => 'Tạo / sửa / xóa hóa đơn',
+                'finance.payments.manage' => 'Ghi nhận thanh toán',
+                'finance.refunds.manage' => 'Hoàn tiền / duyệt hoàn',
+                'finance.expenses.view' => 'Xem chi phí',
+                'finance.expenses.manage' => 'Tạo / sửa chi phí',
+                'finance.expenses.approve' => 'Duyệt chi phí',
+                'finance.debts.view' => 'Xem công nợ',
+                'finance.commissions.view' => 'Xem hoa hồng',
+                'finance.commissions.manage' => 'Quản lý hoa hồng / quy tắc',
+                'finance.reports.view' => 'Xem báo cáo tài chính',
+                'finance.reports.export' => 'Xuất báo cáo Excel/PDF',
             ],
         ],
         'system' => [
@@ -65,17 +74,13 @@ return [
                 'system.users.view' => 'Xem người dùng',
                 'system.users.manage' => 'Thêm / sửa / xóa người dùng',
                 'system.permissions.manage' => 'Cấu hình phân quyền',
-                'system.reports.view' => 'Xem báo cáo',
+                'system.reports.view' => 'Xem báo cáo tổng hợp',
                 'system.settings.manage' => 'Cài đặt hệ thống',
                 'system.demo_data.manage' => 'Khởi tạo data demo',
             ],
         ],
     ],
 
-    /*
-    | Quyền mặc định khi chưa có cấu hình / khi seed
-    | super_admin luôn bypass toàn bộ quyền
-    */
     'defaults' => [
         'admin' => [
             'dashboard.view',
@@ -87,7 +92,13 @@ return [
             'training.teachers.view', 'training.teachers.manage', 'training.teachers.payroll',
             'students.view', 'students.manage',
             'attendances.view', 'attendances.manage',
-            'finance.invoices.view', 'finance.invoices.manage',
+            'finance.dashboard.view',
+            'finance.invoices.view', 'finance.invoices.manage', 'finance.payments.manage',
+            'finance.refunds.manage',
+            'finance.expenses.view', 'finance.expenses.manage', 'finance.expenses.approve',
+            'finance.debts.view',
+            'finance.commissions.view', 'finance.commissions.manage',
+            'finance.reports.view', 'finance.reports.export',
             'system.branches.view', 'system.branches.manage',
             'system.users.view', 'system.users.manage',
             'system.permissions.manage',
@@ -95,12 +106,26 @@ return [
             'system.settings.manage',
             'system.demo_data.manage',
         ],
+        'accountant' => [
+            'dashboard.view',
+            'students.view',
+            'finance.dashboard.view',
+            'finance.invoices.view', 'finance.invoices.manage', 'finance.payments.manage',
+            'finance.refunds.manage',
+            'finance.expenses.view', 'finance.expenses.manage',
+            'finance.debts.view',
+            'finance.commissions.view',
+            'finance.reports.view', 'finance.reports.export',
+        ],
         'sales' => [
             'dashboard.view',
             'crm.sales.view',
             'crm.leads.view', 'crm.leads.manage', 'crm.leads.import',
             'crm.interactions.view', 'crm.interactions.manage',
             'students.view',
+            'finance.debts.view',
+            'finance.commissions.view',
+            'finance.invoices.view',
             'system.reports.view',
         ],
         'teacher' => [

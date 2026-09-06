@@ -62,11 +62,48 @@
     @endif
     @endif
 
-    @if($u->hasPermission('finance.invoices.view'))
+    @if($u->hasAnyPermission('finance.dashboard.view','finance.invoices.view','finance.expenses.view','finance.debts.view','finance.commissions.view','finance.refunds.manage','finance.reports.view'))
     <div class="nav-section">Quản trị tài chính</div>
-    <a href="{{ route('admin.invoices.index') }}" class="nav-link {{ request()->routeIs('admin.invoices.*') ? 'active' : '' }}">
-        <i class="bi bi-receipt mr-2"></i> Hóa đơn học phí
+    @if($u->hasPermission('finance.dashboard.view'))
+    <a href="{{ route('admin.finance.dashboard') }}" class="nav-link {{ request()->routeIs('admin.finance.dashboard') ? 'active' : '' }}">
+        <i class="bi bi-pie-chart mr-2"></i> Dashboard TC
     </a>
+    @endif
+    @if($u->hasPermission('finance.invoices.view'))
+    <a href="{{ route('admin.invoices.index') }}" class="nav-link {{ request()->routeIs('admin.invoices.*') ? 'active' : '' }}">
+        <i class="bi bi-receipt mr-2"></i> Hóa đơn
+    </a>
+    @endif
+    @if($u->hasPermission('finance.debts.view'))
+    <a href="{{ route('admin.debts.index') }}" class="nav-link {{ request()->routeIs('admin.debts.*') ? 'active' : '' }}">
+        <i class="bi bi-exclamation-triangle mr-2"></i> Công nợ
+    </a>
+    @endif
+    @if($u->hasPermission('finance.expenses.view'))
+    <a href="{{ route('admin.expenses.index') }}" class="nav-link {{ request()->routeIs('admin.expenses.*') ? 'active' : '' }}">
+        <i class="bi bi-wallet2 mr-2"></i> Chi phí
+    </a>
+    @endif
+    @if($u->hasPermission('finance.refunds.manage'))
+    <a href="{{ route('admin.refunds.index') }}" class="nav-link {{ request()->routeIs('admin.refunds.*') ? 'active' : '' }}">
+        <i class="bi bi-arrow-counterclockwise mr-2"></i> Hoàn tiền
+    </a>
+    @endif
+    @if($u->hasPermission('finance.commissions.view'))
+    <a href="{{ route('admin.commissions.index') }}" class="nav-link {{ request()->routeIs('admin.commissions.*') ? 'active' : '' }}">
+        <i class="bi bi-percent mr-2"></i> Hoa hồng
+    </a>
+    @endif
+    @if($u->hasPermission('finance.commissions.manage'))
+    <a href="{{ route('admin.commission-rules.index') }}" class="nav-link {{ request()->routeIs('admin.commission-rules.*') ? 'active' : '' }}">
+        <i class="bi bi-sliders mr-2"></i> Quy tắc HH
+    </a>
+    @endif
+    @if($u->hasPermission('finance.reports.view'))
+    <a href="{{ route('admin.finance.reports') }}" class="nav-link {{ request()->routeIs('admin.finance.reports*') ? 'active' : '' }}">
+        <i class="bi bi-bar-chart-line mr-2"></i> Báo cáo TC
+    </a>
+    @endif
     @endif
 
     @if($u->hasAnyPermission('system.branches.view','system.users.view','system.permissions.manage','system.reports.view','system.demo_data.manage','system.settings.manage'))

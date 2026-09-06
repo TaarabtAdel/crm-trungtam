@@ -1,3 +1,4 @@
+@php $isSales = auth()->user()->isSales(); @endphp
 <div class="form-group"><label>Chọn khách hàng *</label>
     <select name="lead_id" class="form-control" required>
         <option value="">-- Chọn --</option>
@@ -6,6 +7,7 @@
         @endforeach
     </select>
 </div>
+@if(!$isSales)
 <div class="form-group"><label>Nhân viên phụ trách (Sales)</label>
     <select name="sales_id" class="form-control">
         <option value="">-- Chọn --</option>
@@ -14,10 +16,11 @@
         @endforeach
     </select>
 </div>
+@endif
 <div class="form-group"><label>Loại tương tác *</label>
     <select name="type" class="form-control" required>
-        @foreach(['Cuộc gọi','Lịch hẹn Test','Nhắn tin','Gặp trực tiếp'] as $t)
-            <option value="{{ $t }}" @selected(old('type', $item->type ?? 'Lịch hẹn Test')===$t)>{{ $t }}</option>
+        @foreach(\App\Models\Interaction::typeOptions() as $k=>$v)
+            <option value="{{ $k }}" @selected(old('type', $item->type ?? 'Lịch hẹn Test')===$k)>{{ $v }}</option>
         @endforeach
     </select>
 </div>
@@ -26,9 +29,9 @@
 </div>
 <div class="form-group"><label>Trạng thái</label>
     <select name="status" class="form-control">
-        @foreach(['upcoming'=>'Sắp diễn ra','done'=>'Hoàn thành','cancelled'=>'Hủy','no_show'=>'Không đến'] as $k=>$v)
+        @foreach(\App\Models\Interaction::statusOptions() as $k=>$v)
             <option value="{{ $k }}" @selected(old('status', $item->status ?? 'upcoming')===$k)>{{ $v }}</option>
         @endforeach
     </select>
 </div>
-<div class="form-group"><label>Ghi chú</label><textarea name="notes" class="form-control" rows="3" placeholder="Nội dung cần trao đổi...">{{ old('notes', $item->notes ?? '') }}</textarea></div>
+<div class="form-group mb-0"><label>Ghi chú</label><textarea name="notes" class="form-control" rows="3" placeholder="Nội dung cần trao đổi...">{{ old('notes', $item->notes ?? '') }}</textarea></div>

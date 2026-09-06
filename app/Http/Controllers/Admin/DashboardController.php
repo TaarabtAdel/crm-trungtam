@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ClassSession;
 use App\Models\CourseClass;
+use App\Models\Expense;
 use App\Models\Invoice;
 use App\Models\Lead;
+use App\Models\Payment;
 use App\Models\Student;
 use App\Models\Teacher;
 use App\Support\CurrentBranch;
@@ -38,13 +40,15 @@ class DashboardController extends Controller
             'students' => CurrentBranch::apply(Student::query())->count(),
             'classes' => CurrentBranch::apply(CourseClass::query())->count(),
             'sessions' => CurrentBranch::applyThrough(ClassSession::query(), 'courseClass')->count(),
-            'revenue' => $this->paidRevenueQuery($branchId)->sum('amount'),
+            'revenue' => (float) Payment::query()
+                ->whereHas('invoice', fn ($q) => $branchId ? $q->where('branch_id', $branchId) : $q)
+                ->sum('amount'),
         ];
 
         $incomeThisMonth = $this->paidRevenueInRange($branchId, $monthStart, $monthEnd);
         $incomePrevMonth = $this->paidRevenueInRange($branchId, $prevMonthStart, $prevMonthEnd);
-        $costThisMonth = $this->payrollCostInRange($branchId, $monthStart, $monthEnd);
-        $costPrevMonth = $this->payrollCostInRange($branchId, $prevMonthStart, $prevMonthEnd);
+        $costThisMonth = $this->totalCostInRange($branchId, $monthStart, $monthEnd);
+        $costPrevMonth = $this->totalCostInRange($branchId, $prevMonthStart, $prevMonthEnd);
 
         $daysInMonth = $monthEnd->day;
         $dailyRevenue = [];
@@ -57,7 +61,7 @@ class DashboardController extends Controller
 
         $yearRevenue = $this->paidRevenueInYear($branchId, $year);
         $lastYearRevenue = $this->paidRevenueInYear($branchId, $year - 1);
-        $yearCost = $this->payrollCostInYear($branchId, $year);
+        $yearCost = $this->totalCostInYear($branchId, $year);
 
         $monthlyRevenue = [];
         $monthlyCost = [];
@@ -67,7 +71,7 @@ class DashboardController extends Controller
             $end = (clone $start)->endOfMonth();
             $monthLabels[] = $start->translatedFormat('M');
             $monthlyRevenue[] = $this->paidRevenueInRange($branchId, $start, $end);
-            $monthlyCost[] = $this->payrollCostInRange($branchId, $start, $end);
+            $monthlyCost[] = $this->totalCostInRange($branchId, $start, $end);
         }
 
         $studentsNow = CurrentBranch::apply(Student::query())->count();
@@ -140,20 +144,36 @@ class DashboardController extends Controller
 
     protected function paidRevenueInRange(?int $branchId, Carbon $from, Carbon $to): float
     {
-        return (float) $this->paidRevenueQuery($branchId)
-            ->where(function ($q) use ($from, $to) {
-                $q->whereBetween('paid_at', [$from, $to])
-                    ->orWhere(function ($q2) use ($from, $to) {
-                        $q2->whereNull('paid_at')
-                            ->whereBetween('updated_at', [$from, $to]);
-                    });
-            })
+        return (float) Payment::query()
+            ->whereBetween('paid_at', [$from, $to])
+            ->whereHas('invoice', fn ($q) => $branchId ? $q->where('branch_id', $branchId) : $q)
             ->sum('amount');
     }
 
     protected function paidRevenueInYear(?int $branchId, int $year): float
     {
         return $this->paidRevenueInRange(
+            $branchId,
+            Carbon::create($year, 1, 1)->startOfDay(),
+            Carbon::create($year, 12, 31)->endOfDay()
+        );
+    }
+
+    protected function totalCostInRange(?int $branchId, Carbon $from, Carbon $to): float
+    {
+        $payroll = $this->payrollCostInRange($branchId, $from, $to);
+        $expenses = (float) Expense::query()
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->whereIn('status', ['approved', 'paid'])
+            ->whereBetween('expense_date', [$from->toDateString(), $to->toDateString()])
+            ->sum('amount');
+
+        return $payroll + $expenses;
+    }
+
+    protected function totalCostInYear(?int $branchId, int $year): float
+    {
+        return $this->totalCostInRange(
             $branchId,
             Carbon::create($year, 1, 1)->startOfDay(),
             Carbon::create($year, 12, 31)->endOfDay()

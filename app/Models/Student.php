@@ -38,4 +38,30 @@ class Student extends Model
     {
         return $this->hasMany(Invoice::class);
     }
+
+    public static function statusOptions(): array
+    {
+        return [
+            'studying' => 'Đang học',
+            'paused' => 'Bảo lưu',
+            'graduated' => 'Hoàn thành',
+            'dropped' => 'Nghỉ',
+        ];
+    }
+
+    public function statusLabel(): string
+    {
+        return self::statusOptions()[$this->status] ?? $this->status;
+    }
+
+    public function statusBadgeClass(): string
+    {
+        return match ($this->status) {
+            'studying' => 'student-status-studying',
+            'paused' => 'student-status-paused',
+            'graduated' => 'student-status-graduated',
+            'dropped' => 'student-status-dropped',
+            default => 'student-status-paused',
+        };
+    }
 }

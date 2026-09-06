@@ -293,11 +293,21 @@ body.admin-body {
     cursor: pointer;
 }
 
-.leads-table td {
+.leads-table td,
+.classes-table td,
+.teachers-table td,
+.interactions-table td,
+.sales-table td,
+.subjects-table td,
+.students-table td {
     vertical-align: middle;
 }
 
-.lead-avatar {
+.lead-avatar,
+.class-avatar,
+.teacher-avatar,
+.interaction-avatar,
+.sales-avatar {
     width: 36px;
     height: 36px;
     border-radius: 50%;
@@ -309,6 +319,116 @@ body.admin-body {
     font-weight: 700;
     font-size: .85rem;
     flex-shrink: 0;
+}
+
+.class-avatar {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.teacher-avatar {
+    background: #ede9fe;
+    color: #6d28d9;
+}
+
+.interaction-avatar {
+    background: #ffedd5;
+    color: #c2410c;
+}
+
+.sales-avatar {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.class-status-active {
+    background: #ecfdf5;
+    color: #047857;
+    border-color: #a7f3d0;
+}
+
+.class-status-inactive {
+    background: #f8fafc;
+    color: #64748b;
+    border-color: #e2e8f0;
+}
+
+.class-status-completed {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border-color: #bfdbfe;
+}
+
+.teacher-status-active {
+    background: #ecfdf5;
+    color: #047857;
+    border-color: #a7f3d0;
+}
+
+.teacher-status-inactive {
+    background: #f8fafc;
+    color: #64748b;
+    border-color: #e2e8f0;
+}
+
+.subject-status-active {
+    background: #ecfdf5;
+    color: #047857;
+    border-color: #a7f3d0;
+}
+
+.subject-status-inactive {
+    background: #f8fafc;
+    color: #64748b;
+    border-color: #e2e8f0;
+}
+
+.student-status-studying {
+    background: #ecfdf5;
+    color: #047857;
+    border-color: #a7f3d0;
+}
+
+.student-status-paused {
+    background: #fffbeb;
+    color: #b45309;
+    border-color: #fde68a;
+}
+
+.student-status-graduated {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border-color: #bfdbfe;
+}
+
+.student-status-dropped {
+    background: #f8fafc;
+    color: #64748b;
+    border-color: #e2e8f0;
+}
+
+.interaction-status-upcoming {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border-color: #bfdbfe;
+}
+
+.interaction-status-done {
+    background: #ecfdf5;
+    color: #047857;
+    border-color: #a7f3d0;
+}
+
+.interaction-status-cancelled {
+    background: #f8fafc;
+    color: #64748b;
+    border-color: #e2e8f0;
+}
+
+.interaction-status-noshow {
+    background: #fffbeb;
+    color: #b45309;
+    border-color: #fde68a;
 }
 
 .lead-status {

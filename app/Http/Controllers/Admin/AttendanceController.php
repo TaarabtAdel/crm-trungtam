@@ -17,13 +17,13 @@ class AttendanceController extends Controller
         $classId = $request->get('class_id', $classes->first()?->id);
         $date = $request->get('session_date', now()->toDateString());
         $courseClass = $classId ? CourseClass::with('students')->find($classId) : null;
-        $attendances = [];
+        $attendances = collect();
 
         if ($courseClass) {
             $attendances = Attendance::where('class_id', $courseClass->id)
                 ->whereDate('session_date', $date)
-                ->pluck('status', 'student_id')
-                ->all();
+                ->get()
+                ->keyBy('student_id');
         }
 
         return view('admin.students.attendances', compact('classes', 'courseClass', 'classId', 'date', 'attendances'));
@@ -35,22 +35,30 @@ class AttendanceController extends Controller
             'class_id' => 'required|exists:classes,id',
             'session_date' => 'required|date',
             'statuses' => 'nullable|array',
-            'statuses.*' => 'in:present,absent,late',
+            'statuses.*' => 'in:present,absent,late,excused',
+            'notes' => 'nullable|array',
+            'notes.*' => 'nullable|string|max:500',
             'mark_session_completed' => 'nullable|boolean',
         ]);
 
         $class = CourseClass::with('students')->findOrFail($data['class_id']);
         $statuses = $data['statuses'] ?? [];
+        $notes = $data['notes'] ?? [];
 
         foreach ($class->students as $student) {
             $status = $statuses[$student->id] ?? 'absent';
+            $note = trim((string) ($notes[$student->id] ?? ''));
+
             Attendance::updateOrCreate(
                 [
                     'class_id' => $class->id,
                     'student_id' => $student->id,
                     'session_date' => $data['session_date'],
                 ],
-                ['status' => $status]
+                [
+                    'status' => $status,
+                    'note' => $note !== '' ? $note : null,
+                ]
             );
         }
 

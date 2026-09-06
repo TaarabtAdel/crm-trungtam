@@ -1,57 +1,82 @@
 @extends('layouts.admin')
 
-@section('title', 'Hóa đơn học phí')
+@section('title', 'Hóa đơn')
 
 @section('content')
+@php $fmt = fn ($n) => number_format((float) $n, 0, ',', '.').' đ'; @endphp
 <div class="page-card">
     <div class="card-header-custom">
         <div>
-            <h5 class="mb-0 font-weight-bold">Hóa đơn học phí</h5>
-            <small class="text-muted">Theo dõi công nợ và thanh toán học viên</small>
+            <h5 class="mb-0 font-weight-bold">Danh sách Hóa đơn</h5>
+            <small class="text-muted">Theo dõi công nợ, thanh toán và trả góp học phí.</small>
         </div>
+        @canPerm('finance.invoices.manage')
         <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalCreate">+ Tạo hóa đơn</button>
+        @endcanPerm
     </div>
     <div class="card-body-custom">
         <form class="filter-bar" method="GET">
-            <input type="text" name="q" value="{{ $q }}" class="form-control form-control-sm" style="max-width:220px" placeholder="Tìm học viên...">
+            <input type="text" name="q" value="{{ $q }}" class="form-control form-control-sm" style="max-width:220px" placeholder="Mã HĐ, học viên...">
             <select name="status" class="form-control form-control-sm" style="max-width:160px">
-                <option value="">Tất cả</option>
-                <option value="unpaid" @selected($status==='unpaid')>Chưa thu</option>
-                <option value="paid" @selected($status==='paid')>Đã thu</option>
-                <option value="cancelled" @selected($status==='cancelled')>Hủy</option>
+                <option value="">Tất cả trạng thái</option>
+                @foreach(\App\Models\Invoice::statusOptions() as $k=>$v)
+                    <option value="{{ $k }}" @selected(($status ?? '')===$k)>{{ $v }}</option>
+                @endforeach
             </select>
             <button class="btn btn-sm btn-outline-secondary">Lọc</button>
         </form>
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead><tr><th>Học viên</th><th>Lớp</th><th>Tháng</th><th>Loại HP</th><th>Số tiền</th><th>Hạn</th><th>Trạng thái</th><th>Chức năng</th></tr></thead>
+            <table class="table table-hover mb-0 invoices-table">
+                <thead>
+                <tr>
+                    <th>Hóa đơn</th>
+                    <th>Học viên</th>
+                    <th>Số tiền</th>
+                    <th>Đã thu / Còn nợ</th>
+                    <th>Hạn</th>
+                    <th></th>
+                </tr>
+                </thead>
                 <tbody>
                 @forelse($invoices as $invoice)
                     <tr>
-                        <td>{{ $invoice->student?->name }}</td>
-                        <td>{{ $invoice->courseClass?->name ?? '—' }}</td>
                         <td>
-                            {{ $invoice->billing_month }}
-                            @if($invoice->fee_type === 'per_session' && $invoice->sessions_count)
-                                <br><small class="text-muted">{{ $invoice->sessions_count }} buổi</small>
-                            @endif
-                        </td>
-                        <td>{{ $invoice->feeTypeLabel() }}</td>
-                        <td>@vnd($invoice->amount)</td>
-                        <td>{{ optional($invoice->due_date)->format('d/m/Y') }}</td>
-                        <td>
-                            <span class="badge badge-{{ $invoice->status==='paid'?'success':($invoice->status==='unpaid'?'warning':'secondary') }}">{{ $invoice->status }}</span>
+                            <a href="{{ route('admin.invoices.show', $invoice) }}" class="font-weight-bold text-dark">{{ $invoice->code }}</a>
+                            <div class="mt-1 d-flex flex-wrap" style="gap:.35rem">
+                                <span class="badge lead-status {{ $invoice->statusBadgeClass() }}">{{ $invoice->statusLabel() }}</span>
+                                @if($invoice->courseClass)
+                                    <span class="lead-meta-chip">{{ $invoice->courseClass->name }}</span>
+                                @endif
+                                @if($invoice->billing_month)
+                                    <span class="lead-meta-chip">{{ $invoice->billing_month }}</span>
+                                @endif
+                            </div>
                         </td>
                         <td>
-                            @if($invoice->status!=='paid')
-                            <form action="{{ route('admin.invoices.paid', $invoice) }}" method="POST" class="d-inline">@csrf<button class="btn btn-sm btn-success">Đã thu</button></form>
+                            <div>{{ $invoice->student?->name }}</div>
+                            <div class="small text-muted">{{ $invoice->branch?->name }}</div>
+                        </td>
+                        <td class="font-weight-bold">{{ $fmt($invoice->amount) }}</td>
+                        <td>
+                            <div class="text-success">{{ $fmt($invoice->paid_amount) }}</div>
+                            <div class="small text-danger">{{ $fmt($invoice->remaining_amount) }}</div>
+                        </td>
+                        <td class="small text-muted">
+                            {{ optional($invoice->due_date)->format('d/m/Y') ?: '—' }}
+                            @if($invoice->isOverdue())
+                                <div class="text-danger">Quá hạn {{ $invoice->daysOverdue() }} ngày</div>
                             @endif
-                            <button class="btn btn-sm btn-outline-primary" data-toggle="modal" data-target="#edit{{ $invoice->id }}"><i class="bi bi-pencil"></i></button>
+                        </td>
+                        <td class="text-nowrap text-right">
+                            <a href="{{ route('admin.invoices.show', $invoice) }}" class="btn btn-sm btn-primary">Chi tiết</a>
+                            <a href="{{ route('admin.invoices.pdf', $invoice) }}" class="btn btn-sm btn-outline-secondary" title="PDF"><i class="bi bi-file-pdf"></i></a>
+                            @canPerm('finance.invoices.manage')
                             <form action="{{ route('admin.invoices.destroy', $invoice) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa?')">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
+                            @endcanPerm
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="8" class="text-center text-muted py-4">Chưa có hóa đơn.</td></tr>
+                    <tr><td colspan="6" class="text-center text-muted py-4">Chưa có hóa đơn.</td></tr>
                 @endforelse
                 </tbody>
             </table>
@@ -60,65 +85,33 @@
     </div>
 </div>
 
-@foreach($invoices as $invoice)
-<div class="modal fade" id="edit{{ $invoice->id }}" tabindex="-1">
-    <div class="modal-dialog">
-        <form method="POST" action="{{ route('admin.invoices.update', $invoice) }}" class="modal-content">
-            @csrf @method('PUT')
-            <div class="modal-header"><h5 class="modal-title">Sửa hóa đơn</h5><button type="button" class="close" data-dismiss="modal"><span>&times;</span></button></div>
-            <div class="modal-body">@include('admin.finance._invoice_form', ['invoice'=>$invoice,'students'=>$students,'classes'=>$classes])</div>
-            <div class="modal-footer"><button type="button" class="btn btn-light" data-dismiss="modal">Hủy</button><button class="btn btn-primary">Lưu</button></div>
-        </form>
-    </div>
-</div>
-@endforeach
-
+@canPerm('finance.invoices.manage')
 <div class="modal fade" id="modalCreate" tabindex="-1">
     <div class="modal-dialog">
         <form method="POST" action="{{ route('admin.invoices.store') }}" class="modal-content">
             @csrf
             <div class="modal-header"><h5 class="modal-title">Tạo hóa đơn</h5><button type="button" class="close" data-dismiss="modal"><span>&times;</span></button></div>
-            <div class="modal-body">
-                <p class="small text-muted mb-2">Doanh thu dashboard/báo cáo lấy từ hóa đơn <strong>đã thu</strong>, không lấy trực tiếp từ đơn giá lớp.</p>
-                @include('admin.finance._invoice_form', ['invoice'=>null,'students'=>$students,'classes'=>$classes])
-            </div>
-            <div class="modal-footer"><button type="button" class="btn btn-light" data-dismiss="modal">Hủy</button><button class="btn btn-primary">Tạo</button></div>
+            <div class="modal-body">@include('admin.finance._invoice_form', ['invoice'=>null,'students'=>$students,'classes'=>$classes,'salesUsers'=>$salesUsers])</div>
+            <div class="modal-footer"><button type="button" class="btn btn-light" data-dismiss="modal">Hủy</button><button class="btn btn-primary">Lưu</button></div>
         </form>
     </div>
 </div>
+@endcanPerm
 @endsection
 
 @push('scripts')
 <script>
-function suggestInvoiceAmount($scope) {
-    var classId = $scope.find('.js-invoice-class').val();
-    var month = $scope.find('.js-invoice-month').val();
-    var $hint = $scope.find('.js-fee-hint');
-    if (!classId) {
-        $hint.hide().text('');
-        return;
-    }
-    $.get('{{ route('admin.invoices.suggest') }}', { class_id: classId, billing_month: month })
-        .done(function (res) {
-            $scope.find('.js-fee-type').val(res.fee_type);
-            $scope.find('.js-sessions-count').val(res.sessions_count || '');
-            $scope.find('.js-invoice-amount').val(res.amount);
-            if (res.fee_type === 'per_session') {
-                $hint.html('Lớp <strong>' + res.class_name + '</strong>: ' + res.tuition_display +
-                    ' × <strong>' + res.sessions_count + '</strong> buổi completed trong tháng = <strong>' +
-                    Number(res.amount).toLocaleString('vi-VN') + ' đ</strong>').show();
-            } else {
-                $hint.html('Lớp <strong>' + res.class_name + '</strong>: học phí tháng = <strong>' +
-                    Number(res.amount).toLocaleString('vi-VN') + ' đ</strong>').show();
-            }
-        });
-}
-
 $(document).on('click', '.js-suggest-amount', function () {
-    suggestInvoiceAmount($(this).closest('.modal-body'));
-});
-$(document).on('change', '.js-invoice-class, .js-invoice-month', function () {
-    suggestInvoiceAmount($(this).closest('.modal-body'));
+    var wrap = $(this).closest('form');
+    var classId = wrap.find('.js-invoice-class').val();
+    var month = wrap.find('.js-invoice-month').val();
+    if (!classId) { alert('Chọn lớp trước'); return; }
+    $.get('{{ route('admin.invoices.suggest') }}', {class_id: classId, billing_month: month}, function (res) {
+        wrap.find('.js-invoice-amount').val(res.amount);
+        wrap.find('.js-sessions-count').val(res.sessions_count || '');
+        wrap.find('.js-fee-type').val(res.fee_type || '');
+        wrap.find('.js-fee-hint').show().text('Gợi ý: ' + res.tuition_type_label + ' — ' + res.tuition_display);
+    });
 });
 </script>
 @endpush

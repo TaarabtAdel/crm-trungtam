@@ -31,14 +31,13 @@
     <div class="col-12">
         <div class="form-group"><label>Ghi chú</label><textarea name="notes" class="form-control" rows="2">{{ old('notes', $teacher->notes ?? '') }}</textarea></div>
     </div>
-    @if($teacher)
     <div class="col-md-6">
         <div class="form-group"><label>Trạng thái</label>
             <select name="status" class="form-control">
-                <option value="active" @selected(($teacher->status ?? '')==='active')>Hoạt động</option>
-                <option value="inactive" @selected(($teacher->status ?? '')==='inactive')>Ngưng</option>
+                @foreach(\App\Models\Teacher::statusOptions() as $k=>$v)
+                    <option value="{{ $k }}" @selected(old('status', $teacher->status ?? 'active')===$k)>{{ $v }}</option>
+                @endforeach
             </select>
         </div>
     </div>
-    @endif
 </div>

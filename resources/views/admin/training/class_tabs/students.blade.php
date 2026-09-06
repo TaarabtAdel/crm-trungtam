@@ -17,6 +17,16 @@
                             @endforeach
                         </select>
                     </div>
+                    <div class="form-group">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="createInvoice" name="create_invoice" value="1" checked>
+                            <label class="custom-control-label" for="createInvoice">Tự tạo hóa đơn học phí</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Số kỳ trả góp</label>
+                        <input type="number" name="installment_count" class="form-control" value="1" min="1" max="24">
+                    </div>
                     <button class="btn btn-primary btn-block btn-sm">Thêm vào lớp</button>
                 </form>
             @endif

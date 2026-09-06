@@ -21,4 +21,26 @@ class Subject extends Model
     {
         return $this->hasMany(CourseClass::class);
     }
+
+    public static function statusOptions(): array
+    {
+        return [
+            'active' => 'Hoạt động',
+            'inactive' => 'Ngưng',
+        ];
+    }
+
+    public function statusLabel(): string
+    {
+        return self::statusOptions()[$this->status] ?? $this->status;
+    }
+
+    public function statusBadgeClass(): string
+    {
+        return match ($this->status) {
+            'active' => 'subject-status-active',
+            'inactive' => 'subject-status-inactive',
+            default => 'subject-status-inactive',
+        };
+    }
 }

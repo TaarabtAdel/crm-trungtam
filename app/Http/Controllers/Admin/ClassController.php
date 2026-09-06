@@ -20,18 +20,32 @@ class ClassController extends Controller
     public function index(Request $request)
     {
         $q = $request->get('q');
-        $classes = CourseClass::with(['branch', 'subject', 'teacher', 'students'])
-            ->withCount('sessions')
+        $status = $request->get('status');
+        $subjectId = $request->get('subject_id');
+
+        $classes = CourseClass::with(['branch', 'subject', 'teacher'])
+            ->withCount(['sessions', 'students'])
             ->tap(fn ($query) => CurrentBranch::apply($query))
-            ->when($q, fn ($query) => $query->where('name', 'like', "%{$q}%")->orWhere('code', 'like', "%{$q}%"))
+            ->when($q, function ($query) use ($q) {
+                $query->where(function ($inner) use ($q) {
+                    $inner->where('name', 'like', "%{$q}%")
+                        ->orWhere('code', 'like', "%{$q}%")
+                        ->orWhere('room', 'like', "%{$q}%");
+                });
+            })
+            ->when($status, fn ($query) => $query->where('status', $status))
+            ->when($subjectId, fn ($query) => $query->where('subject_id', $subjectId))
             ->latest()
             ->paginate(15)
             ->withQueryString();
+
         $branches = Branch::where('is_active', true)->orderBy('name')->get();
         $subjects = CurrentBranch::apply(Subject::query())->where('status', 'active')->orderBy('name')->get();
         $teachers = CurrentBranch::apply(Teacher::query())->where('status', 'active')->orderBy('name')->get();
 
-        return view('admin.training.classes', compact('classes', 'branches', 'subjects', 'teachers', 'q'));
+        return view('admin.training.classes', compact(
+            'classes', 'branches', 'subjects', 'teachers', 'q', 'status', 'subjectId'
+        ));
     }
 
     public function show(Request $request, CourseClass $class)
@@ -258,13 +272,27 @@ class ClassController extends Controller
     {
         $data = $request->validate([
             'student_id' => 'required|exists:students,id',
+            'create_invoice' => 'nullable|boolean',
+            'installment_count' => 'nullable|integer|min:1|max:24',
         ]);
 
         $class->students()->syncWithoutDetaching([$data['student_id']]);
 
+        $message = 'Đã thêm học viên vào lớp.';
+        if ($request->boolean('create_invoice', true)) {
+            $student = Student::findOrFail($data['student_id']);
+            $invoice = app(\App\Services\Finance\InvoiceService::class)
+                ->createEnrollmentInvoice($class, $student, [
+                    'installment_count' => (int) ($data['installment_count'] ?? 1),
+                ]);
+            if ($invoice) {
+                $message .= ' Đã tạo hóa đơn '.$invoice->code.'.';
+            }
+        }
+
         return redirect()
             ->route('admin.classes.show', ['class' => $class, 'tab' => 'students'])
-            ->with('success', 'Đã thêm học viên vào lớp.');
+            ->with('success', $message);
     }
 
     public function detachStudent(CourseClass $class, Student $student)
@@ -286,6 +314,7 @@ class ClassController extends Controller
             'due_date' => 'nullable|date',
             'status' => 'nullable|in:unpaid,paid,cancelled',
             'note' => 'nullable|string',
+            'installment_count' => 'nullable|integer|min:1|max:24',
         ]);
 
         if (! $class->students()->where('students.id', $data['student_id'])->exists()) {
@@ -296,18 +325,19 @@ class ClassController extends Controller
         $suggestion = $class->suggestInvoiceAmount($billingMonth);
 
         $status = $data['status'] ?? 'unpaid';
-        Invoice::create([
+        app(\App\Services\Finance\InvoiceService::class)->create([
             'student_id' => $data['student_id'],
             'class_id' => $class->id,
+            'branch_id' => $class->branch_id,
             'billing_month' => $billingMonth,
             'fee_type' => $suggestion['fee_type'],
             'sessions_count' => $data['sessions_count'] ?? $suggestion['sessions_count'],
             'amount' => $data['amount'] ?? $suggestion['amount'],
             'due_date' => $data['due_date'] ?? null,
             'status' => $status,
-            'paid_at' => $status === 'paid' ? now() : null,
             'note' => $data['note'] ?? null,
-        ]);
+            'received_by' => auth()->id(),
+        ], (int) ($data['installment_count'] ?? 1));
 
         return redirect()
             ->route('admin.classes.show', ['class' => $class, 'tab' => 'tuition', 'billing_month' => $billingMonth])
@@ -341,9 +371,10 @@ class ClassController extends Controller
                 }
             }
 
-            Invoice::create([
+            app(\App\Services\Finance\InvoiceService::class)->create([
                 'student_id' => $student->id,
                 'class_id' => $class->id,
+                'branch_id' => $class->branch_id,
                 'billing_month' => $billingMonth,
                 'fee_type' => $suggestion['fee_type'],
                 'sessions_count' => $suggestion['sessions_count'],

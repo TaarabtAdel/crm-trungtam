@@ -49,6 +49,30 @@ class CourseClass extends Model
         return $this->isPerSessionFee() ? "{$amount}/buổi" : "{$amount}/tháng";
     }
 
+    public static function statusOptions(): array
+    {
+        return [
+            'active' => 'Đang học',
+            'inactive' => 'Ngưng',
+            'completed' => 'Kết thúc',
+        ];
+    }
+
+    public function statusLabel(): string
+    {
+        return self::statusOptions()[$this->status] ?? $this->status;
+    }
+
+    public function statusBadgeClass(): string
+    {
+        return match ($this->status) {
+            'active' => 'class-status-active',
+            'inactive' => 'class-status-inactive',
+            'completed' => 'class-status-completed',
+            default => 'class-status-inactive',
+        };
+    }
+
     /**
      * Gợi ý số tiền hóa đơn theo loại học phí + tháng.
      * - monthly: = tuition_fee

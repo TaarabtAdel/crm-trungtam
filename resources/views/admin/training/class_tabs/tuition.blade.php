@@ -90,22 +90,20 @@
                                 <br><small class="text-muted">{{ $invoice->sessions_count }} buổi</small>
                             @endif
                         </td>
-                        <td>@vnd($invoice->amount)</td>
+                        <td>@vnd($invoice->amount)
+                            <div class="small text-muted">Đã thu @vnd($invoice->paid_amount) · Còn @vnd($invoice->remaining_amount)</div>
+                        </td>
                         <td>
-                            <span class="badge badge-{{ $invoice->status==='paid'?'success':($invoice->status==='unpaid'?'warning':'secondary') }}">
-                                {{ $invoice->status === 'paid' ? 'Đã thu' : ($invoice->status === 'unpaid' ? 'Chưa thu' : 'Hủy') }}
-                            </span>
+                            <span class="badge lead-status {{ $invoice->statusBadgeClass() }}">{{ $invoice->statusLabel() }}</span>
                         </td>
                         <td class="text-nowrap">
-                            @if($invoice->status !== 'paid')
-                                <form action="{{ route('admin.invoices.paid', $invoice) }}" method="POST" class="d-inline">@csrf
-                                    <button class="btn btn-sm btn-success">Thu</button>
-                                </form>
-                            @endif
+                            <a href="{{ route('admin.invoices.show', $invoice) }}" class="btn btn-sm btn-primary">Thu / Chi tiết</a>
+                            @canPerm('finance.invoices.manage')
                             <form action="{{ route('admin.invoices.destroy', $invoice) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa HĐ?')">
                                 @csrf @method('DELETE')
                                 <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
                             </form>
+                            @endcanPerm
                         </td>
                     </tr>
                 @empty
