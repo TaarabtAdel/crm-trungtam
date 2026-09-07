@@ -3,12 +3,33 @@
 @section('title', 'Hoàn tiền')
 
 @section('content')
-@php $fmt = fn ($n) => number_format((float) $n, 0, ',', '.').' đ'; @endphp
+@php
+    $fmt = fn ($n) => number_format((float) $n, 0, ',', '.').' đ';
+    $helpItems = [
+        [
+            'title' => 'Yêu cầu hoàn tiền từ đâu?',
+            'body' => '<p class="mb-0">Không tạo trực tiếp trên trang này. Vào <strong>chi tiết hóa đơn</strong> → dòng thanh toán → bấm <em>Hoàn</em> để gửi yêu cầu gắn với khoản thu gốc.</p>',
+        ],
+        [
+            'title' => 'Duyệt hoặc từ chối',
+            'body' => '<p class="mb-0">Yêu cầu ở trạng thái <em>Chờ duyệt</em> có nút <strong>Duyệt</strong> / <strong>Từ chối</strong>. Duyệt sẽ cập nhật số tiền có thể hoàn và liên quan đến công nợ HĐ.</p>',
+        ],
+        [
+            'title' => 'Lọc theo trạng thái',
+            'body' => '<p class="mb-0">Dùng bộ lọc phía trên để xem nhanh yêu cầu đang chờ, đã duyệt hoặc đã từ chối. Bấm mã HĐ để mở lại chi tiết thanh toán.</p>',
+        ],
+    ];
+@endphp
 <div class="page-card">
     <div class="card-header-custom">
         <div>
             <h5 class="mb-0 font-weight-bold">Hoàn tiền</h5>
             <small class="text-muted">Duyệt các yêu cầu hoàn gắn với thanh toán gốc.</small>
+        </div>
+        <div class="d-flex align-items-center" style="gap:.5rem">
+            <button class="btn btn-sm btn-outline-info" type="button" data-toggle="modal" data-target="#modalRefundsHelp">
+                <i class="bi bi-question-circle"></i> Hướng dẫn
+            </button>
         </div>
     </div>
     <div class="card-body-custom">
@@ -50,4 +71,10 @@
         {{ $items->links() }}
     </div>
 </div>
+
+@include('partials.page_help', [
+    'modalId' => 'modalRefundsHelp',
+    'title' => 'Hướng dẫn — Hoàn tiền',
+    'items' => $helpItems,
+])
 @endsection

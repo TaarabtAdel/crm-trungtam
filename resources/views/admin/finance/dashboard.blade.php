@@ -3,7 +3,32 @@
 @section('title', 'Dashboard Tài chính')
 
 @section('content')
-@php $fmt = fn ($n) => number_format((float) $n, 0, ',', '.').' đ'; @endphp
+@php
+    $fmt = fn ($n) => number_format((float) $n, 0, ',', '.').' đ';
+    $helpItems = [
+        [
+            'title' => 'Các chỉ số (KPI) nghĩa là gì?',
+            'body' => '<ul class="mb-0 pl-3">'
+                .'<li><strong>Thu tháng này</strong>: tổng tiền đã thu từ thanh toán trong tháng hiện tại.</li>'
+                .'<li><strong>Chi tháng này</strong>: tổng khoản chi đã thực chi trong tháng.</li>'
+                .'<li><strong>Lãi/Lỗ tháng</strong>: Thu − Chi trong tháng.</li>'
+                .'<li><strong>Tổng công nợ</strong>: số tiền học viên còn nợ trên các hóa đơn chưa thu đủ.</li>'
+                .'</ul>',
+        ],
+        [
+            'title' => 'Công nợ ưu tiên',
+            'body' => '<p class="mb-0">Bảng dưới liệt kê các hóa đơn còn nợ cần theo dõi sớm. Bấm <em>Chi tiết</em> để vào hóa đơn và ghi nhận thu tiền. Xem đầy đủ tại <a href="'.route('admin.debts.index').'">Công nợ</a>.</p>',
+        ],
+        [
+            'title' => 'Liên kết nhanh',
+            'body' => '<ul class="mb-0 pl-3">'
+                .'<li><a href="'.route('admin.invoices.index').'">Hóa đơn</a> — tạo HĐ, theo dõi trạng thái thu.</li>'
+                .'<li><a href="'.route('admin.debts.index').'">Công nợ</a> — lọc quá hạn / sắp đến hạn.</li>'
+                .'<li><a href="'.route('admin.finance.reports').'">Báo cáo</a> — xem thu chi theo kỳ, xuất Excel/PDF.</li>'
+                .'</ul>',
+        ],
+    ];
+@endphp
 
 <div class="page-card mb-3">
     <div class="card-header-custom">
@@ -11,13 +36,16 @@
             <h5 class="mb-0 font-weight-bold">Dashboard Tài chính</h5>
             <small class="text-muted">Thu chi tháng này và công nợ cần theo dõi.</small>
         </div>
-        <div class="d-flex" style="gap:.5rem">
+        <div class="d-flex align-items-center" style="gap:.5rem">
             @canPerm('finance.invoices.manage')
             <a href="{{ route('admin.invoices.index') }}" class="btn btn-sm btn-primary">+ Hóa đơn</a>
             @endcanPerm
             @canPerm('finance.reports.view')
             <a href="{{ route('admin.finance.reports') }}" class="btn btn-sm btn-outline-secondary">Báo cáo</a>
             @endcanPerm
+            <button class="btn btn-sm btn-outline-info" type="button" data-toggle="modal" data-target="#modalFinanceDashboardHelp">
+                <i class="bi bi-question-circle"></i> Hướng dẫn
+            </button>
         </div>
     </div>
 </div>
@@ -28,10 +56,8 @@
         ['label' => 'Chi tháng này', 'value' => $fmt($kpi['expense_month']), 'icon' => 'wallet2', 'tone' => 'orange'],
         ['label' => 'Lãi/Lỗ tháng', 'value' => $fmt($kpi['profit_month']), 'icon' => 'graph-up', 'tone' => 'indigo'],
         ['label' => 'Tổng công nợ', 'value' => $fmt($kpi['debt_total']), 'icon' => 'exclamation-circle', 'tone' => 'red'],
-        ['label' => 'HĐ quá hạn', 'value' => $kpi['overdue_count'], 'icon' => 'clock-history', 'tone' => 'pink'],
-        ['label' => 'HĐ còn nợ', 'value' => $kpi['unpaid_invoices'], 'icon' => 'receipt', 'tone' => 'blue'],
     ] as $card)
-        <div class="col-6 col-md-4 col-xl-2 mb-3">
+        <div class="col-6 col-md-6 col-xl-3 mb-3">
             <div class="dash-kpi dash-kpi-{{ $card['tone'] }}">
                 <div class="dash-kpi-icon"><i class="bi bi-{{ $card['icon'] }}"></i></div>
                 <div>
@@ -76,4 +102,10 @@
         </div>
     </div>
 </div>
+
+@include('partials.page_help', [
+    'modalId' => 'modalFinanceDashboardHelp',
+    'title' => 'Hướng dẫn — Dashboard Tài chính',
+    'items' => $helpItems,
+])
 @endsection

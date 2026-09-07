@@ -3,6 +3,29 @@
 @section('title', 'Leads')
 
 @section('content')
+@php
+    $helpItems = [
+        [
+            'title' => 'Phễu Lead dùng để làm gì?',
+            'body' => '<p class="mb-0">Theo dõi khách tiềm năng theo trạng thái (mới → liên hệ → quan tâm → <strong>Đã chốt</strong> / mất). Lọc theo tên, SĐT, ngày tạo và trạng thái để ưu tiên chăm sóc.</p>',
+        ],
+        [
+            'title' => 'Thêm lead & nhập Excel',
+            'body' => '<ul class="mb-0 pl-3">'
+                .'<li>Bấm <em>+ Thêm Lead mới</em> để nhập từng khách (gán Sales, nguồn, chi nhánh).</li>'
+                .'<li>Bấm <em>Nhập Excel</em> → tải file mẫu → điền cột bắt buộc <strong>Họ tên</strong>, <strong>SĐT</strong> rồi tải lên.</li>'
+                .'</ul>',
+        ],
+        [
+            'title' => 'Gán Sales & xem chi tiết',
+            'body' => '<p class="mb-0">Cột <em>Phân bổ</em> cho biết Sales phụ trách. Bấm tên lead hoặc <em>Chi tiết</em> để mở hồ sơ, cập nhật trạng thái và ghi lịch sử tư vấn.</p>',
+        ],
+        [
+            'title' => 'Phạm vi hiển thị',
+            'body' => '<p class="mb-0">Tài khoản Sales chỉ thấy lead được gán cho mình. Quản lý / Admin xem toàn bộ theo chi nhánh đang chọn trên header.</p>',
+        ],
+    ];
+@endphp
 <div class="page-card">
     <div class="card-header-custom">
         <div>
@@ -16,6 +39,9 @@
             </small>
         </div>
         <div class="d-flex align-items-center" style="gap:.5rem">
+            <button class="btn btn-sm btn-outline-info" type="button" data-toggle="modal" data-target="#modalLeadsHelp">
+                <i class="bi bi-question-circle"></i> Hướng dẫn
+            </button>
             @canPerm('crm.leads.import')
             <button class="btn btn-outline-success btn-sm" data-toggle="modal" data-target="#modalImport">
                 <i class="bi bi-file-earmark-excel"></i> Nhập Excel
@@ -151,4 +177,10 @@
         </form>
     </div>
 </div>
+
+@include('partials.page_help', [
+    'modalId' => 'modalLeadsHelp',
+    'title' => 'Hướng dẫn — Danh sách Leads',
+    'items' => $helpItems,
+])
 @endsection

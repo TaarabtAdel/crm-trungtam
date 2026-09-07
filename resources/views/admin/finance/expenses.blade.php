@@ -3,16 +3,44 @@
 @section('title', 'Chi phí')
 
 @section('content')
-@php $fmt = fn ($n) => number_format((float) $n, 0, ',', '.').' đ'; @endphp
+@php
+    $fmt = fn ($n) => number_format((float) $n, 0, ',', '.').' đ';
+    $helpItems = [
+        [
+            'title' => 'Luồng xử lý chi phí',
+            'body' => '<ol class="mb-0 pl-3">'
+                .'<li><strong>Đề xuất</strong> — tạo khoản chi (trạng thái Chờ duyệt).</li>'
+                .'<li><strong>Duyệt / Từ chối</strong> — người có quyền duyệt xác nhận.</li>'
+                .'<li><strong>Đã chi</strong> — sau khi duyệt, đánh dấu đã thực chi tiền.</li>'
+                .'</ol>',
+        ],
+        [
+            'title' => 'Quyền cần có',
+            'body' => '<ul class="mb-0 pl-3">'
+                .'<li><em>Đề xuất / Đã chi / Xóa</em>: quyền quản lý chi phí.</li>'
+                .'<li><em>Duyệt / Từ chối</em>: quyền duyệt chi phí (thường dành quản lý).</li>'
+                .'</ul>',
+        ],
+        [
+            'title' => 'Lọc & chứng từ',
+            'body' => '<p class="mb-0">Lọc theo trạng thái hoặc loại chi để theo dõi. Có thể đính kèm chứng từ khi đề xuất; mở link <em>Chứng từ</em> trên từng dòng để xem lại.</p>',
+        ],
+    ];
+@endphp
 <div class="page-card">
     <div class="card-header-custom">
         <div>
             <h5 class="mb-0 font-weight-bold">Quản lý chi phí</h5>
             <small class="text-muted">Đề xuất → duyệt → thực chi.</small>
         </div>
-        @canPerm('finance.expenses.manage')
-        <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalCreate">+ Đề xuất chi</button>
-        @endcanPerm
+        <div class="d-flex align-items-center" style="gap:.5rem">
+            @canPerm('finance.expenses.manage')
+            <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalCreate">+ Đề xuất chi</button>
+            @endcanPerm
+            <button class="btn btn-sm btn-outline-info" type="button" data-toggle="modal" data-target="#modalExpensesHelp">
+                <i class="bi bi-question-circle"></i> Hướng dẫn
+            </button>
+        </div>
     </div>
     <div class="card-body-custom">
         <form class="filter-bar" method="GET">
@@ -103,4 +131,10 @@
     </div>
 </div>
 @endcanPerm
+
+@include('partials.page_help', [
+    'modalId' => 'modalExpensesHelp',
+    'title' => 'Hướng dẫn — Chi phí',
+    'items' => $helpItems,
+])
 @endsection

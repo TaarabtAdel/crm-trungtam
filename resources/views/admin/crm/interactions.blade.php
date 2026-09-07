@@ -3,6 +3,25 @@
 @section('title', 'Lịch hẹn / Tương tác')
 
 @section('content')
+@php
+    $helpItems = [
+        [
+            'title' => 'Lên lịch follow-up',
+            'body' => '<p class="mb-0">Bấm <em>+ Thêm lịch hẹn mới</em> để tạo gọi điện, nhắn tin, gặp mặt hoặc test năng lực. Chọn lead, thời gian dự kiến, Sales phụ trách và ghi chú.</p>',
+        ],
+        [
+            'title' => 'Trạng thái & lọc',
+            'body' => '<ul class="mb-0 pl-3">'
+                .'<li>Lọc theo loại tương tác và trạng thái (sắp tới, hoàn thành, hủy…).</li>'
+                .'<li>Cập nhật trạng thái sau mỗi lần chăm sóc để pipeline và dashboard phản ánh đúng.</li>'
+                .'</ul>',
+        ],
+        [
+            'title' => 'Phạm vi Sales',
+            'body' => '<p class="mb-0">Tài khoản Sales chỉ thấy lịch hẹn do mình phụ trách. Admin / quản lý xem theo chi nhánh đang chọn. Bấm tên khách để mở hồ sơ lead (tab lịch sử).</p>',
+        ],
+    ];
+@endphp
 <div class="page-card">
     <div class="card-header-custom">
         <div>
@@ -16,6 +35,9 @@
             </small>
         </div>
         <div class="d-flex align-items-center" style="gap:.5rem">
+            <button class="btn btn-sm btn-outline-info" type="button" data-toggle="modal" data-target="#modalInteractionsHelp">
+                <i class="bi bi-question-circle"></i> Hướng dẫn
+            </button>
             @canPerm('crm.interactions.manage')
             <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalCreate">+ Thêm lịch hẹn mới</button>
             @endcanPerm
@@ -139,4 +161,10 @@
     </div>
 </div>
 @endcanPerm
+
+@include('partials.page_help', [
+    'modalId' => 'modalInteractionsHelp',
+    'title' => 'Hướng dẫn — Lịch hẹn / Tương tác',
+    'items' => $helpItems,
+])
 @endsection

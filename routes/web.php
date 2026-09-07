@@ -105,11 +105,14 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
 
     Route::middleware('permission:students.view')->group(function () {
         Route::get('students', [StudentController::class, 'index'])->name('students.index');
+        Route::get('students/{student}', [StudentController::class, 'show'])->name('students.show');
     });
     Route::middleware('permission:students.manage')->group(function () {
         Route::post('students', [StudentController::class, 'store'])->name('students.store');
         Route::put('students/{student}', [StudentController::class, 'update'])->name('students.update');
         Route::delete('students/{student}', [StudentController::class, 'destroy'])->name('students.destroy');
+        Route::post('students/{student}/classes', [StudentController::class, 'attachClass'])->name('students.classes.attach');
+        Route::delete('students/{student}/classes/{class}', [StudentController::class, 'detachClass'])->name('students.classes.detach');
     });
 
     Route::get('attendances', [AttendanceController::class, 'index'])->middleware('permission:attendances.view')->name('attendances.index');

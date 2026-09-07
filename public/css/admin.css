@@ -499,6 +499,14 @@ body.admin-body {
     box-shadow: 0 20px 40px rgba(0,0,0,.25);
 }
 
+.page-help-body code,
+.finance-help-body code {
+    background: #e2e8f0;
+    padding: .1em .35em;
+    border-radius: .25rem;
+    font-size: .85em;
+}
+
 @media (max-width: 991.98px) {
     .admin-sidebar { transform: translateX(-100%); transition: .2s; }
     .admin-sidebar.show { transform: translateX(0); }

@@ -3,6 +3,22 @@
 @section('title', 'Môn học')
 
 @section('content')
+@php
+    $helpItems = [
+        [
+            'title' => 'Môn học dùng để làm gì?',
+            'body' => '<p class="mb-0">Danh mục chương trình / môn gắn với lớp học (ví dụ Toán, Tiếng Anh). Khi tạo lớp bạn chọn môn từ danh sách này.</p>',
+        ],
+        [
+            'title' => 'Thêm & sửa môn',
+            'body' => '<p class="mb-0">Bấm <em>+ Thêm môn học</em> hoặc <em>Sửa</em> để cập nhật tên, mô tả, chi nhánh và trạng thái (đang dùng / ngưng).</p>',
+        ],
+        [
+            'title' => 'Lớp liên quan',
+            'body' => '<p class="mb-0">Cột <em>Lớp liên quan</em> cho biết số lớp đang dùng môn đó — cân nhắc trước khi xóa môn đã gắn lớp.</p>',
+        ],
+    ];
+@endphp
 <div class="page-card">
     <div class="card-header-custom">
         <div>
@@ -10,6 +26,9 @@
             <small class="text-muted">Quản lý chương trình / môn học theo chi nhánh.</small>
         </div>
         <div class="d-flex align-items-center" style="gap:.5rem">
+            <button class="btn btn-sm btn-outline-info" type="button" data-toggle="modal" data-target="#modalSubjectsHelp">
+                <i class="bi bi-question-circle"></i> Hướng dẫn
+            </button>
             @canPerm('training.subjects.manage')
             <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalCreate">+ Thêm môn học</button>
             @endcanPerm
@@ -102,4 +121,10 @@
     </div>
 </div>
 @endcanPerm
+
+@include('partials.page_help', [
+    'modalId' => 'modalSubjectsHelp',
+    'title' => 'Hướng dẫn — Danh sách Môn học',
+    'items' => $helpItems,
+])
 @endsection

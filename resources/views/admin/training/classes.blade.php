@@ -3,7 +3,23 @@
 @section('title', 'Lớp học')
 
 @section('content')
-@php $days = ['T2','T3','T4','T5','T6','T7','CN']; @endphp
+@php
+    $days = ['T2','T3','T4','T5','T6','T7','CN'];
+    $helpItems = [
+        [
+            'title' => 'Tạo & quản lý lớp',
+            'body' => '<p class="mb-0">Bấm <em>+ Thêm lớp mới</em> để tạo lớp: môn học, giáo viên, lịch học, sĩ số tối đa, loại học phí (tháng / buổi). Lọc theo trạng thái và môn để tìm nhanh.</p>',
+        ],
+        [
+            'title' => 'Trạng thái lớp',
+            'body' => '<p class="mb-0">Badge trạng thái (đang mở, tạm dừng, kết thúc…) giúp biết lớp còn nhận học viên hay không. Cập nhật khi sửa lớp.</p>',
+        ],
+        [
+            'title' => 'Mở chi tiết lớp',
+            'body' => '<p class="mb-0">Bấm tên lớp hoặc vào chi tiết để quản lý học viên, thời khóa biểu, thu học phí và điểm danh.</p>',
+        ],
+    ];
+@endphp
 <div class="page-card">
     <div class="card-header-custom">
         <div>
@@ -11,6 +27,9 @@
             <small class="text-muted">Quản lý lớp, lịch học, sĩ số và học phí theo chi nhánh.</small>
         </div>
         <div class="d-flex align-items-center" style="gap:.5rem">
+            <button class="btn btn-sm btn-outline-info" type="button" data-toggle="modal" data-target="#modalClassesHelp">
+                <i class="bi bi-question-circle"></i> Hướng dẫn
+            </button>
             @canPerm('training.classes.manage')
             <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalCreate">+ Thêm lớp mới</button>
             @endcanPerm
@@ -146,6 +165,12 @@
     </div>
 </div>
 @endcanPerm
+
+@include('partials.page_help', [
+    'modalId' => 'modalClassesHelp',
+    'title' => 'Hướng dẫn — Danh sách Lớp học',
+    'items' => $helpItems,
+])
 @endsection
 
 @push('scripts')

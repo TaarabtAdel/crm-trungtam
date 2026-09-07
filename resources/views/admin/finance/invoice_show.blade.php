@@ -3,7 +3,29 @@
 @section('title', 'Chi tiết hóa đơn')
 
 @section('content')
-@php $fmt = fn ($n) => number_format((float) $n, 0, ',', '.').' đ'; @endphp
+@php
+    $fmt = fn ($n) => number_format((float) $n, 0, ',', '.').' đ';
+    $helpItems = [
+        [
+            'title' => 'Ghi nhận thanh toán',
+            'body' => '<p class="mb-0">Nhập số tiền, phương thức và ngày thu rồi bấm <strong>Ghi nhận thu</strong>. Có thể đính kèm biên lai. Thu từng phần được phép cho đến khi hết nợ.</p>',
+        ],
+        [
+            'title' => 'Trả góp & PDF',
+            'body' => '<ul class="mb-0 pl-3">'
+                .'<li><strong>Trả góp</strong>: đặt số kỳ và hạn kỳ đầu; hệ thống chia lịch. Khi thu có thể chọn kỳ hoặc để tự phân bổ.</li>'
+                .'<li><strong>PDF</strong>: xuất hóa đơn để in / gửi phụ huynh.</li>'
+                .'</ul>',
+        ],
+        [
+            'title' => 'Hoàn tiền & hoa hồng',
+            'body' => '<ul class="mb-0 pl-3">'
+                .'<li>Trên từng dòng thanh toán, bấm <em>Hoàn</em> để gửi yêu cầu hoàn (cần quyền hoàn tiền).</li>'
+                .'<li>Khi HĐ <strong>thu đủ</strong> và đã gắn Sales, hoa hồng tự phát sinh — xem khối Hoa hồng bên phải hoặc menu Hoa hồng.</li>'
+                .'</ul>',
+        ],
+    ];
+@endphp
 
 <div class="page-card mb-3">
     <div class="card-header-custom">
@@ -15,9 +37,12 @@
                 @if($invoice->courseClass)<span class="lead-meta-chip">{{ $invoice->courseClass->name }}</span>@endif
             </div>
         </div>
-        <div class="d-flex" style="gap:.5rem">
+        <div class="d-flex align-items-center" style="gap:.5rem">
             <a href="{{ route('admin.invoices.index') }}" class="btn btn-sm btn-outline-secondary">Quay lại</a>
             <a href="{{ route('admin.invoices.pdf', $invoice) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-file-pdf"></i> PDF</a>
+            <button class="btn btn-sm btn-outline-info" type="button" data-toggle="modal" data-target="#modalInvoiceShowHelp">
+                <i class="bi bi-question-circle"></i> Hướng dẫn
+            </button>
         </div>
     </div>
     <div class="card-body-custom">
@@ -156,4 +181,10 @@
 </div>
 @endforeach
 @endcanPerm
+
+@include('partials.page_help', [
+    'modalId' => 'modalInvoiceShowHelp',
+    'title' => 'Hướng dẫn — Chi tiết hóa đơn',
+    'items' => $helpItems,
+])
 @endsection

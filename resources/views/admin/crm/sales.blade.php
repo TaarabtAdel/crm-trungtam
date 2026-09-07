@@ -5,6 +5,23 @@
 @section('content')
 @php
     $fmt = fn ($n) => number_format((float) $n, 0, ',', '.').' đ';
+    $helpItems = [
+        [
+            'title' => 'KPI trên dashboard',
+            'body' => '<p class="mb-0">Các ô chỉ số (khách mới, tương tác, đã chốt, tỷ lệ chuyển đổi, doanh thu pipeline) phản ánh hoạt động tuyển sinh theo phạm vi của bạn / chi nhánh đang chọn.</p>',
+        ],
+        [
+            'title' => 'Bảng hiệu suất Sales',
+            'body' => '<ul class="mb-0 pl-3">'
+                .'<li>Xếp hạng theo doanh thu chốt — chọn <em>Tháng này</em> hoặc <em>Tất cả thời gian</em>.</li>'
+                .'<li>Cột Được phân / Tương tác / Đã chốt / Tỷ lệ giúp so sánh năng suất từng nhân viên.</li>'
+                .'</ul>',
+        ],
+        [
+            'title' => 'Lịch hẹn sắp tới',
+            'body' => '<p class="mb-0">Cột bên phải liệt kê follow-up gần nhất. Dùng nút <em>Danh sách Leads</em> / <em>Lịch hẹn</em> để đi sâu xử lý từng khách.</p>',
+        ],
+    ];
 @endphp
 
 <div class="page-card mb-3">
@@ -20,6 +37,9 @@
             </small>
         </div>
         <div class="d-flex align-items-center" style="gap:.5rem">
+            <button class="btn btn-sm btn-outline-info" type="button" data-toggle="modal" data-target="#modalSalesHelp">
+                <i class="bi bi-question-circle"></i> Hướng dẫn
+            </button>
             @canPerm('crm.leads.view')
             <a href="{{ route('admin.leads.index') }}" class="btn btn-sm btn-outline-secondary">Danh sách Leads</a>
             @endcanPerm
@@ -166,4 +186,10 @@
         </div>
     </div>
 </div>
+
+@include('partials.page_help', [
+    'modalId' => 'modalSalesHelp',
+    'title' => 'Hướng dẫn — Dashboard Sales',
+    'items' => $helpItems,
+])
 @endsection

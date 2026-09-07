@@ -7,7 +7,40 @@
     $fmt = fn ($n) => number_format((float) $n, 0, ',', '.').' đ';
     $pctClass = fn ($p) => $p >= 0 ? 'text-success' : 'text-danger';
     $pctText = fn ($p) => ($p >= 0 ? '+' : '').$p.'%';
+    $helpItems = [
+        [
+            'title' => 'Trang này dùng để làm gì?',
+            'body' => '<p class="mb-0">Tổng quan nhanh toàn trung tâm: số lượng nhân sự/học viên/lớp, doanh thu–chi phí, và khối lượng công việc giáo viên theo tháng đang chọn.</p>',
+        ],
+        [
+            'title' => 'Cách đọc các chỉ số',
+            'body' => '<ul class="mb-0 pl-3">'
+                .'<li><strong>KPI trên cùng</strong>: tổng hiện tại (GV, HV, lớp, buổi học, doanh thu).</li>'
+                .'<li><strong>Cập nhật doanh thu</strong>: biểu đồ theo ngày trong tháng; chọn tháng bằng bộ lọc.</li>'
+                .'<li><strong>Tổng quan tài chính</strong>: so sánh doanh thu vs chi phí (lương GV) theo năm.</li>'
+                .'<li>% xanh/đỏ là so với kỳ trước (tháng / năm / tuần).</li>'
+                .'</ul>',
+        ],
+        [
+            'title' => 'Bộ lọc tháng / năm',
+            'body' => '<p class="mb-0">Đổi <em>tháng</em> hoặc <em>năm</em> trên từng khối biểu đồ để xem dữ liệu tương ứng. Một số khối dùng chung tham số URL nên đổi ở một chỗ có thể ảnh hưởng khối khác.</p>',
+        ],
+        [
+            'title' => 'Khi cần chi tiết hơn',
+            'body' => '<p class="mb-0">Vào module tương ứng: <strong>Học viên</strong>, <strong>Lớp học</strong>, <strong>Tài chính</strong> (hóa đơn/công nợ) để xem và thao tác chi tiết — Dashboard chỉ để theo dõi tổng quan.</p>',
+        ],
+    ];
 @endphp
+
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap" style="gap:.5rem">
+    <div>
+        <h5 class="mb-0 font-weight-bold">Bảng điều khiển</h5>
+        <small class="text-muted">Tổng quan KPI vận hành và tài chính trung tâm.</small>
+    </div>
+    <button class="btn btn-sm btn-outline-info" type="button" data-toggle="modal" data-target="#modalDashboardHelp">
+        <i class="bi bi-question-circle"></i> Hướng dẫn
+    </button>
+</div>
 
 <div class="dash-kpis row">
     @foreach([
@@ -207,6 +240,12 @@
         </div>
     </div>
 </div>
+
+@include('partials.page_help', [
+    'modalId' => 'modalDashboardHelp',
+    'title' => 'Hướng dẫn — Bảng điều khiển',
+    'items' => $helpItems,
+])
 @endsection
 
 @push('scripts')

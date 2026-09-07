@@ -3,16 +3,41 @@
 @section('title', 'Hóa đơn')
 
 @section('content')
-@php $fmt = fn ($n) => number_format((float) $n, 0, ',', '.').' đ'; @endphp
+@php
+    $fmt = fn ($n) => number_format((float) $n, 0, ',', '.').' đ';
+    $helpItems = [
+        [
+            'title' => 'Tạo hóa đơn mới',
+            'body' => '<p class="mb-0">Bấm <strong>+ Tạo hóa đơn</strong>, chọn học viên / lớp, số tiền và hạn thanh toán. Nếu có Sales phụ trách, nhớ chọn để hệ thống tính hoa hồng khi thu đủ.</p>',
+        ],
+        [
+            'title' => 'Trạng thái hóa đơn',
+            'body' => '<ul class="mb-0 pl-3">'
+                .'<li><em>Chưa thu</em> — chưa có khoản thanh toán nào.</li>'
+                .'<li><em>Thu một phần</em> — đã thu nhưng còn nợ.</li>'
+                .'<li><em>Đã thu</em> — thu đủ; hoa hồng có thể phát sinh nếu đã gắn Sales.</li>'
+                .'</ul>',
+        ],
+        [
+            'title' => 'Thu tiền & lọc danh sách',
+            'body' => '<p class="mb-0">Bấm <em>Chi tiết</em> trên từng dòng để ghi nhận thanh toán / trả góp. Dùng ô tìm kiếm và bộ lọc trạng thái để tìm nhanh HĐ cần xử lý.</p>',
+        ],
+    ];
+@endphp
 <div class="page-card">
     <div class="card-header-custom">
         <div>
             <h5 class="mb-0 font-weight-bold">Danh sách Hóa đơn</h5>
             <small class="text-muted">Theo dõi công nợ, thanh toán và trả góp học phí.</small>
         </div>
-        @canPerm('finance.invoices.manage')
-        <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalCreate">+ Tạo hóa đơn</button>
-        @endcanPerm
+        <div class="d-flex align-items-center" style="gap:.5rem">
+            @canPerm('finance.invoices.manage')
+            <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalCreate">+ Tạo hóa đơn</button>
+            @endcanPerm
+            <button class="btn btn-sm btn-outline-info" type="button" data-toggle="modal" data-target="#modalInvoicesHelp">
+                <i class="bi bi-question-circle"></i> Hướng dẫn
+            </button>
+        </div>
     </div>
     <div class="card-body-custom">
         <form class="filter-bar" method="GET">
@@ -97,6 +122,12 @@
     </div>
 </div>
 @endcanPerm
+
+@include('partials.page_help', [
+    'modalId' => 'modalInvoicesHelp',
+    'title' => 'Hướng dẫn — Danh sách hóa đơn',
+    'items' => $helpItems,
+])
 @endsection
 
 @push('scripts')

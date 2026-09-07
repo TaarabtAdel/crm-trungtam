@@ -3,6 +3,34 @@
 @section('title', 'Học viên')
 
 @section('content')
+@php
+    $helpItems = [
+        [
+            'title' => 'Trang này dùng để làm gì?',
+            'body' => '<p class="mb-0">Danh sách học viên toàn trung tâm: tìm kiếm, lọc theo trạng thái/lớp, thêm mới và mở <strong>Chi tiết</strong> để quản lý hồ sơ, lớp, học phí và điểm danh.</p>',
+        ],
+        [
+            'title' => 'Thêm học viên mới',
+            'body' => '<ol class="mb-0 pl-3">'
+                .'<li>Bấm <strong>+ Thêm học viên</strong> (cần quyền quản lý).</li>'
+                .'<li>Điền thông tin HV, người thân, chi nhánh, trạng thái.</li>'
+                .'<li>Lưu → học viên xuất hiện trong danh sách.</li>'
+                .'</ol>',
+        ],
+        [
+            'title' => 'Lọc và mở Chi tiết',
+            'body' => '<ul class="mb-0 pl-3">'
+                .'<li>Ô tìm: tên HV, người thân, SĐT…</li>'
+                .'<li>Lọc theo <em>trạng thái</em> hoặc <em>lớp</em> rồi bấm Lọc.</li>'
+                .'<li>Bấm tên HV hoặc nút <strong>Chi tiết</strong> để xem các tab thông tin / lớp / học phí / điểm danh.</li>'
+                .'</ul>',
+        ],
+        [
+            'title' => 'Xóa học viên',
+            'body' => '<p class="mb-0">Nút thùng rác chỉ hiện khi có quyền quản lý. Xóa cần xác nhận — cân nhắc trước vì ảnh hưởng dữ liệu liên quan.</p>',
+        ],
+    ];
+@endphp
 <div class="page-card">
     <div class="card-header-custom">
         <div>
@@ -13,6 +41,9 @@
             @canPerm('students.manage')
             <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalCreate">+ Thêm học viên</button>
             @endcanPerm
+            <button class="btn btn-sm btn-outline-info" type="button" data-toggle="modal" data-target="#modalStudentsHelp">
+                <i class="bi bi-question-circle"></i> Hướng dẫn
+            </button>
         </div>
     </div>
     <div class="card-body-custom">
@@ -47,7 +78,7 @@
                 @forelse($students as $student)
                     <tr>
                         <td>
-                            <div class="font-weight-bold text-dark">{{ $student->name }}</div>
+                            <a href="{{ route('admin.students.show', $student) }}" class="font-weight-bold text-dark">{{ $student->name }}</a>
                             <div class="mt-1 d-flex align-items-center flex-wrap" style="gap:.35rem">
                                 <span class="badge lead-status {{ $student->statusBadgeClass() }}">{{ $student->statusLabel() }}</span>
                                 @if($student->gender)
@@ -87,11 +118,9 @@
                         </td>
                         <td>{{ $student->branch?->name ?? '—' }}</td>
                         <td class="text-nowrap text-right">
+                            <a href="{{ route('admin.students.show', $student) }}" class="btn btn-sm btn-primary">Chi tiết</a>
                             @canPerm('students.manage')
-                            <button class="btn btn-sm btn-primary" data-toggle="modal" data-target="#edit{{ $student->id }}">Sửa</button>
                             <form action="{{ route('admin.students.destroy', $student) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa?')">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger" title="Xóa"><i class="bi bi-trash"></i></button></form>
-                            @else
-                            <span class="text-muted small">—</span>
                             @endcanPerm
                         </td>
                     </tr>
@@ -106,19 +135,6 @@
 </div>
 
 @canPerm('students.manage')
-@foreach($students as $student)
-<div class="modal fade" id="edit{{ $student->id }}" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <form method="POST" action="{{ route('admin.students.update', $student) }}" class="modal-content">
-            @csrf @method('PUT')
-            <div class="modal-header"><h5 class="modal-title">Sửa học viên</h5><button type="button" class="close" data-dismiss="modal"><span>&times;</span></button></div>
-            <div class="modal-body">@include('admin.students._student_form', ['student'=>$student,'branches'=>$branches,'classes'=>$classes])</div>
-            <div class="modal-footer"><button type="button" class="btn btn-light" data-dismiss="modal">Hủy</button><button class="btn btn-primary">Lưu thay đổi</button></div>
-        </form>
-    </div>
-</div>
-@endforeach
-
 <div class="modal fade" id="modalCreate" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <form method="POST" action="{{ route('admin.students.store') }}" class="modal-content">
@@ -130,4 +146,10 @@
     </div>
 </div>
 @endcanPerm
+
+@include('partials.page_help', [
+    'modalId' => 'modalStudentsHelp',
+    'title' => 'Hướng dẫn — Danh sách học viên',
+    'items' => $helpItems,
+])
 @endsection

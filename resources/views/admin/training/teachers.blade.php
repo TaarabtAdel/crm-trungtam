@@ -3,6 +3,22 @@
 @section('title', 'Giáo viên')
 
 @section('content')
+@php
+    $helpItems = [
+        [
+            'title' => 'Hồ sơ giáo viên',
+            'body' => '<p class="mb-0">Quản lý tên, liên hệ, chuyên môn, chi nhánh và trạng thái. Bấm <em>+ Thêm giáo viên</em> hoặc sửa từng dòng để cập nhật.</p>',
+        ],
+        [
+            'title' => 'Đơn giá theo giờ',
+            'body' => '<p class="mb-0">Cột <em>Đơn giá</em> là mức lương/giờ giảng dạy. Điền khi tạo/sửa GV — dùng để tính bảng lương từ buổi học đã hoàn thành trên thời khóa biểu.</p>',
+        ],
+        [
+            'title' => 'Bảng lương',
+            'body' => '<p class="mb-0">Nếu có quyền, bấm <em>Bảng lương</em> để xem giờ dạy × đơn giá theo tháng (kể cả dạy thay). Có thể xuất Excel/CSV từ modal.</p>',
+        ],
+    ];
+@endphp
 <div class="page-card">
     <div class="card-header-custom">
         <div>
@@ -10,6 +26,9 @@
             <small class="text-muted">Quản lý hồ sơ giáo viên, chuyên môn và đơn giá giảng dạy.</small>
         </div>
         <div class="d-flex align-items-center" style="gap:.5rem">
+            <button class="btn btn-sm btn-outline-info" type="button" data-toggle="modal" data-target="#modalTeachersHelp">
+                <i class="bi bi-question-circle"></i> Hướng dẫn
+            </button>
             @canPerm('training.teachers.payroll')
             <button class="btn btn-outline-success btn-sm" data-toggle="modal" data-target="#modalPayroll">
                 <i class="bi bi-calculator"></i> Bảng lương
@@ -179,6 +198,12 @@
     </div>
 </div>
 @endcanPerm
+
+@include('partials.page_help', [
+    'modalId' => 'modalTeachersHelp',
+    'title' => 'Hướng dẫn — Danh sách Giáo viên',
+    'items' => $helpItems,
+])
 @endsection
 
 @if(request()->has('payroll_month'))

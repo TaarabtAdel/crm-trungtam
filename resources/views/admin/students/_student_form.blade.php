@@ -23,6 +23,7 @@
     <div class="col-md-4"><div class="form-group"><label>SĐT người thân</label><input name="parent_phone" class="form-control" value="{{ old('parent_phone', $student->parent_phone ?? '') }}"></div></div>
     <div class="col-md-4"><div class="form-group"><label>Tên người thân</label><input name="parent_name" class="form-control" value="{{ old('parent_name', $student->parent_name ?? '') }}"></div></div>
     <div class="col-md-4"><div class="form-group"><label>Email người thân</label><input type="email" name="parent_email" class="form-control" value="{{ old('parent_email', $student->parent_email ?? '') }}"></div></div>
+    @unless(!empty($hideClasses))
     <div class="col-md-12"><div class="form-group"><label>Lớp học</label>
         <select name="class_ids[]" class="form-control" multiple size="4">
             @foreach($classes as $c)
@@ -31,6 +32,7 @@
         </select>
         <small class="text-muted">Giữ Ctrl/Cmd để chọn nhiều lớp</small>
     </div></div>
+    @endunless
     <div class="col-md-6"><div class="form-group"><label>Địa chỉ</label><textarea name="address" class="form-control" rows="2">{{ old('address', $student->address ?? '') }}</textarea></div></div>
     <div class="col-md-6"><div class="form-group"><label>Ghi chú</label><textarea name="notes" class="form-control" rows="2">{{ old('notes', $student->notes ?? '') }}</textarea></div></div>
 </div>

@@ -3,12 +3,35 @@
 @section('title', 'Phân quyền')
 
 @section('content')
+@php
+    $helpItems = [
+        [
+            'title' => 'Ma trận phân quyền',
+            'body' => '<p class="mb-0">Mỗi cột là một <strong>vai trò</strong>, mỗi dòng là một quyền (xem/sửa menu hoặc thao tác). Tick = được phép; bỏ tick = không truy cập (sidebar cũng ẩn theo).</p>',
+        ],
+        [
+            'title' => 'Cách cấu hình nhanh',
+            'body' => '<ol class="mb-0 pl-3">'
+                .'<li>Dùng <em>Chọn tất cả</em> trên cột vai trò để bật/tắt nhanh cả nhóm quyền.</li>'
+                .'<li>Điều chỉnh từng ô cho đúng nhu cầu từng role.</li>'
+                .'<li>Bấm <strong>Lưu phân quyền</strong> để áp dụng.</li>'
+                .'</ol>',
+        ],
+        [
+            'title' => 'Super Admin',
+            'body' => '<p class="mb-0"><strong>Super Admin</strong> luôn có toàn quyền, không bị giới hạn bởi ma trận này. Các role khác chỉ thấy menu/thao tác đã được tick.</p>',
+        ],
+    ];
+@endphp
 <div class="page-card">
     <div class="card-header-custom">
         <div>
             <h5 class="mb-0 font-weight-bold">Phân quyền theo vai trò</h5>
             <small class="text-muted">Cấu hình quyền truy cập menu và thao tác cho từng vai trò. Super Admin luôn có toàn quyền.</small>
         </div>
+        <button class="btn btn-sm btn-outline-info" type="button" data-toggle="modal" data-target="#modalPermissionsHelp">
+            <i class="bi bi-question-circle"></i> Hướng dẫn
+        </button>
     </div>
     <div class="card-body-custom">
         <form method="POST" action="{{ route('admin.permissions.update') }}">
@@ -62,6 +85,12 @@
         </form>
     </div>
 </div>
+
+@include('partials.page_help', [
+    'modalId' => 'modalPermissionsHelp',
+    'title' => 'Hướng dẫn — Phân quyền',
+    'items' => $helpItems,
+])
 @endsection
 
 @push('scripts')

@@ -10,6 +10,25 @@
         'timetable' => ['label' => 'Thời khóa biểu', 'icon' => 'bi-calendar3', 'count' => $class->sessions_count],
         'tuition' => ['label' => 'Thu học phí', 'icon' => 'bi-cash-coin'],
     ];
+    $helpItems = [
+        [
+            'title' => 'Các tab chi tiết',
+            'body' => '<ul class="mb-0 pl-3">'
+                .'<li><strong>Thông tin</strong>: cấu hình lớp, GV, học phí.</li>'
+                .'<li><strong>Học viên</strong>: ghi danh học viên vào lớp (có thể tự tạo hóa đơn).</li>'
+                .'<li><strong>Thời khóa biểu</strong>: buổi học theo tháng.</li>'
+                .'<li><strong>Thu học phí</strong>: tạo HĐ hàng loạt / từng HV và mở thu tiền.</li>'
+                .'</ul>',
+        ],
+        [
+            'title' => 'Ghi danh học viên',
+            'body' => '<p class="mb-0">Tab Học viên → chọn học viên cùng chi nhánh chưa trong lớp. Tick <em>Tự tạo hóa đơn học phí</em> nếu muốn phát sinh HĐ ngay khi thêm.</p>',
+        ],
+        [
+            'title' => 'Hóa đơn & thu tiền',
+            'body' => '<p class="mb-0">Tab Thu học phí: tạo HĐ theo tháng hoặc theo HV. Bấm <em>Thu / Chi tiết</em> để mở hóa đơn và ghi nhận thanh toán. Nút <em>Điểm danh</em> dẫn sang trang điểm danh của lớp.</p>',
+        ],
+    ];
 @endphp
 
 <div class="d-flex align-items-start justify-content-between mb-3 flex-wrap" style="gap:.75rem">
@@ -24,7 +43,10 @@
             <span class="badge badge-info">{{ $class->status }}</span>
         </div>
     </div>
-    <div>
+    <div class="d-flex align-items-center" style="gap:.5rem">
+        <button class="btn btn-sm btn-outline-info" type="button" data-toggle="modal" data-target="#modalClassShowHelp">
+            <i class="bi bi-question-circle"></i> Hướng dẫn
+        </button>
         <a href="{{ route('admin.attendances.index', ['class_id' => $class->id]) }}" class="btn btn-sm btn-outline-secondary">
             <i class="bi bi-clipboard-check"></i> Điểm danh
         </a>
@@ -58,6 +80,12 @@
         @endif
     </div>
 </div>
+
+@include('partials.page_help', [
+    'modalId' => 'modalClassShowHelp',
+    'title' => 'Hướng dẫn — Chi tiết lớp học',
+    'items' => $helpItems,
+])
 @endsection
 
 @push('scripts')

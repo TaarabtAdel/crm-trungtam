@@ -38,9 +38,6 @@ class FinanceDashboardController extends Controller
                 ->whereBetween('expense_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
                 ->sum('amount'),
             'debt_total' => (clone $invoiceQuery)->whereIn('status', ['unpaid', 'partial'])->sum('remaining_amount'),
-            'overdue_count' => (clone $invoiceQuery)->whereIn('status', ['unpaid', 'partial'])
-                ->whereNotNull('due_date')->whereDate('due_date', '<', now()->toDateString())->count(),
-            'unpaid_invoices' => (clone $invoiceQuery)->whereIn('status', ['unpaid', 'partial'])->count(),
         ];
         $kpi['profit_month'] = (float) $kpi['revenue_month'] - (float) $kpi['expense_month'];
 

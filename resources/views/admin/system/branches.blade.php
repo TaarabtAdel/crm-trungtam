@@ -3,13 +3,38 @@
 @section('title', 'Chi nhánh')
 
 @section('content')
+@php
+    $helpItems = [
+        [
+            'title' => 'Chi nhánh dùng để làm gì?',
+            'body' => '<p class="mb-0">Mỗi cơ sở (tên, mã, địa chỉ, SĐT) dùng để gắn học viên, lớp, người dùng và lọc dữ liệu theo địa điểm.</p>',
+        ],
+        [
+            'title' => 'Thêm / sửa chi nhánh',
+            'body' => '<ul class="mb-0 pl-3">'
+                .'<li>Bấm <strong>Thêm chi nhánh</strong> → điền tên (bắt buộc), mã, địa chỉ, SĐT.</li>'
+                .'<li>Sửa bằng nút bút chì trên từng dòng.</li>'
+                .'<li>Bỏ tick <em>Đang hoạt động</em> để ngưng chi nhánh (không xóa).</li>'
+                .'</ul>',
+        ],
+        [
+            'title' => 'Xóa chi nhánh',
+            'body' => '<p class="mb-0">Chỉ xóa khi không còn dữ liệu phụ thuộc quan trọng. Hệ thống sẽ hỏi xác nhận trước khi xóa.</p>',
+        ],
+    ];
+@endphp
 <div class="page-card">
     <div class="card-header-custom">
         <div>
             <h5 class="mb-0 font-weight-bold">Quản lý chi nhánh</h5>
             <small class="text-muted">Danh sách cơ sở / chi nhánh</small>
         </div>
-        <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalCreate"><i class="bi bi-plus"></i> Thêm chi nhánh</button>
+        <div class="d-flex align-items-center" style="gap:.5rem">
+            <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalCreate"><i class="bi bi-plus"></i> Thêm chi nhánh</button>
+            <button class="btn btn-sm btn-outline-info" type="button" data-toggle="modal" data-target="#modalBranchesHelp">
+                <i class="bi bi-question-circle"></i> Hướng dẫn
+            </button>
+        </div>
     </div>
     <div class="card-body-custom">
         <form class="filter-bar" method="GET">
@@ -88,4 +113,10 @@
         </form>
     </div>
 </div>
+
+@include('partials.page_help', [
+    'modalId' => 'modalBranchesHelp',
+    'title' => 'Hướng dẫn — Chi nhánh',
+    'items' => $helpItems,
+])
 @endsection

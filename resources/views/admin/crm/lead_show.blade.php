@@ -8,6 +8,27 @@
         'info' => ['label' => 'Thông tin', 'icon' => 'bi-info-circle'],
         'history' => ['label' => 'Lịch sử tư vấn', 'icon' => 'bi-chat-left-text', 'count' => $lead->interactions_count],
     ];
+    $helpItems = [
+        [
+            'title' => 'Hai tab chính',
+            'body' => '<ul class="mb-0 pl-3">'
+                .'<li><strong>Thông tin</strong>: sửa hồ sơ lead, trạng thái, Sales phụ trách, doanh thu dự kiến (pipeline).</li>'
+                .'<li><strong>Lịch sử tư vấn</strong>: ghi gọi/nhắn/gặp mặt và theo dõi các tương tác đã có.</li>'
+                .'</ul>',
+        ],
+        [
+            'title' => 'Cập nhật & chăm sóc',
+            'body' => '<p class="mb-0">Trên tab Thông tin, lưu thay đổi trạng thái (ví dụ <em>Đã chốt</em>) và gán lại Sales nếu cần. Doanh thu dự kiến chỉ phục vụ KPI Sales, không thay cho hóa đơn thực tế.</p>',
+        ],
+        [
+            'title' => 'Sau khi chốt — học viên',
+            'body' => '<p class="mb-0">Khi lead <strong>Đã chốt</strong>, tạo hồ sơ học viên (module Học viên) rồi ghi danh vào lớp. Trên trang lead không có nút chuyển đổi tự động — làm bước tiếp theo trong Training / Học viên.</p>',
+        ],
+        [
+            'title' => 'Tương tác nhanh',
+            'body' => '<p class="mb-0">Tab Lịch sử cho phép thêm tương tác gắn với lead này. Có thể quản lý lịch hẹn tổng hợp tại menu <em>Lịch hẹn / Tương tác</em>.</p>',
+        ],
+    ];
 @endphp
 
 <div class="d-flex align-items-start justify-content-between mb-3 flex-wrap" style="gap:.75rem">
@@ -24,6 +45,11 @@
             @if($lead->source)<span class="mr-2">· {{ $lead->source }}</span>@endif
             <span>· Sales: {{ $lead->assignedSales?->name ?? 'Chưa gán' }}</span>
         </div>
+    </div>
+    <div class="d-flex align-items-center" style="gap:.5rem">
+        <button class="btn btn-sm btn-outline-info" type="button" data-toggle="modal" data-target="#modalLeadShowHelp">
+            <i class="bi bi-question-circle"></i> Hướng dẫn
+        </button>
     </div>
 </div>
 
@@ -50,4 +76,10 @@
         @endif
     </div>
 </div>
+
+@include('partials.page_help', [
+    'modalId' => 'modalLeadShowHelp',
+    'title' => 'Hướng dẫn — Chi tiết Lead',
+    'items' => $helpItems,
+])
 @endsection

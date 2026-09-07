@@ -3,13 +3,46 @@
 @section('title', 'Người dùng')
 
 @section('content')
+@php
+    $helpItems = [
+        [
+            'title' => 'Người dùng & vai trò',
+            'body' => '<p class="mb-0">Mỗi tài khoản có email đăng nhập, <strong>vai trò</strong> (quyền truy cập), chi nhánh gắn (nếu có) và trạng thái Active/Khóa.</p>',
+        ],
+        [
+            'title' => 'Thêm / sửa tài khoản',
+            'body' => '<ol class="mb-0 pl-3">'
+                .'<li>Bấm <strong>Thêm người dùng</strong> hoặc nút bút chì để sửa.</li>'
+                .'<li>Chọn vai trò phù hợp (Sales, Giáo vụ, Admin…).</li>'
+                .'<li>Gắn chi nhánh nếu cần giới hạn phạm vi làm việc.</li>'
+                .'<li>Lưu — tài khoản có thể đăng nhập ngay (nếu Active).</li>'
+                .'</ol>',
+        ],
+        [
+            'title' => 'Khóa hoặc xóa',
+            'body' => '<ul class="mb-0 pl-3">'
+                .'<li>Bỏ Active = khóa đăng nhập mà vẫn giữ hồ sơ.</li>'
+                .'<li>Xóa tài khoản cần xác nhận; ưu tiên khóa nếu chỉ tạm ngưng.</li>'
+                .'</ul>',
+        ],
+        [
+            'title' => 'Phân quyền chi tiết',
+            'body' => '<p class="mb-0">Quyền theo vai trò cấu hình tại menu <strong>Phân quyền</strong> (ma trận tick quyền). Thay đổi role ở đây chỉ đổi vai trò gắn user.</p>',
+        ],
+    ];
+@endphp
 <div class="page-card">
     <div class="card-header-custom">
         <div>
             <h5 class="mb-0 font-weight-bold">Quản lý người dùng</h5>
             <small class="text-muted">Tài khoản đăng nhập hệ thống</small>
         </div>
-        <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalCreate"><i class="bi bi-plus"></i> Thêm người dùng</button>
+        <div class="d-flex align-items-center" style="gap:.5rem">
+            <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalCreate"><i class="bi bi-plus"></i> Thêm người dùng</button>
+            <button class="btn btn-sm btn-outline-info" type="button" data-toggle="modal" data-target="#modalUsersHelp">
+                <i class="bi bi-question-circle"></i> Hướng dẫn
+            </button>
+        </div>
     </div>
     <div class="card-body-custom">
         <form class="filter-bar" method="GET">
@@ -67,4 +100,10 @@
         </form>
     </div>
 </div>
+
+@include('partials.page_help', [
+    'modalId' => 'modalUsersHelp',
+    'title' => 'Hướng dẫn — Người dùng',
+    'items' => $helpItems,
+])
 @endsection
