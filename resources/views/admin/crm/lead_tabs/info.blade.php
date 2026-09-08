@@ -25,6 +25,15 @@
         </div>
     </div>
 </div>
+@if($lead->follow_up_at)
+<div class="alert {{ $lead->status === 'new' && $lead->follow_up_at->isPast() && !$lead->follow_up_at->isToday() ? 'alert-warning' : 'alert-light border' }} small mb-3">
+    <i class="bi bi-alarm mr-1"></i>
+    <strong>Hạn xử lý:</strong> {{ $lead->follow_up_at->format('d/m/Y') }}
+    @if($lead->status === 'new')
+        · Lead còn trạng thái Mới — cập nhật trạng thái khi đã xử lý.
+    @endif
+</div>
+@endif
 
 @canPerm('crm.leads.manage')
 <form method="POST" action="{{ route('admin.leads.update', $lead) }}">
@@ -43,12 +52,18 @@
 <div class="border rounded p-3">
     <div class="row">
         <div class="col-md-6 mb-2"><strong>Họ tên:</strong> {{ $lead->name }}</div>
-        <div class="col-md-6 mb-2"><strong>SĐT:</strong> {{ $lead->phone }}</div>
-        <div class="col-md-6 mb-2"><strong>Email:</strong> {{ $lead->email ?: '—' }}</div>
+        <div class="col-md-6 mb-2"><strong>SĐT khách:</strong> {{ $lead->phone ?: '—' }}</div>
+        <div class="col-md-6 mb-2"><strong>Email khách:</strong> {{ $lead->email ?: '—' }}</div>
         <div class="col-md-6 mb-2"><strong>Nguồn:</strong> {{ $lead->source ?: '—' }}</div>
         <div class="col-md-6 mb-2"><strong>Chi nhánh:</strong> {{ $lead->branch?->name }}</div>
         <div class="col-md-6 mb-2"><strong>Sales:</strong> {{ $lead->assignedSales?->name ?? '—' }}</div>
-        <div class="col-md-12 mb-2"><strong>Người liên quan:</strong>
+        <div class="col-md-6 mb-2"><strong>Hạn xử lý:</strong> {{ $lead->follow_up_at?->format('d/m/Y') ?? '—' }}</div>
+        @if($lead->student_id)
+            <div class="col-md-6 mb-2"><strong>Học viên:</strong>
+                <a href="{{ route('admin.students.show', $lead->student_id) }}">#{{ $lead->student_id }} — xem hồ sơ</a>
+            </div>
+        @endif
+        <div class="col-md-12 mb-2"><strong>Người thân:</strong>
             @if($lead->related_name || $lead->related_phone || $lead->related_email)
                 {{ $lead->related_name ?: '—' }}
                 @if($lead->related_phone) · {{ $lead->related_phone }} @endif

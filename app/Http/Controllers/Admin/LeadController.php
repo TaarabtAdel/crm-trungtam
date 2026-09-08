@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\Interaction;
 use App\Models\Lead;
+use App\Models\Student;
 use App\Models\User;
+use App\Services\LeadAssignmentNotifier;
 use App\Services\LeadExcelImporter;
 use App\Support\CurrentBranch;
 use Illuminate\Http\Request;
@@ -61,7 +63,7 @@ class LeadController extends Controller
             $tab = 'info';
         }
 
-        $lead->load(['branch', 'assignedSales']);
+        $lead->load(['branch', 'assignedSales', 'student']);
         $lead->loadCount('interactions');
 
         $branches = Branch::where('is_active', true)->orderBy('name')->get();
@@ -87,17 +89,25 @@ class LeadController extends Controller
         ));
     }
 
-    public function store(Request $request)
+    public function store(Request $request, LeadAssignmentNotifier $assignmentNotifier)
     {
-        Lead::create($this->validated($request));
+        $data = $this->validated($request);
+        if (empty($data['follow_up_at']) && ! empty($data['assigned_sales_id']) && ($data['status'] ?? 'new') === 'new') {
+            $data['follow_up_at'] = now()->addDays(2)->toDateString();
+        }
+
+        $lead = Lead::create($data);
+        $assignmentNotifier->notifyIfAssigned($lead, $lead->assigned_sales_id, $request->user()->id);
 
         return back()->with('success', 'Đã thêm lead.');
     }
 
-    public function update(Request $request, Lead $lead)
+    public function update(Request $request, Lead $lead, LeadAssignmentNotifier $assignmentNotifier)
     {
         $this->ensureSalesOwnsLead($request, $lead);
+        $oldSalesId = $lead->assigned_sales_id;
         $lead->update($this->validated($request));
+        $assignmentNotifier->notifyOnChange($lead->fresh(), $oldSalesId, $lead->assigned_sales_id, $request->user()->id);
 
         if ($request->boolean('from_detail')) {
             return redirect()
@@ -114,6 +124,52 @@ class LeadController extends Controller
         $lead->delete();
 
         return redirect()->route('admin.leads.index')->with('success', 'Đã xóa lead.');
+    }
+
+    /**
+     * Tạo học viên từ lead (map khách → HV, người thân → phụ huynh).
+     */
+    public function convertToStudent(Request $request, Lead $lead)
+    {
+        $this->ensureSalesOwnsLead($request, $lead);
+
+        if (! $request->user()->hasPermission('students.manage')) {
+            abort(403, 'Bạn không có quyền tạo học viên.');
+        }
+
+        if ($lead->student_id) {
+            return redirect()
+                ->route('admin.students.show', $lead->student_id)
+                ->with('success', 'Lead này đã có học viên liên kết.');
+        }
+
+        if ($lead->status !== 'won') {
+            return back()->with('error', 'Chỉ chuyển sang học viên khi lead ở trạng thái Đã chốt.');
+        }
+
+        $student = Student::create([
+            'branch_id' => $lead->branch_id,
+            'name' => $lead->name,
+            'phone' => $lead->phone ?: null,
+            'email' => $lead->email ?: null,
+            'parent_name' => $lead->related_name ?: null,
+            'parent_phone' => $lead->related_phone ?: null,
+            'parent_email' => $lead->related_email ?: null,
+            'status' => 'studying',
+            'notes' => trim(
+                'Từ lead #'.$lead->id
+                .($lead->source ? ' · Nguồn: '.$lead->source : '')
+                .($lead->assignedSales ? ' · Sales: '.$lead->assignedSales->name : '')
+            ),
+        ]);
+
+        $lead->forceFill([
+            'student_id' => $student->id,
+        ])->save();
+
+        return redirect()
+            ->route('admin.students.show', $student)
+            ->with('success', 'Đã đưa lead vào danh sách học viên.');
     }
 
     public function storeInteraction(Request $request, Lead $lead)
@@ -195,7 +251,7 @@ class LeadController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
-            'phone' => 'required|string|max:30',
+            'phone' => 'nullable|string|max:30',
             'email' => 'nullable|email',
             'related_name' => 'nullable|string|max:255',
             'related_phone' => 'nullable|string|max:30',
@@ -205,12 +261,16 @@ class LeadController extends Controller
             'expected_revenue' => 'nullable|numeric|min:0',
             'assigned_sales_id' => 'nullable|exists:users,id',
             'status' => 'nullable|in:new,contacted,interested,won,lost',
+            'follow_up_at' => 'nullable|date',
         ]);
         $data['expected_revenue'] = $data['expected_revenue'] ?? 0;
         $data['status'] = $data['status'] ?? 'new';
+        $data['phone'] = filled($data['phone'] ?? null) ? trim((string) $data['phone']) : null;
+        $data['email'] = filled($data['email'] ?? null) ? trim((string) $data['email']) : null;
         $data['related_name'] = $data['related_name'] ?: null;
         $data['related_phone'] = $data['related_phone'] ?: null;
         $data['related_email'] = $data['related_email'] ?: null;
+        $data['follow_up_at'] = $data['follow_up_at'] ?: null;
 
         if ($request->user()->isSales()) {
             $data['assigned_sales_id'] = $request->user()->id;

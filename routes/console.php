@@ -9,3 +9,6 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('finance:remind-debts')->dailyAt('08:00');
+Schedule::command('crm:remind-lead-followups')->dailyAt('08:15');
+Schedule::command('crm:remind-stale-sessions')->hourly();
+Schedule::command('crm:remind-upcoming-sessions', ['--minutes' => 120, '--window' => 12])->everyFifteenMinutes();

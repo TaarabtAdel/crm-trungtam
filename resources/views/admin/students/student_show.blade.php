@@ -15,19 +15,14 @@
             'title' => 'Các tab trên trang Chi tiết',
             'body' => '<ul class="mb-0 pl-3">'
                 .'<li><strong>Thông tin</strong>: sửa hồ sơ HV và người thân.</li>'
-                .'<li><strong>Lớp học</strong>: xem lớp đang theo học; thêm HV vào lớp mới.</li>'
+                .'<li><strong>Lớp học</strong>: xem lớp đang theo học (ghi danh từ trang Lớp).</li>'
                 .'<li><strong>Lịch sử học phí</strong>: các hóa đơn liên quan HV.</li>'
                 .'<li><strong>Điểm danh</strong>: lịch sử có mặt / vắng theo buổi.</li>'
                 .'</ul>',
         ],
         [
             'title' => 'Ghi danh vào lớp',
-            'body' => '<ol class="mb-0 pl-3">'
-                .'<li>Mở tab <strong>Lớp học</strong>.</li>'
-                .'<li>Chọn lớp (cùng chi nhánh, đang học, chưa tham gia).</li>'
-                .'<li>Có thể tick <em>Tự tạo hóa đơn học phí</em> và chọn số kỳ trả góp.</li>'
-                .'<li>Bấm <strong>Thêm vào lớp</strong>.</li>'
-                .'</ol>',
+            'body' => '<p class="mb-0">Thêm học viên vào lớp tại trang <strong>Lớp học</strong> → tab Học viên của lớp đó. Trên tab này chỉ xem / gỡ khỏi lớp.</p>',
         ],
         [
             'title' => 'Liên kết nhanh',
@@ -47,7 +42,9 @@
             <span class="mr-2">{{ $student->branch?->name }}</span>
             @if($student->gender)<span class="mr-2">· {{ $student->gender }}</span>@endif
             @if($student->dob)<span class="mr-2">· {{ $student->dob->format('d/m/Y') }}</span>@endif
-            @if($student->parent_phone)<span class="mr-2">· <i class="bi bi-telephone"></i> {{ $student->parent_phone }}</span>@endif
+            @if($student->phone)<span class="mr-2">· <i class="bi bi-telephone"></i> {{ $student->phone }}</span>
+            @elseif($student->parent_phone)<span class="mr-2">· <i class="bi bi-telephone"></i> {{ $student->parent_phone }}</span>@endif
+            @if($student->email)<span class="mr-2">· <i class="bi bi-envelope"></i> {{ $student->email }}</span>@endif
         </div>
     </div>
     <div class="d-flex" style="gap:.5rem">

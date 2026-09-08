@@ -11,8 +11,9 @@ class Invoice extends Model
 {
     protected $fillable = [
         'code', 'student_id', 'class_id', 'branch_id', 'sales_id',
-        'amount', 'paid_amount', 'remaining_amount',
-        'billing_month', 'sessions_count', 'fee_type', 'installment_count',
+        'amount', 'gross_amount', 'discount_amount', 'discount_reason',
+        'paid_amount', 'remaining_amount',
+        'billing_month', 'sessions_count', 'billed_session_ids', 'fee_type', 'installment_count',
         'status', 'due_date', 'paid_at', 'note',
     ];
 
@@ -20,8 +21,11 @@ class Invoice extends Model
     {
         return [
             'amount' => 'decimal:0',
+            'gross_amount' => 'decimal:0',
+            'discount_amount' => 'decimal:0',
             'paid_amount' => 'decimal:0',
             'remaining_amount' => 'decimal:0',
+            'billed_session_ids' => 'array',
             'due_date' => 'date',
             'paid_at' => 'datetime',
         ];
@@ -32,6 +36,7 @@ class Invoice extends Model
         return match ($this->fee_type) {
             'per_session' => 'Theo buổi',
             'monthly' => 'Theo tháng',
+            'course' => 'Theo khóa',
             default => '—',
         };
     }
@@ -111,6 +116,18 @@ class Invoice extends Model
         return in_array($this->status, ['unpaid', 'partial'], true)
             && $this->due_date
             && $this->due_date->isPast();
+    }
+
+    /**
+     * Không cho xóa khi đã có thu (đã thu / thu một phần).
+     */
+    public function canBeDeleted(): bool
+    {
+        if (in_array($this->status, ['paid', 'partial'], true)) {
+            return false;
+        }
+
+        return (float) $this->paid_amount <= 0;
     }
 
     public function daysOverdue(): int

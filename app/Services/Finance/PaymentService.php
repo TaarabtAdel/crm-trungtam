@@ -2,9 +2,11 @@
 
 namespace App\Services\Finance;
 
+use App\Jobs\SendPaymentNotificationJob;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\PaymentInstallment;
+use App\Support\TenantContext;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -32,7 +34,7 @@ class PaymentService
             throw ValidationException::withMessages(['amount' => 'Số tiền vượt quá công nợ còn lại.']);
         }
 
-        return DB::transaction(function () use ($invoice, $data, $amount, $receipt) {
+        $payment = DB::transaction(function () use ($invoice, $data, $amount, $receipt) {
             $path = null;
             if ($receipt) {
                 $path = $receipt->store('finance/receipts', 'public');
@@ -61,6 +63,14 @@ class PaymentService
 
             return $payment;
         });
+
+        SendPaymentNotificationJob::dispatch(
+            $payment->id,
+            TenantContext::databaseName(),
+            TenantContext::subdomain()
+        );
+
+        return $payment;
     }
 
     public function delete(Payment $payment): void

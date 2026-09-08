@@ -12,12 +12,15 @@ class Lead extends Model
         'name', 'phone', 'email',
         'related_name', 'related_phone', 'related_email',
         'source', 'branch_id',
-        'expected_revenue', 'assigned_sales_id', 'status',
+        'expected_revenue', 'assigned_sales_id', 'student_id', 'status', 'follow_up_at',
     ];
 
     protected function casts(): array
     {
-        return ['expected_revenue' => 'decimal:0'];
+        return [
+            'expected_revenue' => 'decimal:0',
+            'follow_up_at' => 'date',
+        ];
     }
 
     public function branch(): BelongsTo
@@ -28,6 +31,11 @@ class Lead extends Model
     public function assignedSales(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_sales_id');
+    }
+
+    public function student(): BelongsTo
+    {
+        return $this->belongsTo(Student::class);
     }
 
     public function interactions(): HasMany

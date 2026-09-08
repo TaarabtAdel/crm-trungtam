@@ -1,18 +1,30 @@
 @php $isSales = auth()->user()->isSales(); @endphp
 <div class="form-group"><label>Chọn khách hàng *</label>
-    <select name="lead_id" class="form-control" required>
-        <option value="">-- Chọn --</option>
-        @foreach($leads as $lead)
-            <option value="{{ $lead->id }}" @selected(old('lead_id', $item->lead_id ?? '')==$lead->id)>{{ $lead->name }} — {{ $lead->phone }}</option>
-        @endforeach
+    <select name="lead_id" class="form-control js-interaction-lead" required style="width:100%" data-placeholder="Tìm lead theo tên, SĐT...">
+        <option value=""></option>
+        @php
+            $prefillLead = null;
+            if (! empty($item?->lead)) {
+                $prefillLead = $item->lead;
+            } elseif (! empty($item?->lead_id) && isset($leads)) {
+                $prefillLead = $leads[$item->lead_id] ?? $leads->firstWhere('id', $item->lead_id);
+            } elseif (old('lead_id') && isset($leads)) {
+                $prefillLead = $leads[(int) old('lead_id')] ?? $leads->firstWhere('id', (int) old('lead_id'));
+            }
+        @endphp
+        @if($prefillLead)
+            <option value="{{ $prefillLead->id }}" selected>
+                {{ $prefillLead->name }}@if($prefillLead->phone) — {{ $prefillLead->phone }}@endif
+            </option>
+        @endif
     </select>
 </div>
 @if(!$isSales)
 <div class="form-group"><label>Nhân viên phụ trách (Sales)</label>
-    <select name="sales_id" class="form-control">
-        <option value="">-- Chọn --</option>
+    <select name="sales_id" class="form-control js-interaction-sales" style="width:100%" data-placeholder="Chọn Sales">
+        <option value=""></option>
         @foreach($salesUsers as $u)
-            <option value="{{ $u->id }}" @selected(old('sales_id', $item->sales_id ?? '')==$u->id)>{{ $u->name }}</option>
+            <option value="{{ $u->id }}" @selected(old('sales_id', $item->sales_id ?? '')==$u->id)>{{ $u->name }}@if($u->email) — {{ $u->email }}@endif</option>
         @endforeach
     </select>
 </div>

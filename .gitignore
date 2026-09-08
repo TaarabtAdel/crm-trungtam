@@ -2,7 +2,7 @@
 /node_modules
 /public/build
 /public/hot
-/public/storage
+# public/storage giữ thư mục (shared hosting, không symlink); nội dung tenant ignore trong public/storage/.gitignore
 /storage/*.key
 /storage/pail
 /vendor

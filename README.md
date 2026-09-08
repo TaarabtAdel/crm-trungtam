@@ -1,66 +1,285 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# CRM Trung Tâm
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Hệ thống CRM / quản lý trung tâm đào tạo (Laravel 11): tuyển sinh, lớp học, học viên, điểm danh, tài chính và thông báo nội bộ.
 
-## About Laravel
+## Tính năng chính
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **Tuyển sinh (CRM):** leads, phân Sales, lịch tương tác, dashboard pipeline, nhập Excel
+- **Đào tạo:** môn học, giáo viên, lớp, thời khóa biểu, điểm danh
+- **Học viên:** hồ sơ, gắn lớp, import Excel
+- **Tài chính:** hóa đơn, công nợ, chi phí / duyệt chi, lương GV, hoa hồng, hoàn phí, báo cáo PDF
+- **Đa chi nhánh** + phân quyền theo role
+- **Thông báo in-app** (chuông): phân lead, nhắc hạn lead, buổi học chưa cập nhật trạng thái, chi phí, nợ học phí
+- **Backup SQL** theo tenant vào `public/storage/{subdomain}/backups/` (không cần `storage:link`)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Stack
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+| Thành phần | Phiên bản / ghi chú |
+|------------|---------------------|
+| PHP | 8.2+ (Docker image: **8.3**) |
+| Laravel | 11 |
+| MySQL | 8 |
+| Frontend admin | Blade + Bootstrap 4 |
+| Excel | PhpSpreadsheet |
+| PDF | DomPDF |
 
-## Learning Laravel
+---
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Yêu cầu
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+**Khuyến nghị dùng Docker** (đã có sẵn trong repo):
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+- [Docker](https://docs.docker.com/get-docker/) + Docker Compose v2
+- Cổng trống: **8082** (app), **8083** (phpMyAdmin), **3307** (MySQL host)
 
-## Laravel Sponsors
+Hoặc chạy local: PHP 8.2+, Composer, Node 20+, MySQL 8.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+---
 
-### Premium Partners
+## Cài đặt (Docker)
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+```bash
+git clone <url-repo> crm-trungtam
+cd crm-trungtam
 
-## Contributing
+cp .env.example .env
+# Tuỳ chỉnh nếu cần. Với Docker giữ DB_HOST=mysql
+# Nên đặt: APP_TIMEZONE=Asia/Ho_Chi_Minh
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+docker compose up --build -d
+```
 
-## Code of Conduct
+Lần đầu, `entrypoint` sẽ:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+- chờ MySQL sẵn sàng
+- `composer install`
+- tạo `APP_KEY` nếu chưa có
+- `storage:link`
+- build frontend nếu chưa có `public/build`
 
-## Security Vulnerabilities
+Sau đó migrate + seed:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+docker compose exec app php artisan migrate --force
+docker compose exec app php artisan db:seed --force
+
+# (Tuỳ chọn) dữ liệu demo đầy đủ hơn
+docker compose exec app php artisan db:seed --class=DemoDataSeeder --force
+```
+
+### Truy cập
+
+| Dịch vụ | URL / cổng |
+|---------|------------|
+| Ứng dụng | http://localhost:8082 |
+| phpMyAdmin | http://localhost:8083 (user `root` / `secret`) |
+| MySQL (từ máy host) | `127.0.0.1:3307` |
+
+### Tài khoản mặc định (sau seed)
+
+| Email | Mật khẩu | Role |
+|-------|----------|------|
+| `admin@crm.local` | `password` | Super Admin |
+| `sales@crm.local` | `password` | Sales |
+| `daotao@crm.local` | `password` | Đào Tạo |
+
+> Đổi mật khẩu ngay trên môi trường thật.
+
+---
+
+## Multi-tenant (subdomain → database)
+
+Giống mô hình `quanlythietbitruonghoc`: mỗi trung tâm một subdomain và một MySQL database riêng, cùng một bộ source code.
+
+| Subdomain | Database (ví dụ) |
+|-----------|------------------|
+| `tpt-academy.quanlytrungtam.com` | `crmtt_tpt-academy` |
+| `tht-global.quanlytrungtam.com` | `crmtt_tht-global` |
+
+### `.env` production
+
+```env
+TENANT_RESOLVE=true
+TENANT_BASE_DOMAIN=quanlytrungtam.com
+TENANT_DATABASE_PREFIX=crmtt_
+APP_URL=https://quanlytrungtam.com
+# Cookie session theo từng host (để trống / null) — mỗi trung tâm login riêng
+SESSION_DOMAIN=null
+```
+
+### Local / Docker
+
+```env
+TENANT_RESOLVE=false
+# Dùng DB_DATABASE như bình thường (crm_trungtam)
+```
+
+### Khi thêm trung tâm mới (live)
+
+1. DNS: `*.quanlytrungtam.com` → server (wildcard).
+2. Tạo MySQL database: `{TENANT_DATABASE_PREFIX}{subdomain}` (vd `crmtt_tpt-academy`) và grant user app.
+3. Chạy migrate (+ seed) trên DB đó, ví dụ:
+   ```bash
+   DB_DATABASE=crmtt_tpt-academy php artisan migrate --force
+   DB_DATABASE=crmtt_tpt-academy php artisan db:seed --force
+   ```
+4. Truy cập `https://tpt-academy.quanlytrungtam.com`.
+
+Middleware `ResolveTenantDatabase` (prepend web) đổi connection MySQL theo subdomain trước khi session/auth chạy.
+
+### File upload / backup (shared hosting)
+
+- **Không cần** `php artisan storage:link`.
+- Disk `public` trỏ thẳng `public/storage/{subdomain}/` (local Docker: `public/storage/local/`).
+- Backup SQL: menu **Hệ thống → Backup dữ liệu** → lưu `public/storage/{subdomain}/backups/` (chặn truy cập HTTP trực tiếp; tải qua admin).
+
+### Lệnh hữu ích
+
+```bash
+docker compose logs -f app
+docker compose exec app php artisan migrate
+docker compose exec app php artisan tinker
+docker compose down          # dừng
+docker compose down -v       # dừng + xoá volume MySQL
+```
+
+---
+
+## Cài đặt (không Docker)
+
+```bash
+cp .env.example .env
+# Sửa DB_HOST=127.0.0.1, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD
+# APP_URL=http://localhost:8000
+# APP_TIMEZONE=Asia/Ho_Chi_Minh
+
+composer install
+php artisan key:generate
+php artisan migrate --seed
+php artisan storage:link
+
+npm install && npm run build
+php artisan serve
+```
+
+---
+
+## Cấu trúc thư mục (tóm tắt)
+
+```
+app/Http/Controllers/Admin/   # Controller admin
+app/Models/                   # Eloquent
+app/Services/                 # Nghiệp vụ (import Excel, tài chính, …)
+app/Notifications/            # Thông báo database
+app/Console/Commands/         # Lệnh nhắc định kỳ
+resources/views/admin/        # Blade UI
+routes/web.php                # Route admin
+routes/console.php            # Lịch scheduler
+config/permissions.php        # Role & quyền
+database/migrations/
+```
+
+---
+
+## Scheduler & nhắc tự động
+
+Timezone theo `APP_TIMEZONE` trong `.env` (nên `Asia/Ho_Chi_Minh`).
+
+| Lệnh | Tần suất (qua tick) | Mục đích |
+|------|---------------------|----------|
+| `finance:remind-debts` | Mỗi ngày từ **08:00** | Nhắc nợ học phí (in-app) |
+| `crm:remind-lead-followups` | Mỗi ngày từ **08:15** | Lead sắp tới / quá hạn follow-up |
+| `crm:remind-stale-sessions` | **Mỗi giờ** | Buổi đã kết thúc vẫn **Đã lên lịch** |
+| `crm:remind-upcoming-sessions` | **Mỗi 15 phút** | Nhắc HV/PH lịch học (Email/Zalo) **trước buổi ~2 tiếng** |
+
+Tick gọi `ReminderScheduler` — chỉ chạy lệnh **đến hạn** và **chưa chạy** trong khung (cache + lock).
+
+### 1) Cron GET (khuyến nghị production — không cần đăng nhập)
+
+1. Thêm token vào `.env`:
+
+```env
+SCHEDULER_TICK_TOKEN=chuỗi_bí_mật_dài
+```
+
+Sinh token: `openssl rand -hex 24`
+
+2. Cài cron **mỗi phút** trên cPanel / crontab:
+
+```cron
+* * * * * curl -fsS "https://TENANT.quanlytrungtam.com/scheduler/tick?key=DIEN_TOKEN" >/dev/null 2>&1
+```
+
+Ví dụ local/Docker:
+
+```bash
+curl -fsS "http://localhost:8082/scheduler/tick?key=$(grep ^SCHEDULER_TICK_TOKEN= .env | cut -d= -f2)"
+```
+
+Multi-tenant: **mỗi subdomain một dòng cron** (middleware chọn DB theo host).
+
+Endpoint:
+
+```http
+GET /scheduler/tick?key=SCHEDULER_TICK_TOKEN
+```
+
+Tuỳ chọn: `&force=1` ép chạy mọi job (chỉ khi test).
+
+### 2) AJAX khi đăng nhập admin (dự phòng)
+
+Khi staff mở `/admin`, layout gọi `POST /admin/scheduler/tick` (CSRF + session), tối đa mỗi **60 giây** / trình duyệt.
+
+> Nếu cả ngày không ai login và **không** có cron GET → nhắc (gồm lịch học) sẽ không chạy.
+
+### 3) Laravel `schedule:run` (tuỳ chọn)
+
+Nếu host hỗ trợ artisan scheduler:
+
+```cron
+* * * * * cd /home/USER/path/to/crm-trungtam && php artisan schedule:run >> /dev/null 2>&1
+```
+
+Lịch khai báo trong `routes/console.php` (gồm `crm:remind-upcoming-sessions` mỗi 15 phút). Có thể dùng song song với GET tick (đã chống trùng).
+
+### Chạy tay (Docker / SSH)
+
+```bash
+docker compose exec app php artisan finance:remind-debts
+docker compose exec app php artisan crm:remind-lead-followups
+docker compose exec app php artisan crm:remind-stale-sessions
+docker compose exec app php artisan crm:remind-upcoming-sessions --minutes=120 --window=12
+
+# Ép chạy toàn bộ job trong ReminderScheduler
+docker compose exec app php artisan tinker --execute="print_r(app(App\Services\ReminderScheduler::class)->tick(true));"
+```
+
+### Nhắc lịch học (Zalo / Email)
+
+1. Cài đặt → bật **Kênh Zalo** + **Nhắc lịch học (Zalo trước buổi 2 tiếng)**.
+2. Mẫu thông báo `session_reminder`: bật Zalo, điền **Zalo Template ID**, JSON biến dạng `{"customer_name":"{{recipient_name}}","date":"{{session_date}}",...}`.
+3. Cron GET / tick chạy `crm:remind-upcoming-sessions` mỗi ~15 phút; gửi HV + PH có SĐT/Email; chống trùng qua `notification_logs`.
+
+### Điều kiện nhận thông báo in-app
+
+- User `is_active` và đúng quyền / gán lead:
+  - Nợ: `DebtReminderService`
+  - Lead: Sales được gán (`assigned_sales_id`)
+  - Buổi stale: quyền `training.classes.manage`
+
+### File liên quan
+
+| File | Vai trò |
+|------|---------|
+| `GET /scheduler/tick` | Cron công khai (key) |
+| `POST /admin/scheduler/tick` | AJAX admin |
+| `app/Services/ReminderScheduler.php` | Quyết định lệnh đến hạn |
+| `routes/console.php` | Lịch `schedule:run` |
+| `app/Console/Commands/*` | Các lệnh nhắc |
+| `app/Services/SessionReminderNotificationService.php` | Nhắc lịch → Email/Zalo |
+
+---
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Nội bộ / theo thỏa thuận dự án.

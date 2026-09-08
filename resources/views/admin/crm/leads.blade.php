@@ -93,12 +93,17 @@
                                         @if(($lead->interactions_count ?? 0) > 0)
                                             <span class="lead-meta-chip"><i class="bi bi-chat-left-text"></i> {{ $lead->interactions_count }}</span>
                                         @endif
+                                        @if($lead->follow_up_at && $lead->status === 'new')
+                                            <span class="lead-meta-chip {{ $lead->follow_up_at->isPast() && !$lead->follow_up_at->isToday() ? 'text-danger' : '' }}">
+                                                <i class="bi bi-alarm"></i> {{ $lead->follow_up_at->format('d/m') }}
+                                            </span>
+                                        @endif
                                     </div>
                                 </div>
                             </div>
                         </td>
                         <td>
-                            <div><i class="bi bi-telephone text-muted mr-1"></i>{{ $lead->phone }}</div>
+                            <div>@if($lead->phone)<i class="bi bi-telephone text-muted mr-1"></i>{{ $lead->phone }}@else<span class="text-muted">—</span>@endif</div>
                             @if($lead->email)
                                 <div class="small text-muted"><i class="bi bi-envelope mr-1"></i>{{ $lead->email }}</div>
                             @endif
@@ -157,8 +162,8 @@
             </div>
             <div class="modal-body">
                 <p class="text-muted small mb-3">
-                    Tải file mẫu, điền dữ liệu rồi tải lên. Cột bắt buộc: <strong>Họ tên *</strong>, <strong>SĐT *</strong>.
-                    Nếu để trống <em>Chi nhánh</em>, hệ thống dùng chi nhánh đang chọn trên header.
+                    Tải file mẫu, điền dữ liệu rồi tải lên. Cột bắt buộc: <strong>Họ tên *</strong>.
+                    SĐT / Email không bắt buộc. Nếu để trống <em>Chi nhánh</em>, hệ thống dùng chi nhánh đang chọn trên header.
                 </p>
                 <div class="mb-3">
                     <a href="{{ route('admin.leads.import.template') }}" class="btn btn-sm btn-outline-primary">
@@ -183,4 +188,28 @@
     'title' => 'Hướng dẫn — Danh sách Leads',
     'items' => $helpItems,
 ])
+
+@include('partials.select2')
 @endsection
+
+@push('scripts')
+<script>
+(function () {
+    var $modal = $('#modalCreate');
+
+    function initSalesSelect2($root) {
+        var $el = ($root || $(document)).find('.js-lead-sales-select');
+        if (!$el.length || typeof crmSelect2Local !== 'function') return;
+        crmSelect2Local($el, {
+            placeholder: 'Chọn Sales phụ trách',
+            allowClear: true,
+            dropdownParent: $root && $root.hasClass('modal') ? $root.find('.modal-content') : undefined
+        });
+    }
+
+    $modal.on('shown.bs.modal', function () {
+        initSalesSelect2($modal);
+    });
+})();
+</script>
+@endpush

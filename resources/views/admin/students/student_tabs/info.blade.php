@@ -51,9 +51,11 @@
         <div class="col-md-6 mb-2"><strong>Chi nhánh:</strong> {{ $student->branch?->name }}</div>
         <div class="col-md-6 mb-2"><strong>Ngày sinh:</strong> {{ optional($student->dob)->format('d/m/Y') ?: '—' }}</div>
         <div class="col-md-6 mb-2"><strong>Giới tính:</strong> {{ $student->gender ?: '—' }}</div>
+        <div class="col-md-6 mb-2"><strong>SĐT học viên:</strong> {{ $student->phone ?: '—' }}</div>
+        <div class="col-md-6 mb-2"><strong>Email học viên:</strong> {{ $student->email ?: '—' }}</div>
         <div class="col-md-6 mb-2"><strong>Người thân:</strong> {{ $student->parent_name ?: '—' }}</div>
-        <div class="col-md-6 mb-2"><strong>SĐT:</strong> {{ $student->parent_phone ?: '—' }}</div>
-        <div class="col-md-6 mb-2"><strong>Email:</strong> {{ $student->parent_email ?: '—' }}</div>
+        <div class="col-md-6 mb-2"><strong>SĐT người thân:</strong> {{ $student->parent_phone ?: '—' }}</div>
+        <div class="col-md-6 mb-2"><strong>Email người thân:</strong> {{ $student->parent_email ?: '—' }}</div>
         <div class="col-md-6 mb-2"><strong>Địa chỉ:</strong> {{ $student->address ?: '—' }}</div>
         <div class="col-12 mb-0"><strong>Ghi chú:</strong> {{ $student->notes ?: '—' }}</div>
     </div>

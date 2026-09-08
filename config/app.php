@@ -65,7 +65,7 @@ return [
     |
     */
 
-    'timezone' => env('APP_TIMEZONE', 'UTC'),
+    'timezone' => env('APP_TIMEZONE', 'Asia/Ho_Chi_Minh'),
 
     /*
     |--------------------------------------------------------------------------
@@ -122,5 +122,14 @@ return [
         'driver' => env('APP_MAINTENANCE_DRIVER', 'file'),
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Scheduler tick (cron GET /scheduler/tick?key=...)
+    |--------------------------------------------------------------------------
+    | Token bắt buộc cho endpoint cron không đăng nhập.
+    | Sinh chuỗi ngẫu nhiên dài, ví dụ: openssl rand -hex 24
+    */
+    'scheduler_tick_token' => env('SCHEDULER_TICK_TOKEN', ''),
 
 ];

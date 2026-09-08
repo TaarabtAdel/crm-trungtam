@@ -38,9 +38,20 @@ class AppServiceProvider extends ServiceProvider
         });
 
         View::composer('partials.header', function ($view) {
+            $user = auth()->user();
+            $headerNotifications = collect();
+            $headerUnreadNotifications = 0;
+
+            if ($user) {
+                $headerNotifications = $user->notifications()->latest()->limit(12)->get();
+                $headerUnreadNotifications = $user->unreadNotifications()->count();
+            }
+
             $view->with([
                 'headerBranches' => Branch::query()->where('is_active', true)->orderBy('name')->get(),
                 'currentBranchId' => CurrentBranch::id(),
+                'headerNotifications' => $headerNotifications,
+                'headerUnreadNotifications' => $headerUnreadNotifications,
             ]);
         });
 

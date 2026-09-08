@@ -21,6 +21,10 @@
     <tr><td>Hoàn tiền</td><td class="right">{{ $fmt($data['refunds']) }}</td></tr>
     <tr><td>Thu ròng</td><td class="right">{{ $fmt($data['net_revenue']) }}</td></tr>
     <tr><td>Chi phí</td><td class="right">{{ $fmt($data['expenses']) }}</td></tr>
+    <tr><td>Trong đó lương GV đã chi</td><td class="right">{{ $fmt($data['salary_paid'] ?? 0) }}</td></tr>
+    <tr><td>Lương GV tạm tính (buổi HT)</td><td class="right">{{ $fmt($data['payroll_accrued'] ?? 0) }}</td></tr>
+    <tr><td>Trong đó lương NV đã chi</td><td class="right">{{ $fmt($data['staff_salary_paid'] ?? 0) }}</td></tr>
+    <tr><td>Lương NV tạm tính (công)</td><td class="right">{{ $fmt($data['staff_payroll_accrued'] ?? 0) }}</td></tr>
     <tr><td><strong>Lãi/Lỗ</strong></td><td class="right"><strong>{{ $fmt($data['profit']) }}</strong></td></tr>
 </table>
 </body>

@@ -52,6 +52,24 @@
             <div class="col-md-3 mb-2"><div class="small text-muted">Còn nợ</div><div class="h5 mb-0 text-danger">{{ $fmt($invoice->remaining_amount) }}</div></div>
             <div class="col-md-3 mb-2"><div class="small text-muted">Hạn TT</div><div class="h5 mb-0">{{ optional($invoice->due_date)->format('d/m/Y') ?: '—' }}</div></div>
         </div>
+        <div class="small text-muted mt-2">
+            {{ $invoice->feeTypeLabel() }}
+            @if($invoice->billing_month)
+                · {{ $invoice->billing_month }}
+            @endif
+            @if($invoice->sessions_count)
+                · {{ $invoice->sessions_count }} buổi
+            @endif
+            @if(($invoice->gross_amount ?? null) !== null && (float) $invoice->gross_amount > 0)
+                · Trước giảm {{ $fmt($invoice->gross_amount) }}
+            @endif
+            @if(($invoice->discount_amount ?? 0) > 0)
+                · Giảm {{ $fmt($invoice->discount_amount) }}
+                @if($invoice->discount_reason)
+                    ({{ $invoice->discount_reason }})
+                @endif
+            @endif
+        </div>
     </div>
 </div>
 
@@ -100,7 +118,7 @@
                                 <td>{{ $p->receiver?->name ?: '—' }}</td>
                                 <td>
                                     @if($p->receipt_path)
-                                        <a href="{{ asset('storage/'.$p->receipt_path) }}" target="_blank">Xem</a>
+                                        <a href="{{ \App\Support\TenantStorage::url($p->receipt_path) }}" target="_blank">Xem</a>
                                     @else —
                                     @endif
                                     @canPerm('finance.refunds.manage')

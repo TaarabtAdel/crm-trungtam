@@ -11,9 +11,17 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->web(prepend: [
+            \App\Http\Middleware\ResolveTenantDatabase::class,
+        ]);
+
         $middleware->alias([
             'permission' => \App\Http\Middleware\EnsurePermission::class,
         ]);
+
+        // Tránh vòng lặp: guest (/login) ↔ / khi đã đăng nhập
+        $middleware->redirectGuestsTo('/login');
+        $middleware->redirectUsersTo('/admin');
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

@@ -9,8 +9,10 @@ use App\Models\CourseClass;
 use App\Models\Invoice;
 use App\Models\Student;
 use App\Services\Finance\InvoiceService;
+use App\Services\StudentExcelImporter;
 use App\Support\CurrentBranch;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class StudentController extends Controller
 {
@@ -25,6 +27,8 @@ class StudentController extends Controller
             ->when($q, function ($query) use ($q) {
                 $query->where(function ($inner) use ($q) {
                     $inner->where('name', 'like', "%{$q}%")
+                        ->orWhere('phone', 'like', "%{$q}%")
+                        ->orWhere('email', 'like', "%{$q}%")
                         ->orWhere('parent_phone', 'like', "%{$q}%")
                         ->orWhere('parent_name', 'like', "%{$q}%")
                         ->orWhere('parent_email', 'like', "%{$q}%");
@@ -169,6 +173,39 @@ class StudentController extends Controller
         return redirect()->route('admin.students.index')->with('success', 'Đã xóa học viên.');
     }
 
+    public function importTemplate(StudentExcelImporter $importer): StreamedResponse
+    {
+        return $importer->downloadTemplate();
+    }
+
+    public function import(Request $request, StudentExcelImporter $importer)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls,csv|max:5120',
+        ], [
+            'file.required' => 'Vui lòng chọn file Excel.',
+            'file.mimes' => 'Chỉ chấp nhận file .xlsx, .xls hoặc .csv.',
+        ]);
+
+        $result = $importer->import($request->file('file'));
+
+        if ($result['imported'] === 0 && count($result['errors']) > 0) {
+            return back()
+                ->with('error', 'Không nhập được học viên nào.')
+                ->with('import_errors', $result['errors']);
+        }
+
+        $message = "Đã nhập {$result['imported']} học viên";
+        if ($result['skipped'] > 0) {
+            $message .= ", bỏ qua {$result['skipped']} dòng";
+        }
+        $message .= '.';
+
+        return back()
+            ->with('success', $message)
+            ->with('import_errors', $result['errors']);
+    }
+
     public function attachClass(Request $request, Student $student)
     {
         $data = $request->validate([
@@ -211,6 +248,8 @@ class StudentController extends Controller
             'name' => 'required|string|max:255',
             'dob' => 'nullable|date',
             'gender' => 'nullable|in:Nam,Nữ,Khác',
+            'phone' => 'nullable|string|max:30',
+            'email' => 'nullable|email|max:255',
             'parent_phone' => 'nullable|string|max:30',
             'parent_name' => 'nullable|string|max:255',
             'parent_email' => 'nullable|email',

@@ -8,23 +8,19 @@
         [
             'title' => 'Cách điểm danh',
             'body' => '<ol class="mb-0 pl-3">'
-                .'<li>Chọn <strong>lớp</strong> và <strong>ngày buổi học</strong>.</li>'
-                .'<li>Với từng học viên, chọn trạng thái: Có mặt / Muộn / Vắng / Vắng có phép.</li>'
-                .'<li>Nhập ghi chú nếu cần (ví dụ lý do vắng).</li>'
-                .'<li>Bấm <strong>Lưu điểm danh</strong>.</li>'
+                .'<li>Chọn <strong>lớp</strong>.</li>'
+                .'<li>Chọn <strong>ngày buổi học</strong> — chỉ hiện các ngày có trong <em>Thời khóa biểu</em> của lớp (không gồm buổi Hủy).</li>'
+                .'<li>Với từng học viên, chọn: Có mặt / Muộn / Vắng / Vắng có phép.</li>'
+                .'<li>Nhập ghi chú nếu cần → bấm <strong>Lưu điểm danh</strong>.</li>'
                 .'</ol>',
         ],
         [
-            'title' => 'Đánh dấu buổi hoàn thành',
-            'body' => '<p class="mb-0">Tick <em>Đánh dấu buổi học hoàn thành (tính lương GV)</em> khi lưu để hệ thống ghi nhận buổi đã dạy và dùng cho tính thù lao giáo viên.</p>',
+            'title' => 'Không thấy ngày cần điểm danh?',
+            'body' => '<p class="mb-0">Vào chi tiết lớp → tab <strong>Thời khóa biểu</strong> để thêm buổi hoặc sinh TKB. Buổi ở trạng thái <em>Hủy</em> không cho điểm danh.</p>',
         ],
         [
-            'title' => 'Lưu ý',
-            'body' => '<ul class="mb-0 pl-3">'
-                .'<li>Lớp chưa có học viên thì không điểm danh được — cần ghi danh HV trước.</li>'
-                .'<li>Có thể sửa lại điểm danh cùng ngày bằng cách chọn lại lớp/ngày rồi lưu.</li>'
-                .'<li>Xem lịch sử theo từng HV tại trang Chi tiết học viên → tab Điểm danh.</li>'
-                .'</ul>',
+            'title' => 'Hoàn thành buổi / lương GV',
+            'body' => '<p class="mb-0">Đánh dấu buổi hoàn thành (tính lương) ở <strong>Thời khóa biểu lớp → Sửa buổi</strong>: chọn trạng thái <em>Hoàn thành</em>.</p>',
         ],
     ];
 @endphp
@@ -32,24 +28,34 @@
     <div class="card-header-custom">
         <div>
             <h5 class="mb-0 font-weight-bold">Điểm danh</h5>
-            <small class="text-muted">Chọn lớp và ngày để điểm danh. Có thể đánh dấu buổi học hoàn thành để tính lương GV.</small>
+            <small class="text-muted">Chỉ điểm danh đúng các ngày có trong thời khóa biểu của lớp.</small>
         </div>
         <button class="btn btn-sm btn-outline-info" type="button" data-toggle="modal" data-target="#modalAttendancesHelp">
             <i class="bi bi-question-circle"></i> Hướng dẫn
         </button>
     </div>
     <div class="card-body-custom">
-        <form method="GET" class="filter-bar mb-3">
+        <form method="GET" class="filter-bar mb-3" id="attendanceFilterForm">
             <select name="class_id" class="form-control form-control-sm" style="max-width:280px" onchange="this.form.submit()">
                 <option value="">-- Chọn lớp --</option>
                 @foreach($classes as $c)
-                    <option value="{{ $c->id }}" @selected($classId==$c->id)>{{ $c->name }}</option>
+                    <option value="{{ $c->id }}" @selected((string) $classId === (string) $c->id)>{{ $c->name }}</option>
                 @endforeach
             </select>
-            <input type="date" name="session_date" value="{{ $date }}" class="form-control form-control-sm" style="max-width:180px" onchange="this.form.submit()">
+            @if($courseClass)
+                @if($sessionOptions->isNotEmpty())
+                    <select name="session_date" class="form-control form-control-sm" style="max-width:340px" onchange="this.form.submit()">
+                        @foreach($sessionOptions as $opt)
+                            <option value="{{ $opt['date'] }}" @selected($date === $opt['date'])>{{ $opt['label'] }}</option>
+                        @endforeach
+                    </select>
+                @else
+                    <span class="text-danger small">Lớp chưa có buổi trong TKB — hãy tạo thời khóa biểu trước.</span>
+                @endif
+            @endif
         </form>
 
-        @if($courseClass)
+        @if($courseClass && $date && $sessionOptions->isNotEmpty())
             <form method="POST" action="{{ route('admin.attendances.store') }}">
                 @csrf
                 <input type="hidden" name="class_id" value="{{ $courseClass->id }}">
@@ -90,13 +96,14 @@
                     </table>
                 </div>
                 @if($courseClass->students->count())
-                <div class="form-check mt-3 mb-3">
-                    <input type="checkbox" class="form-check-input" name="mark_session_completed" value="1" id="markSession" checked>
-                    <label class="form-check-label" for="markSession">Đánh dấu buổi học hoàn thành (tính lương GV)</label>
-                </div>
-                <button class="btn btn-primary">Lưu điểm danh</button>
+                <button class="btn btn-primary mt-3">Lưu điểm danh</button>
                 @endif
             </form>
+        @elseif($courseClass && $sessionOptions->isEmpty())
+            <div class="alert alert-warning mb-0">
+                Lớp <strong>{{ $courseClass->name }}</strong> chưa có buổi học (hoặc toàn bộ đã Hủy).
+                Vào <a href="{{ route('admin.classes.show', ['class' => $courseClass, 'tab' => 'timetable']) }}">Thời khóa biểu lớp</a> để tạo buổi trước khi điểm danh.
+            </div>
         @else
             <p class="text-muted mb-0">Chọn lớp để bắt đầu điểm danh.</p>
         @endif

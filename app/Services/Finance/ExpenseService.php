@@ -4,6 +4,9 @@ namespace App\Services\Finance;
 
 use App\Models\Expense;
 use App\Models\User;
+use App\Notifications\ExpenseProposedNotification;
+use App\Notifications\ExpenseStatusNotification;
+use App\Support\Notifier;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -17,16 +20,30 @@ class ExpenseService
             $path = $file->store('finance/expenses', 'public');
         }
 
-        return Expense::create([
+        $expense = Expense::create([
             'branch_id' => $data['branch_id'] ?? $user->branch_id,
+            'teacher_id' => $data['teacher_id'] ?? null,
+            'user_id' => $data['user_id'] ?? null,
+            'billing_month' => $data['billing_month'] ?? null,
             'category' => $data['category'] ?? 'other',
             'amount' => $data['amount'],
             'expense_date' => $data['expense_date'] ?? now()->toDateString(),
             'created_by' => $user->id,
-            'status' => 'pending',
+            'approved_by' => $data['approved_by'] ?? null,
+            'status' => $data['status'] ?? 'pending',
             'note' => $data['note'] ?? null,
             'attachment_path' => $path,
         ]);
+
+        if ($expense->status === 'pending') {
+            Notifier::toPermission(
+                'finance.expenses.approve',
+                new ExpenseProposedNotification($expense),
+                $user->id
+            );
+        }
+
+        return $expense;
     }
 
     public function approve(Expense $expense, User $approver): Expense
@@ -40,7 +57,12 @@ class ExpenseService
             'approved_by' => $approver->id,
         ]);
 
-        return $expense->fresh();
+        $expense = $expense->fresh(['creator']);
+        if ($expense->creator && (int) $expense->creator->id !== (int) $approver->id) {
+            $expense->creator->notify(new ExpenseStatusNotification($expense, 'approved'));
+        }
+
+        return $expense;
     }
 
     public function reject(Expense $expense, User $approver): Expense
@@ -54,7 +76,12 @@ class ExpenseService
             'approved_by' => $approver->id,
         ]);
 
-        return $expense->fresh();
+        $expense = $expense->fresh(['creator']);
+        if ($expense->creator && (int) $expense->creator->id !== (int) $approver->id) {
+            $expense->creator->notify(new ExpenseStatusNotification($expense, 'rejected'));
+        }
+
+        return $expense;
     }
 
     public function markPaid(Expense $expense): Expense
@@ -64,8 +91,14 @@ class ExpenseService
         }
 
         $expense->update(['status' => 'paid']);
+        $expense = $expense->fresh(['creator']);
 
-        return $expense->fresh();
+        $actorId = auth()->id();
+        if ($expense->creator && (int) $expense->creator->id !== (int) $actorId) {
+            $expense->creator->notify(new ExpenseStatusNotification($expense, 'paid'));
+        }
+
+        return $expense;
     }
 
     public function delete(Expense $expense): void

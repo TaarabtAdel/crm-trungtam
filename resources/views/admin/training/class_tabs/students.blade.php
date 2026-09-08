@@ -1,76 +1,88 @@
-<div class="row">
-    <div class="col-lg-4 mb-3">
-        <div class="border rounded p-3 h-100">
-            <h6 class="font-weight-bold mb-3">Thêm học viên vào lớp</h6>
-            @if($availableStudents->isEmpty())
-                <p class="text-muted small mb-0">Không còn học viên phù hợp để thêm (cùng chi nhánh, đang học, chưa trong lớp).</p>
-                <a href="{{ route('admin.students.index') }}" class="btn btn-sm btn-outline-primary mt-2">Quản lý học viên</a>
-            @else
-                <form method="POST" action="{{ route('admin.classes.students.attach', $class) }}">
-                    @csrf
-                    <div class="form-group">
-                        <label>Chọn học viên *</label>
-                        <select name="student_id" class="form-control" required>
-                            <option value="">-- Chọn --</option>
-                            @foreach($availableStudents as $s)
-                                <option value="{{ $s->id }}">{{ $s->name }} @if($s->parent_phone)— {{ $s->parent_phone }}@endif</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <div class="custom-control custom-checkbox">
-                            <input type="checkbox" class="custom-control-input" id="createInvoice" name="create_invoice" value="1" checked>
-                            <label class="custom-control-label" for="createInvoice">Tự tạo hóa đơn học phí</label>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Số kỳ trả góp</label>
-                        <input type="number" name="installment_count" class="form-control" value="1" min="1" max="24">
-                    </div>
-                    <button class="btn btn-primary btn-block btn-sm">Thêm vào lớp</button>
-                </form>
-            @endif
-            @if($class->max_students > 0 && $classStudents->count() >= $class->max_students)
-                <div class="alert alert-warning py-2 small mt-3 mb-0">Lớp đã đạt sĩ số tối đa ({{ $class->max_students }}).</div>
-            @endif
-        </div>
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap" style="gap:.5rem">
+    <div>
+        <strong>Danh sách học viên ({{ $classStudents->count() }})</strong>
+        @if($class->max_students > 0)
+            <span class="text-muted small ml-1">/ sĩ số tối đa {{ $class->max_students }}</span>
+        @endif
     </div>
-    <div class="col-lg-8 mb-3">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <strong>Danh sách học viên ({{ $classStudents->count() }})</strong>
-        </div>
-        <div class="table-responsive border rounded">
-            <table class="table table-hover mb-0">
-                <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Họ tên</th>
-                    <th>Phụ huynh</th>
-                    <th>SĐT</th>
-                    <th>Trạng thái</th>
-                    <th></th>
-                </tr>
-                </thead>
-                <tbody>
-                @forelse($classStudents as $i => $student)
-                    <tr>
-                        <td>{{ $i + 1 }}</td>
-                        <td>{{ $student->name }}</td>
-                        <td>{{ $student->parent_name ?: '—' }}</td>
-                        <td>{{ $student->parent_phone ?: '—' }}</td>
-                        <td><span class="badge badge-info">{{ $student->status }}</span></td>
-                        <td>
-                            <form method="POST" action="{{ route('admin.classes.students.detach', [$class, $student]) }}" class="d-inline" onsubmit="return confirm('Gỡ học viên khỏi lớp?')">
-                                @csrf @method('DELETE')
-                                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-person-dash"></i></button>
-                            </form>
-                        </td>
-                    </tr>
-                @empty
-                    <tr><td colspan="6" class="text-center text-muted py-4">Chưa có học viên trong lớp.</td></tr>
-                @endforelse
-                </tbody>
-            </table>
-        </div>
+    <div class="d-flex align-items-center" style="gap:.5rem">
+        <a href="{{ route('admin.students.index') }}" class="btn btn-sm btn-outline-secondary">Quản lý học viên</a>
+        @canPerm('training.classes.manage')
+        <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#modalAttachStudents">
+            <i class="bi bi-person-plus"></i> Thêm học viên vào lớp
+        </button>
+        @endcanPerm
     </div>
 </div>
+
+@if($class->max_students > 0 && $classStudents->count() >= $class->max_students)
+    <div class="alert alert-warning py-2 small">Lớp đã đạt sĩ số tối đa ({{ $class->max_students }}).</div>
+@endif
+
+<div class="table-responsive border rounded">
+    <table class="table table-hover mb-0">
+        <thead>
+        <tr>
+            <th>#</th>
+            <th>Họ tên</th>
+            <th>Người thân</th>
+            <th>SĐT</th>
+            <th>Trạng thái</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        @forelse($classStudents as $i => $student)
+            <tr>
+                <td>{{ $i + 1 }}</td>
+                <td>
+                    <a href="{{ route('admin.students.show', $student) }}" class="font-weight-bold text-dark">{{ $student->name }}</a>
+                </td>
+                <td>{{ $student->parent_name ?: '—' }}</td>
+                <td>{{ $student->phone ?: ($student->parent_phone ?: '—') }}</td>
+                <td><span class="badge lead-status {{ $student->statusBadgeClass() }}">{{ $student->statusLabel() }}</span></td>
+                <td class="text-right">
+                    @canPerm('training.classes.manage')
+                    <form method="POST" action="{{ route('admin.classes.students.detach', [$class, $student]) }}" class="d-inline" onsubmit="return confirm('Gỡ học viên khỏi lớp?')">
+                        @csrf @method('DELETE')
+                        <button class="btn btn-sm btn-outline-danger" title="Gỡ khỏi lớp"><i class="bi bi-person-dash"></i></button>
+                    </form>
+                    @endcanPerm
+                </td>
+            </tr>
+        @empty
+            <tr><td colspan="6" class="text-center text-muted py-4">Chưa có học viên trong lớp.</td></tr>
+        @endforelse
+        </tbody>
+    </table>
+</div>
+
+@canPerm('training.classes.manage')
+<div class="modal fade" id="modalAttachStudents" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <form method="POST" action="{{ route('admin.classes.students.attach', $class) }}" class="modal-content" id="formAttachStudents">
+            @csrf
+            <div class="modal-header">
+                <h5 class="modal-title">Thêm học viên vào lớp</h5>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex align-items-center mb-3 flex-wrap" style="gap:.5rem">
+                    <input type="search" id="attachStudentSearch" class="form-control form-control-sm" style="max-width:280px" placeholder="Tìm tên, SĐT, người thân...">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="attachSelectAll">Chọn tất cả</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="attachClearAll">Bỏ chọn</button>
+                    <span class="small text-muted ml-auto" id="attachSelectedCount">Đã chọn: 0</span>
+                </div>
+
+                <div id="attachStudentsList" class="border rounded student-class-checks p-2" style="min-height:180px;max-height:320px;overflow-y:auto">
+                    <div class="text-muted small text-center py-4">Đang tải danh sách...</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-dismiss="modal">Hủy</button>
+                <button type="submit" class="btn btn-primary" id="attachSubmitBtn" disabled>Thêm vào lớp</button>
+            </div>
+        </form>
+    </div>
+</div>
+@endcanPerm

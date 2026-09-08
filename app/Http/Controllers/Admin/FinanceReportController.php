@@ -7,6 +7,8 @@ use App\Models\Expense;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\Refund;
+use App\Services\Finance\StaffPayrollService;
+use App\Services\Finance\TeacherPayrollService;
 use App\Support\CurrentBranch;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -41,6 +43,10 @@ class FinanceReportController extends Controller
             ['Hoàn tiền', $data['refunds']],
             ['Thu ròng', $data['net_revenue']],
             ['Chi phí', $data['expenses']],
+            ['Trong đó lương GV đã chi', $data['salary_paid']],
+            ['Lương GV tạm tính (buổi HT)', $data['payroll_accrued']],
+            ['Trong đó lương NV đã chi', $data['staff_salary_paid']],
+            ['Lương NV tạm tính (công)', $data['staff_payroll_accrued']],
             ['Lãi/Lỗ', $data['profit']],
             [],
             ['Ngày', 'Thu', 'Chi'],
@@ -105,6 +111,23 @@ class FinanceReportController extends Controller
             ->whereBetween('expense_date', [$from->toDateString(), $to->toDateString()])
             ->sum('amount');
 
+        $salaryPaid = Expense::query()
+            ->tap(fn ($q) => CurrentBranch::apply($q))
+            ->where('category', 'salary')
+            ->whereIn('status', ['approved', 'paid'])
+            ->whereBetween('expense_date', [$from->toDateString(), $to->toDateString()])
+            ->sum('amount');
+
+        $payrollAccrued = app(TeacherPayrollService::class)->accruedInRange($branchId, $from, $to);
+
+        $staffSalaryPaid = Expense::query()
+            ->tap(fn ($q) => CurrentBranch::apply($q))
+            ->where('category', 'staff_salary')
+            ->whereIn('status', ['approved', 'paid'])
+            ->whereBetween('expense_date', [$from->toDateString(), $to->toDateString()])
+            ->sum('amount');
+
+        $staffPayrollAccrued = app(StaffPayrollService::class)->accruedInRange($branchId, $from, $to);
         $byClass = Invoice::query()
             ->tap(fn ($q) => CurrentBranch::apply($q))
             ->where('status', 'paid')
@@ -165,6 +188,10 @@ class FinanceReportController extends Controller
             'refunds' => (float) $refunds,
             'net_revenue' => $net,
             'expenses' => (float) $expenses,
+            'salary_paid' => (float) $salaryPaid,
+            'payroll_accrued' => (float) $payrollAccrued,
+            'staff_salary_paid' => (float) $staffSalaryPaid,
+            'staff_payroll_accrued' => (float) $staffPayrollAccrued,
             'profit' => $net - (float) $expenses,
             'by_class' => $byClass,
             'by_branch' => $byBranch,

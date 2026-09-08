@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Attendance;
 use App\Models\Branch;
 use App\Models\ClassSession;
 use App\Models\CourseClass;
@@ -10,8 +11,10 @@ use App\Models\Invoice;
 use App\Models\Student;
 use App\Models\Subject;
 use App\Models\Teacher;
+use App\Services\ClassSessionJournalService;
 use App\Services\ClassTimetableGenerator;
 use App\Support\CurrentBranch;
+use App\Support\Notifier;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
@@ -51,7 +54,7 @@ class ClassController extends Controller
     public function show(Request $request, CourseClass $class)
     {
         $tab = $request->get('tab', 'info');
-        if (! in_array($tab, ['info', 'students', 'timetable', 'tuition'], true)) {
+        if (! in_array($tab, ['info', 'students', 'timetable', 'tuition', 'journal'], true)) {
             $tab = 'info';
         }
 
@@ -67,40 +70,92 @@ class ClassController extends Controller
         $availableStudents = collect();
         $classStudents = collect();
         $sessions = collect();
-        $month = now()->format('Y-m');
+        $month = '';
+        $availableMonths = [];
+        $attendancesByDate = collect();
         $defaultFrom = now()->startOfMonth()->toDateString();
         $defaultTo = now()->addMonths(2)->endOfMonth()->toDateString();
         $invoices = collect();
         $billingMonth = now()->format('Y-m');
         $suggestion = null;
+        $billingPreviews = [];
+        $defaultFeeType = 'monthly';
+        $selectableSessions = collect();
+        $unitFee = 0;
+        $journals = collect();
 
         if ($tab === 'students') {
             $classStudents = $class->students()->orderBy('name')->get();
-            $enrolledIds = $classStudents->pluck('id')->all();
-            $branchId = CurrentBranch::id() ?: $class->branch_id;
-            $availableStudents = Student::query()
-                ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-                ->where('status', 'studying')
-                ->when($enrolledIds, fn ($q) => $q->whereNotIn('id', $enrolledIds))
-                ->orderBy('name')
-                ->get();
+        }
+
+        if ($tab === 'timetable' || $tab === 'journal') {
+            $month = (string) $request->get('month', '');
+            if ($month !== '' && ! preg_match('/^\d{4}-\d{2}$/', $month)) {
+                $month = '';
+            }
+
+            $availableMonths = $class->sessions()
+                ->selectRaw("DATE_FORMAT(session_date, '%Y-%m') as ym")
+                ->groupBy('ym')
+                ->orderByDesc('ym')
+                ->pluck('ym')
+                ->filter()
+                ->values()
+                ->all();
         }
 
         if ($tab === 'timetable') {
-            $month = $request->get('month', now()->format('Y-m'));
-            if (! preg_match('/^\d{4}-\d{2}$/', $month)) {
-                $month = now()->format('Y-m');
+            $sessionsQuery = $class->sessions()->with(['teacher', 'journal']);
+            if ($month !== '') {
+                [$year, $monthNum] = array_map('intval', explode('-', $month));
+                $sessionsQuery
+                    ->whereYear('session_date', $year)
+                    ->whereMonth('session_date', $monthNum);
             }
-            [$year, $monthNum] = array_map('intval', explode('-', $month));
-            $sessions = $class->sessions()
-                ->with('teacher')
-                ->whereYear('session_date', $year)
-                ->whereMonth('session_date', $monthNum)
+            $sessions = $sessionsQuery
                 ->orderBy('session_date')
                 ->orderBy('start_time')
                 ->get();
+
+            $classStudents = $class->students()->orderBy('name')->get();
+            $sessionDates = $sessions->map(fn ($s) => $s->session_date->format('Y-m-d'))->unique()->values()->all();
+            if ($sessionDates !== []) {
+                $attendancesByDate = Attendance::query()
+                    ->where('class_id', $class->id)
+                    ->whereIn('session_date', $sessionDates)
+                    ->get()
+                    ->groupBy(fn (Attendance $a) => $a->session_date->format('Y-m-d'))
+                    ->map(fn ($rows) => $rows->keyBy('student_id'));
+            }
+
             $defaultFrom = optional($class->start_date)->format('Y-m-d') ?: now()->startOfMonth()->toDateString();
             $defaultTo = optional($class->end_date)->format('Y-m-d') ?: now()->addMonths(2)->endOfMonth()->toDateString();
+        }
+
+        if ($tab === 'journal') {
+            $journalService = app(ClassSessionJournalService::class);
+            $completedQuery = $class->sessions()
+                ->with(['teacher', 'journal.filledByUser'])
+                ->where('status', 'completed');
+            if ($month !== '') {
+                [$year, $monthNum] = array_map('intval', explode('-', $month));
+                $completedQuery
+                    ->whereYear('session_date', $year)
+                    ->whereMonth('session_date', $monthNum);
+            }
+            $sessions = $completedQuery
+                ->orderByDesc('session_date')
+                ->orderByDesc('start_time')
+                ->get();
+
+            foreach ($sessions as $session) {
+                if (! $session->journal) {
+                    $journalService->ensureForSession($session);
+                    $session->load('journal');
+                }
+            }
+
+            $journals = $sessions->pluck('journal')->filter()->values();
         }
 
         if ($tab === 'tuition') {
@@ -111,7 +166,15 @@ class ClassController extends Controller
                 ->latest()
                 ->paginate(20)
                 ->withQueryString();
-            $suggestion = $class->suggestInvoiceAmount($billingMonth);
+            $defaultFeeType = $class->isPerSessionFee() ? 'per_session' : 'monthly';
+            $billingPreviews = [
+                'monthly' => $class->suggestInvoiceAmount($billingMonth, 'monthly'),
+                'per_session' => $class->suggestInvoiceAmount($billingMonth, 'per_session'),
+                'course' => $class->suggestInvoiceAmount($billingMonth, 'course'),
+            ];
+            $suggestion = $billingPreviews[$defaultFeeType];
+            $selectableSessions = $class->sessionsInMonth($billingMonth);
+            $unitFee = (float) $class->tuition_fee;
         }
 
         if ($tab === 'info') {
@@ -121,8 +184,9 @@ class ClassController extends Controller
         return view('admin.training.class_show', compact(
             'class', 'tab', 'branches', 'subjects', 'teachers', 'sessionTeachers', 'days',
             'availableStudents', 'classStudents',
-            'sessions', 'month', 'defaultFrom', 'defaultTo',
-            'invoices', 'billingMonth', 'suggestion'
+            'sessions', 'month', 'availableMonths', 'attendancesByDate', 'defaultFrom', 'defaultTo',
+            'invoices', 'billingMonth', 'suggestion', 'billingPreviews', 'defaultFeeType',
+            'selectableSessions', 'unitFee', 'journals'
         ));
     }
 
@@ -194,12 +258,11 @@ class ClassController extends Controller
             ->route('admin.classes.show', [
                 'class' => $class,
                 'tab' => 'timetable',
-                'month' => substr($data['from'], 0, 7),
             ])
             ->with('success', $msg);
     }
 
-    public function storeSession(Request $request, CourseClass $class)
+    public function storeSession(Request $request, CourseClass $class, ClassSessionJournalService $journals)
     {
         $data = $request->validate([
             'session_date' => 'required|date',
@@ -219,7 +282,14 @@ class ClassController extends Controller
             return back()->with('error', 'Đã có buổi học vào ngày này.');
         }
 
-        ClassSession::query()->create([
+        if (($data['status'] ?? 'scheduled') === 'completed') {
+            $attendanceError = $this->attendanceRequiredMessage($class, $data['session_date']);
+            if ($attendanceError) {
+                return back()->withInput()->with('error', $attendanceError);
+            }
+        }
+
+        $session = ClassSession::query()->create([
             'class_id' => $class->id,
             'teacher_id' => $data['teacher_id'],
             'session_date' => $data['session_date'],
@@ -229,10 +299,23 @@ class ClassController extends Controller
             'notes' => $data['notes'] ?? null,
         ]);
 
+        if ($session->status === 'completed') {
+            $journals->ensureForSession($session);
+            Notifier::remindSessionJournal($session, auth()->id());
+
+            return redirect()
+                ->route('admin.classes.show', [
+                    'class' => $class,
+                    'tab' => 'timetable',
+                    'month' => $session->session_date->format('Y-m'),
+                ])
+                ->with('success', 'Đã thêm buổi hoàn thành. Nhật ký đã tạo sẵn — giáo viên sẽ cập nhật nội dung.');
+        }
+
         return back()->with('success', 'Đã thêm buổi học.');
     }
 
-    public function updateSession(Request $request, CourseClass $class, ClassSession $session)
+    public function updateSession(Request $request, CourseClass $class, ClassSession $session, ClassSessionJournalService $journals)
     {
         abort_unless($session->class_id === $class->id, 404);
 
@@ -255,9 +338,108 @@ class ClassController extends Controller
             return back()->with('error', 'Đã có buổi học khác vào ngày này.');
         }
 
+        $wasCompleted = $session->status === 'completed';
+        $nowCompleted = $data['status'] === 'completed';
+
+        if ($nowCompleted && ! $wasCompleted) {
+            $attendanceError = $this->attendanceRequiredMessage($class, $data['session_date']);
+            if ($attendanceError) {
+                return back()->withInput()->with('error', $attendanceError);
+            }
+        }
+
+        // Đổi ngày khi đã hoàn thành: vẫn cần điểm danh ngày mới
+        if ($nowCompleted && $wasCompleted) {
+            $oldDate = $session->session_date?->format('Y-m-d');
+            $newDate = \Carbon\Carbon::parse($data['session_date'])->format('Y-m-d');
+            if ($oldDate !== $newDate) {
+                $attendanceError = $this->attendanceRequiredMessage($class, $data['session_date']);
+                if ($attendanceError) {
+                    return back()->withInput()->with('error', $attendanceError);
+                }
+            }
+        }
+
         $session->update($data);
 
+        if ($nowCompleted) {
+            $journals->ensureForSession($session->fresh());
+
+            if (! $wasCompleted) {
+                Notifier::remindSessionJournal($session->fresh(), auth()->id());
+
+                return redirect()
+                    ->route('admin.classes.show', [
+                        'class' => $class,
+                        'tab' => 'timetable',
+                        'month' => $session->session_date->format('Y-m'),
+                    ])
+                    ->with('success', 'Đã đánh dấu hoàn thành. Nhật ký đã tạo sẵn — giáo viên sẽ cập nhật nội dung.');
+            }
+        }
+
         return back()->with('success', 'Đã cập nhật buổi học.');
+    }
+
+    /**
+     * Buổi hoàn thành bắt buộc đã điểm danh đủ học viên đang ghi danh.
+     */
+    protected function attendanceRequiredMessage(CourseClass $class, string $sessionDate): ?string
+    {
+        $studentIds = $class->students()->pluck('students.id');
+        if ($studentIds->isEmpty()) {
+            return null;
+        }
+
+        $markedIds = Attendance::query()
+            ->where('class_id', $class->id)
+            ->whereDate('session_date', $sessionDate)
+            ->whereIn('student_id', $studentIds)
+            ->pluck('student_id')
+            ->unique();
+
+        $missing = $studentIds->count() - $markedIds->count();
+        if ($missing > 0) {
+            $dateLabel = \Carbon\Carbon::parse($sessionDate)->format('d/m/Y');
+
+            return "Chưa điểm danh đủ cho buổi {$dateLabel} ({$markedIds->count()}/{$studentIds->count()} HV). Hãy lưu điểm danh trước khi đánh dấu hoàn thành.";
+        }
+
+        return null;
+    }
+
+    public function updateJournal(
+        Request $request,
+        CourseClass $class,
+        ClassSession $session,
+        ClassSessionJournalService $journals
+    ) {
+        abort_unless($session->class_id === $class->id, 404);
+
+        if ($session->status !== 'completed') {
+            return back()->with('error', 'Chỉ cập nhật nhật ký khi buổi đã hoàn thành.');
+        }
+
+        $data = $request->validate([
+            'lesson_title' => 'nullable|string|max:255',
+            'content' => 'nullable|string|max:5000',
+            'remarks' => 'nullable|string|max:5000',
+        ]);
+
+        $journal = $journals->ensureForSession($session, true);
+        if (! $journal) {
+            return back()->with('error', 'Không tạo được nhật ký.');
+        }
+
+        $journal->update([
+            'lesson_title' => $data['lesson_title'] ?? null,
+            'content' => $data['content'] ?? null,
+            'remarks' => $data['remarks'] ?? null,
+            'filled_by' => auth()->id(),
+            'filled_at' => now(),
+        ]);
+
+        return back()->with('success', 'Đã lưu nhật ký buổi học.');
     }
 
     public function destroySession(CourseClass $class, ClassSession $session)
@@ -268,31 +450,80 @@ class ClassController extends Controller
         return back()->with('success', 'Đã xóa buổi học.');
     }
 
+    public function availableStudents(Request $request, CourseClass $class)
+    {
+        $q = trim((string) $request->get('q', ''));
+        $enrolledIds = $class->students()->pluck('students.id')->all();
+        $branchId = CurrentBranch::id() ?: $class->branch_id;
+
+        $students = Student::query()
+            ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
+            ->where('status', 'studying')
+            ->when($enrolledIds, fn ($query) => $query->whereNotIn('id', $enrolledIds))
+            ->when($q !== '', function ($query) use ($q) {
+                $query->where(function ($inner) use ($q) {
+                    $inner->where('name', 'like', "%{$q}%")
+                        ->orWhere('phone', 'like', "%{$q}%")
+                        ->orWhere('email', 'like', "%{$q}%")
+                        ->orWhere('parent_name', 'like', "%{$q}%")
+                        ->orWhere('parent_phone', 'like', "%{$q}%");
+                });
+            })
+            ->orderBy('name')
+            ->limit(100)
+            ->get(['id', 'name', 'phone', 'parent_name', 'parent_phone', 'status']);
+
+        return response()->json([
+            'students' => $students->map(fn (Student $s) => [
+                'id' => $s->id,
+                'name' => $s->name,
+                'phone' => $s->phone ?: $s->parent_phone,
+                'parent_name' => $s->parent_name,
+                'status' => $s->statusLabel(),
+            ])->values(),
+            'total' => $students->count(),
+            'max_students' => (int) $class->max_students,
+            'enrolled_count' => count($enrolledIds),
+        ]);
+    }
+
     public function attachStudent(Request $request, CourseClass $class)
     {
         $data = $request->validate([
-            'student_id' => 'required|exists:students,id',
-            'create_invoice' => 'nullable|boolean',
-            'installment_count' => 'nullable|integer|min:1|max:24',
+            'student_id' => 'nullable|exists:students,id',
+            'student_ids' => 'nullable|array|min:1',
+            'student_ids.*' => 'integer|exists:students,id',
         ]);
 
-        $class->students()->syncWithoutDetaching([$data['student_id']]);
+        $ids = collect($data['student_ids'] ?? [])
+            ->when(! empty($data['student_id']), fn ($c) => $c->push((int) $data['student_id']))
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
 
-        $message = 'Đã thêm học viên vào lớp.';
-        if ($request->boolean('create_invoice', true)) {
-            $student = Student::findOrFail($data['student_id']);
-            $invoice = app(\App\Services\Finance\InvoiceService::class)
-                ->createEnrollmentInvoice($class, $student, [
-                    'installment_count' => (int) ($data['installment_count'] ?? 1),
-                ]);
-            if ($invoice) {
-                $message .= ' Đã tạo hóa đơn '.$invoice->code.'.';
+        if ($ids === []) {
+            return back()->with('error', 'Vui lòng chọn ít nhất một học viên.');
+        }
+
+        $enrolled = $class->students()->pluck('students.id')->all();
+        $ids = array_values(array_diff($ids, $enrolled));
+        if ($ids === []) {
+            return back()->with('error', 'Các học viên đã chọn đều đã ở trong lớp.');
+        }
+
+        if ($class->max_students > 0) {
+            $remaining = max(0, (int) $class->max_students - count($enrolled));
+            if (count($ids) > $remaining) {
+                return back()->with('error', "Lớp chỉ còn chỗ cho {$remaining} học viên (sĩ số tối đa {$class->max_students}).");
             }
         }
 
+        $class->students()->syncWithoutDetaching($ids);
+
         return redirect()
             ->route('admin.classes.show', ['class' => $class, 'tab' => 'students'])
-            ->with('success', $message);
+            ->with('success', 'Đã thêm '.count($ids).' học viên vào lớp.');
     }
 
     public function detachStudent(CourseClass $class, Student $student)
@@ -308,9 +539,15 @@ class ClassController extends Controller
     {
         $data = $request->validate([
             'student_id' => 'required|exists:students,id',
+            'fee_type' => 'required|in:monthly,per_session,course',
             'billing_month' => 'nullable|string|max:7',
-            'amount' => 'nullable|numeric|min:0',
+            'session_ids' => 'nullable|array',
+            'session_ids.*' => 'integer|exists:class_sessions,id',
             'sessions_count' => 'nullable|integer|min:0',
+            'gross_amount' => 'nullable|numeric|min:0',
+            'discount_amount' => 'nullable|numeric|min:0',
+            'discount_reason' => 'nullable|string|max:255',
+            'amount' => 'nullable|numeric|min:0',
             'due_date' => 'nullable|date',
             'status' => 'nullable|in:unpaid,paid,cancelled',
             'note' => 'nullable|string',
@@ -321,74 +558,102 @@ class ClassController extends Controller
             return back()->with('error', 'Học viên không thuộc lớp này.');
         }
 
-        $billingMonth = $data['billing_month'] ?? now()->format('Y-m');
-        $suggestion = $class->suggestInvoiceAmount($billingMonth);
+        if (($data['fee_type'] ?? '') === 'per_session' && empty($data['session_ids'])) {
+            return back()->with('error', 'Thu theo buổi: vui lòng chọn ít nhất một buổi trên lịch.');
+        }
 
-        $status = $data['status'] ?? 'unpaid';
-        app(\App\Services\Finance\InvoiceService::class)->create([
+        $payload = $this->buildTuitionInvoicePayload($class, $data);
+
+        app(\App\Services\Finance\InvoiceService::class)->create(array_merge($payload, [
             'student_id' => $data['student_id'],
             'class_id' => $class->id,
             'branch_id' => $class->branch_id,
-            'billing_month' => $billingMonth,
-            'fee_type' => $suggestion['fee_type'],
-            'sessions_count' => $data['sessions_count'] ?? $suggestion['sessions_count'],
-            'amount' => $data['amount'] ?? $suggestion['amount'],
-            'due_date' => $data['due_date'] ?? null,
-            'status' => $status,
-            'note' => $data['note'] ?? null,
+            'due_date' => $data['due_date'] ?? now()->endOfMonth()->toDateString(),
+            'status' => $data['status'] ?? 'unpaid',
             'received_by' => auth()->id(),
-        ], (int) ($data['installment_count'] ?? 1));
+        ]), (int) ($data['installment_count'] ?? 1));
 
         return redirect()
-            ->route('admin.classes.show', ['class' => $class, 'tab' => 'tuition', 'billing_month' => $billingMonth])
+            ->route('admin.classes.show', [
+                'class' => $class,
+                'tab' => 'tuition',
+                'billing_month' => $payload['billing_month'] ?: now()->format('Y-m'),
+            ])
             ->with('success', 'Đã tạo hóa đơn.');
     }
 
     public function generateInvoices(Request $request, CourseClass $class)
     {
         $data = $request->validate([
-            'billing_month' => 'required|string|max:7',
+            'fee_type' => 'required|in:monthly,per_session,course',
+            'billing_month' => 'nullable|string|max:7',
+            'session_ids' => 'nullable|array',
+            'session_ids.*' => 'integer|exists:class_sessions,id',
+            'sessions_count' => 'nullable|integer|min:0',
+            'gross_amount' => 'nullable|numeric|min:0',
+            'discount_amount' => 'nullable|numeric|min:0',
+            'discount_reason' => 'nullable|string|max:255',
+            'amount' => 'nullable|numeric|min:0',
+            'due_date' => 'nullable|date',
             'skip_existing' => 'nullable|boolean',
+            'note' => 'nullable|string',
         ]);
 
-        $billingMonth = $data['billing_month'];
-        $suggestion = $class->suggestInvoiceAmount($billingMonth);
+        if (($data['fee_type'] ?? '') === 'per_session' && empty($data['session_ids'])) {
+            return back()->with('error', 'Thu theo buổi: vui lòng chọn ít nhất một buổi trên lịch.');
+        }
+
+        $data['note'] = trim((string) ($data['note'] ?? '')) ?: 'Tạo hàng loạt từ lớp';
+        $payload = $this->buildTuitionInvoicePayload($class, $data);
         $students = $class->students()->get();
         $created = 0;
         $skipped = 0;
 
         foreach ($students as $student) {
             if ($request->boolean('skip_existing', true)) {
-                $exists = Invoice::query()
+                $existsQuery = Invoice::query()
                     ->where('class_id', $class->id)
                     ->where('student_id', $student->id)
-                    ->where('billing_month', $billingMonth)
-                    ->where('status', '!=', 'cancelled')
-                    ->exists();
-                if ($exists) {
+                    ->where('status', '!=', 'cancelled');
+
+                if (($payload['fee_type'] ?? '') === 'course') {
+                    $existsQuery->where('fee_type', 'course');
+                } else {
+                    $existsQuery->where('billing_month', $payload['billing_month']);
+                }
+
+                if ($existsQuery->exists()) {
                     $skipped++;
                     continue;
                 }
             }
 
-            app(\App\Services\Finance\InvoiceService::class)->create([
+            app(\App\Services\Finance\InvoiceService::class)->create(array_merge($payload, [
                 'student_id' => $student->id,
                 'class_id' => $class->id,
                 'branch_id' => $class->branch_id,
-                'billing_month' => $billingMonth,
-                'fee_type' => $suggestion['fee_type'],
-                'sessions_count' => $suggestion['sessions_count'],
-                'amount' => $suggestion['amount'],
                 'status' => 'unpaid',
-                'due_date' => now()->endOfMonth()->toDateString(),
-                'note' => 'Tạo hàng loạt từ lớp',
-            ]);
+                'due_date' => $data['due_date'] ?? now()->endOfMonth()->toDateString(),
+            ]));
             $created++;
         }
 
         return redirect()
-            ->route('admin.classes.show', ['class' => $class, 'tab' => 'tuition', 'billing_month' => $billingMonth])
+            ->route('admin.classes.show', [
+                'class' => $class,
+                'tab' => 'tuition',
+                'billing_month' => $payload['billing_month'] ?: now()->format('Y-m'),
+            ])
             ->with('success', "Đã tạo {$created} hóa đơn".($skipped ? ", bỏ qua {$skipped} học viên đã có HĐ" : '').'.');
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function buildTuitionInvoicePayload(CourseClass $class, array $data): array
+    {
+        return app(\App\Services\Finance\InvoiceService::class)->buildClassBillingPayload($class, $data);
     }
 
     protected function validated(Request $request): array

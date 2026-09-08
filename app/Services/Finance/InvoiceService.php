@@ -38,6 +38,14 @@ class InvoiceService
         return DB::transaction(function () use ($data, $installmentCount) {
             $student = Student::findOrFail($data['student_id']);
             $amount = (float) ($data['amount'] ?? 0);
+            $gross = (float) ($data['gross_amount'] ?? $amount);
+            $discount = max(0, (float) ($data['discount_amount'] ?? 0));
+            if ($discount > $gross) {
+                $discount = $gross;
+            }
+            if (! array_key_exists('amount', $data) || $data['amount'] === null || $data['amount'] === '') {
+                $amount = max(0, $gross - $discount);
+            }
             $status = $data['status'] ?? 'unpaid';
             $installmentCount = max(1, (int) $installmentCount);
 
@@ -52,10 +60,14 @@ class InvoiceService
                 'branch_id' => $data['branch_id'],
                 'sales_id' => $data['sales_id'] ?? null,
                 'amount' => $amount,
+                'gross_amount' => $gross,
+                'discount_amount' => $discount,
+                'discount_reason' => $data['discount_reason'] ?? null,
                 'paid_amount' => 0,
                 'remaining_amount' => $amount,
                 'billing_month' => $data['billing_month'] ?? null,
                 'sessions_count' => $data['sessions_count'] ?? null,
+                'billed_session_ids' => $data['billed_session_ids'] ?? null,
                 'fee_type' => $data['fee_type'] ?? null,
                 'installment_count' => $installmentCount,
                 'status' => $status === 'paid' ? 'unpaid' : $status,
@@ -104,6 +116,8 @@ class InvoiceService
             'class_id' => $class->id,
             'branch_id' => $class->branch_id ?: $student->branch_id,
             'amount' => $suggestion['amount'] ?: (float) $class->tuition_fee,
+            'gross_amount' => $suggestion['gross_amount'] ?? $suggestion['amount'],
+            'discount_amount' => 0,
             'billing_month' => now()->format('Y-m'),
             'fee_type' => $suggestion['fee_type'] ?? $class->tuition_type,
             'sessions_count' => $suggestion['sessions_count'],
@@ -112,6 +126,85 @@ class InvoiceService
             'sales_id' => $extra['sales_id'] ?? null,
             'status' => 'unpaid',
         ], (int) ($extra['installment_count'] ?? 1));
+    }
+
+    /**
+     * Tính payload HĐ theo hình thức thu tháng / buổi / khóa (giống tab lớp).
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public function buildClassBillingPayload(CourseClass $class, array $data): array
+    {
+        $feeType = $data['fee_type'] ?? ($class->isPerSessionFee() ? 'per_session' : 'monthly');
+        $billingMonth = $data['billing_month'] ?? now()->format('Y-m');
+        if ($feeType === 'course' && empty($data['billing_month'])) {
+            $billingMonth = now()->format('Y-m');
+        }
+
+        $suggestion = $class->suggestInvoiceAmount($billingMonth, $feeType);
+        $unit = (float) $suggestion['unit_fee'];
+
+        $sessionIds = collect($data['session_ids'] ?? [])
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($feeType === 'per_session') {
+            $validIds = $class->sessions()
+                ->where('status', '!=', 'cancelled')
+                ->whereIn('id', $sessionIds->all())
+                ->pluck('id');
+            $sessionIds = $validIds->values();
+            $sessions = $sessionIds->count();
+            $gross = $unit * $sessions;
+
+            $dates = $class->sessions()
+                ->whereIn('id', $sessionIds->all())
+                ->orderBy('session_date')
+                ->get()
+                ->map(fn ($s) => optional($s->session_date)->format('d/m/Y'))
+                ->filter()
+                ->implode(', ');
+        } else {
+            $sessions = array_key_exists('sessions_count', $data) && $data['sessions_count'] !== null && $data['sessions_count'] !== ''
+                ? (int) $data['sessions_count']
+                : (int) ($suggestion['sessions_count'] ?? 0);
+            $gross = $unit * $sessions;
+            $dates = null;
+            $sessionIds = collect();
+        }
+
+        $discount = max(0, (float) ($data['discount_amount'] ?? 0));
+        if ($discount > $gross) {
+            $discount = $gross;
+        }
+
+        $amount = max(0, $gross - $discount);
+
+        $reason = trim((string) ($data['discount_reason'] ?? ''));
+        if ($discount > 0 && $reason === '') {
+            $reason = 'Giảm học phí';
+        }
+
+        $note = trim((string) ($data['note'] ?? ''));
+        if ($feeType === 'per_session' && $dates) {
+            $suffix = 'Buổi: '.$dates;
+            $note = $note !== '' ? $note.' · '.$suffix : $suffix;
+        }
+
+        return [
+            'fee_type' => $feeType,
+            'billing_month' => $billingMonth,
+            'sessions_count' => $sessions,
+            'billed_session_ids' => $sessionIds->isNotEmpty() ? $sessionIds->all() : null,
+            'gross_amount' => $gross,
+            'discount_amount' => $discount,
+            'discount_reason' => $discount > 0 ? $reason : null,
+            'amount' => $amount,
+            'note' => $note !== '' ? $note : null,
+        ];
     }
 
     public function createInstallments(Invoice $invoice, int $count, ?string $firstDue = null): void

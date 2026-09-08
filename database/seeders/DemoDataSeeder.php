@@ -80,6 +80,18 @@ class DemoDataSeeder extends Seeder
                 ]
             );
 
+            User::query()->updateOrCreate(
+                ['email' => 'daotao@crm.local'],
+                [
+                    'name' => 'Lê Thị Đào Tạo',
+                    'password' => Hash::make('password'),
+                    'role' => 'training',
+                    'branch_id' => $main->id,
+                    'phone' => '0904000004',
+                    'is_active' => true,
+                ]
+            );
+
             $subjectNames = [
                 [$main->id, 'Lập trình Python cơ bản', 'Khóa nhập môn Python cho học sinh cấp 2-3'],
                 [$main->id, 'Scratch & Tư duy logic', 'Lập trình kéo thả cho học sinh tiểu học'],

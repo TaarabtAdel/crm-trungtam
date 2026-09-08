@@ -45,11 +45,20 @@ class DebtReminderNotification extends Notification
 
     public function toArray(object $notifiable): array
     {
+        $inv = $this->invoice;
+        $overdue = $inv->isOverdue();
+
         return [
-            'invoice_id' => $this->invoice->id,
-            'code' => $this->invoice->code,
-            'remaining' => (float) $this->invoice->remaining_amount,
-            'due_date' => optional($this->invoice->due_date)->toDateString(),
+            'title' => $overdue ? 'Hóa đơn quá hạn' : 'Nhắc nợ học phí',
+            'body' => ($inv->student?->name ?? 'Học viên').' — HĐ '.$inv->code.' còn '
+                .number_format((float) $inv->remaining_amount, 0, ',', '.').' đ',
+            'url' => route('admin.invoices.show', $inv),
+            'icon' => $overdue ? 'bi-exclamation-triangle' : 'bi-alarm',
+            'invoice_id' => $inv->id,
+            'code' => $inv->code,
+            'remaining' => (float) $inv->remaining_amount,
+            'due_date' => optional($inv->due_date)->toDateString(),
+            'type' => 'debt_reminder',
         ];
     }
 }

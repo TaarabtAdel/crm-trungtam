@@ -22,7 +22,7 @@
         ],
         [
             'title' => 'Sau khi chốt — học viên',
-            'body' => '<p class="mb-0">Khi lead <strong>Đã chốt</strong>, tạo hồ sơ học viên (module Học viên) rồi ghi danh vào lớp. Trên trang lead không có nút chuyển đổi tự động — làm bước tiếp theo trong Training / Học viên.</p>',
+            'body' => '<p class="mb-0">Khi lead <strong>Đã chốt</strong>, bấm <strong>Đưa vào danh sách học viên</strong> để tạo hồ sơ HV (map SĐT/email khách → HV, người thân → phụ huynh). Cần quyền quản lý học viên.</p>',
         ],
         [
             'title' => 'Tương tác nhanh',
@@ -37,16 +37,37 @@
         <div class="d-flex align-items-center mt-1 flex-wrap" style="gap:.5rem">
             <h4 class="mb-0 font-weight-bold">{{ $lead->name }}</h4>
             <span class="badge lead-status {{ $lead->statusBadgeClass() }}">{{ $lead->statusLabel() }}</span>
+            @if($lead->student_id)
+                <a href="{{ route('admin.students.show', $lead->student_id) }}" class="badge badge-success">Đã có HV #{{ $lead->student_id }}</a>
+            @endif
         </div>
         <div class="text-muted small mt-1">
-            <span class="mr-2"><i class="bi bi-telephone"></i> {{ $lead->phone }}</span>
+            @if($lead->phone)<span class="mr-2"><i class="bi bi-telephone"></i> {{ $lead->phone }}</span>@endif
             @if($lead->email)<span class="mr-2"><i class="bi bi-envelope"></i> {{ $lead->email }}</span>@endif
+            @if($lead->related_name || $lead->related_phone)
+                <span class="mr-2">· PH: {{ $lead->related_name ?: '—' }}@if($lead->related_phone) · {{ $lead->related_phone }}@endif</span>
+            @endif
             <span class="mr-2">· {{ $lead->branch?->name }}</span>
             @if($lead->source)<span class="mr-2">· {{ $lead->source }}</span>@endif
             <span>· Sales: {{ $lead->assignedSales?->name ?? 'Chưa gán' }}</span>
         </div>
     </div>
-    <div class="d-flex align-items-center" style="gap:.5rem">
+    <div class="d-flex align-items-center flex-wrap" style="gap:.5rem">
+        @canPerm('students.manage')
+            @if($lead->student_id)
+                <a href="{{ route('admin.students.show', $lead->student_id) }}" class="btn btn-sm btn-success">
+                    <i class="bi bi-person-check"></i> Xem học viên
+                </a>
+            @elseif($lead->status === 'won')
+                <form method="POST" action="{{ route('admin.leads.convert-student', $lead) }}" class="d-inline"
+                      onsubmit="return confirm('Tạo học viên từ lead {{ $lead->name }}?');">
+                    @csrf
+                    <button type="submit" class="btn btn-sm btn-primary">
+                        <i class="bi bi-person-plus"></i> Đưa vào danh sách học viên
+                    </button>
+                </form>
+            @endif
+        @endcanPerm
         <button class="btn btn-sm btn-outline-info" type="button" data-toggle="modal" data-target="#modalLeadShowHelp">
             <i class="bi bi-question-circle"></i> Hướng dẫn
         </button>
@@ -82,4 +103,20 @@
     'title' => 'Hướng dẫn — Chi tiết Lead',
     'items' => $helpItems,
 ])
+
+@include('partials.select2')
 @endsection
+
+@push('scripts')
+<script>
+(function () {
+    var $el = $('.js-lead-sales-select');
+    if ($el.length && typeof crmSelect2Local === 'function') {
+        crmSelect2Local($el, {
+            placeholder: 'Chọn Sales phụ trách',
+            allowClear: true
+        });
+    }
+})();
+</script>
+@endpush

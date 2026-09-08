@@ -7,15 +7,15 @@
     $helpItems = [
         [
             'title' => 'Hồ sơ giáo viên',
-            'body' => '<p class="mb-0">Quản lý tên, liên hệ, chuyên môn, chi nhánh và trạng thái. Bấm <em>+ Thêm giáo viên</em> hoặc sửa từng dòng để cập nhật.</p>',
+            'body' => '<p class="mb-0">Bấm tên GV hoặc <em>Chi tiết</em> để xem tab Thông tin / Lớp đang dạy / Lương / Lịch dạy. Thêm mới bằng nút <em>+ Thêm giáo viên</em>.</p>',
         ],
         [
             'title' => 'Đơn giá theo giờ',
-            'body' => '<p class="mb-0">Cột <em>Đơn giá</em> là mức lương/giờ giảng dạy. Điền khi tạo/sửa GV — dùng để tính bảng lương từ buổi học đã hoàn thành trên thời khóa biểu.</p>',
+            'body' => '<p class="mb-0">Cột <em>Đơn giá</em> là mức lương/giờ. Sửa trong tab Thông tin của từng GV — dùng để tính lương từ buổi <em>Hoàn thành</em> trên TKB.</p>',
         ],
         [
-            'title' => 'Bảng lương',
-            'body' => '<p class="mb-0">Nếu có quyền, bấm <em>Bảng lương</em> để xem giờ dạy × đơn giá theo tháng (kể cả dạy thay). Có thể xuất Excel/CSV từ modal.</p>',
+            'title' => 'Bảng lương tổng',
+            'body' => '<p class="mb-0">Nút <em>Bảng lương</em> xem lương tất cả GV theo tháng. Chi tiết từng người xem ở trang Chi tiết → tab <strong>Lương GV</strong>.</p>',
         ],
     ];
 @endphp
@@ -69,7 +69,9 @@
                             <div class="d-flex align-items-start" style="gap:.5rem">
                                 <div class="teacher-avatar">{{ strtoupper(mb_substr($teacher->name, 0, 1)) }}</div>
                                 <div>
-                                    <div class="font-weight-bold text-dark">{{ $teacher->name }}</div>
+                                    <div class="font-weight-bold text-dark">
+                                        <a href="{{ route('admin.teachers.show', $teacher) }}" class="text-dark">{{ $teacher->name }}</a>
+                                    </div>
                                     <div class="mt-1 d-flex align-items-center flex-wrap" style="gap:.35rem">
                                         <span class="badge lead-status {{ $teacher->statusBadgeClass() }}">{{ $teacher->statusLabel() }}</span>
                                         @if(($teacher->classes_count ?? 0) > 0)
@@ -104,11 +106,9 @@
                             <div class="small text-muted">/ giờ</div>
                         </td>
                         <td class="text-nowrap text-right">
+                            <a href="{{ route('admin.teachers.show', $teacher) }}" class="btn btn-sm btn-primary">Chi tiết</a>
                             @canPerm('training.teachers.manage')
-                            <button class="btn btn-sm btn-primary" data-toggle="modal" data-target="#edit{{ $teacher->id }}">Sửa</button>
                             <form action="{{ route('admin.teachers.destroy', $teacher) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa?')">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger" title="Xóa"><i class="bi bi-trash"></i></button></form>
-                            @else
-                            <span class="text-muted small">—</span>
                             @endcanPerm
                         </td>
                     </tr>
@@ -123,19 +123,6 @@
 </div>
 
 @canPerm('training.teachers.manage')
-@foreach($teachers as $teacher)
-<div class="modal fade" id="edit{{ $teacher->id }}" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <form method="POST" action="{{ route('admin.teachers.update', $teacher) }}" class="modal-content">
-            @csrf @method('PUT')
-            <div class="modal-header"><h5 class="modal-title">Sửa giáo viên</h5><button type="button" class="close" data-dismiss="modal"><span>&times;</span></button></div>
-            <div class="modal-body">@include('admin.training._teacher_form', ['teacher'=>$teacher,'branches'=>$branches])</div>
-            <div class="modal-footer"><button type="button" class="btn btn-light" data-dismiss="modal">Hủy</button><button class="btn btn-primary">Lưu thay đổi</button></div>
-        </form>
-    </div>
-</div>
-@endforeach
-
 <div class="modal fade" id="modalCreate" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <form method="POST" action="{{ route('admin.teachers.store') }}" class="modal-content">
@@ -172,7 +159,7 @@
                     <button class="btn btn-sm btn-primary">Xem</button>
                     <a href="{{ route('admin.teachers.payroll.export', ['payroll_month'=>$month,'payroll_year'=>$year]) }}" class="btn btn-sm btn-success ml-2">Xuất Excel/CSV</a>
                 </form>
-                <p class="small text-muted">* Lương = giờ dạy × đơn giá/giờ, lấy từ các buổi <strong>Hoàn thành</strong> trên thời khóa biểu (theo GV gắn trên từng buổi, kể cả dạy thay).</p>
+                <p class="small text-muted">* Lương = giờ dạy × đơn giá/giờ, lấy từ các buổi <strong>Hoàn thành</strong> trên thời khóa biểu (theo GV gắn trên từng buổi, kể cả dạy thay). Bấm tên GV để xem chi tiết.</p>
                 <div class="table-responsive">
                     <table class="table table-sm table-bordered">
                         <thead><tr><th>Giáo viên</th><th>Chi nhánh</th><th>Đơn giá (lương/h)</th><th>Số buổi hoàn thành</th><th>Tổng giờ dạy</th><th>Thực nhận</th></tr></thead>

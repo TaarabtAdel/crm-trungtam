@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Expense extends Model
 {
     protected $fillable = [
-        'branch_id', 'category', 'amount', 'expense_date',
+        'branch_id', 'teacher_id', 'user_id', 'billing_month', 'category', 'amount', 'expense_date',
         'created_by', 'approved_by', 'status', 'note', 'attachment_path',
     ];
 
@@ -25,6 +25,16 @@ class Expense extends Model
         return $this->belongsTo(Branch::class);
     }
 
+    public function teacher(): BelongsTo
+    {
+        return $this->belongsTo(Teacher::class);
+    }
+
+    public function staffUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -39,7 +49,8 @@ class Expense extends Model
     {
         return [
             'operations' => 'Vận hành',
-            'salary' => 'Lương',
+            'salary' => 'Lương GV',
+            'staff_salary' => 'Lương nhân viên',
             'marketing' => 'Marketing',
             'other' => 'Khác',
         ];

@@ -10,12 +10,26 @@
     </p>
     <form method="GET" action="{{ route('admin.classes.show', $class) }}" class="d-flex align-items-center" style="gap:.5rem">
         <input type="hidden" name="tab" value="timetable">
-        <label class="mb-0 small text-muted">Tháng</label>
-        <input type="month" name="month" value="{{ $month }}" class="form-control form-control-sm" style="width:160px" onchange="this.form.submit()">
+        <label class="mb-0 small text-muted">Lọc tháng</label>
+        <select name="month" class="form-control form-control-sm" style="width:170px" onchange="this.form.submit()">
+            <option value="">Tất cả</option>
+            @foreach($availableMonths as $ym)
+                <option value="{{ $ym }}" @selected($month === $ym)>
+                    {{ \Carbon\Carbon::createFromFormat('Y-m', $ym)->format('m/Y') }}
+                </option>
+            @endforeach
+            @if($month !== '' && ! in_array($month, $availableMonths, true))
+                <option value="{{ $month }}" selected>{{ \Carbon\Carbon::createFromFormat('Y-m', $month)->format('m/Y') }}</option>
+            @endif
+        </select>
+        @if($month !== '')
+            <a href="{{ route('admin.classes.show', ['class' => $class, 'tab' => 'timetable']) }}" class="btn btn-sm btn-outline-secondary">Xem tất cả</a>
+        @endif
     </form>
 </div>
 
 <div class="row">
+    @canPerm('training.classes.manage')
     <div class="col-lg-4 mb-3">
         <div class="border rounded p-3 h-100">
             <h6 class="font-weight-bold mb-2">Tạo thời khóa biểu</h6>
@@ -87,18 +101,26 @@
                         <option value="completed">Hoàn thành</option>
                         <option value="cancelled">Hủy</option>
                     </select>
+                    <small class="text-muted">Hoàn thành chỉ khi đã điểm danh đủ HV trong lớp.</small>
                 </div>
                 <button class="btn btn-outline-secondary btn-sm btn-block">Thêm buổi</button>
             </form>
         </div>
     </div>
+    @endcanPerm
 
-    <div class="col-lg-8 mb-3">
+    <div class="col-lg-{{ auth()->user()?->hasPermission('training.classes.manage') ? '8' : '12' }} mb-3">
         <div class="d-flex justify-content-between align-items-center mb-2">
-            <strong>Buổi học tháng {{ \Carbon\Carbon::createFromFormat('Y-m', $month)->format('m/Y') }}</strong>
+            <strong>
+                @if($month !== '')
+                    Buổi học tháng {{ \Carbon\Carbon::createFromFormat('Y-m', $month)->format('m/Y') }}
+                @else
+                    Tất cả buổi học
+                @endif
+            </strong>
             <span class="badge badge-secondary">{{ $sessions->count() }} buổi</span>
         </div>
-        <div class="table-responsive border rounded">
+        <div class="table-responsive border rounded" style="max-height:560px;overflow:auto">
             <table class="table table-hover mb-0">
                 <thead>
                 <tr>
@@ -141,15 +163,36 @@
                             <span class="badge badge-{{ $badge }}">{{ $session->statusLabel() }}</span>
                         </td>
                         <td class="text-nowrap">
+                            @canPerm('attendances.manage')
+                            <button type="button" class="btn btn-sm btn-outline-success" data-toggle="modal" data-target="#attendanceSession{{ $session->id }}" title="Điểm danh">
+                                <i class="bi bi-clipboard-check"></i>
+                                @php
+                                    $dateKey = $session->session_date->format('Y-m-d');
+                                    $dayAtt = $attendancesByDate->get($dateKey, collect());
+                                    $marked = $dayAtt->count();
+                                @endphp
+                                @if($marked > 0)
+                                    <span class="small">{{ $marked }}/{{ $classStudents->count() }}</span>
+                                @endif
+                            </button>
+                            @endcanPerm
+                            @if($session->status === 'completed')
+                                <a href="{{ route('admin.classes.show', ['class' => $class, 'tab' => 'journal', 'month' => $session->session_date->format('Y-m')]) }}"
+                                   class="btn btn-sm btn-outline-info" title="Nhật ký">
+                                    <i class="bi bi-journal-text"></i>
+                                </a>
+                            @endif
+                            @canPerm('training.classes.manage')
                             <button class="btn btn-sm btn-outline-primary" data-toggle="modal" data-target="#editSession{{ $session->id }}"><i class="bi bi-pencil"></i></button>
                             <form action="{{ route('admin.classes.timetable.sessions.destroy', [$class, $session]) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa buổi này?')">
                                 @csrf @method('DELETE')
                                 <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
                             </form>
+                            @endcanPerm
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="text-center text-muted py-4">Chưa có buổi học trong tháng này.</td></tr>
+                    <tr><td colspan="6" class="text-center text-muted py-4">{{ $month !== '' ? 'Chưa có buổi học trong tháng này.' : 'Chưa có buổi học nào.' }}</td></tr>
                 @endforelse
                 </tbody>
             </table>
@@ -158,6 +201,7 @@
 </div>
 
 @foreach($sessions as $session)
+@canPerm('training.classes.manage')
 <div class="modal fade" id="editSession{{ $session->id }}" tabindex="-1">
     <div class="modal-dialog">
         <form method="POST" action="{{ route('admin.classes.timetable.sessions.update', [$class, $session]) }}" class="modal-content">
@@ -191,11 +235,19 @@
                     </div>
                 </div>
                 <div class="form-group"><label>Trạng thái</label>
-                    <select name="status" class="form-control">
+                    <select name="status" class="form-control js-session-status">
                         @foreach(['scheduled'=>'Đã lên lịch','completed'=>'Hoàn thành','cancelled'=>'Hủy'] as $k=>$v)
                             <option value="{{ $k }}" @selected($session->status===$k)>{{ $v }}</option>
                         @endforeach
                     </select>
+                </div>
+                <div class="form-check mb-3">
+                    <input type="checkbox" class="form-check-input js-session-completed-flag" id="sessionCompleted{{ $session->id }}" value="1">
+                    <label class="form-check-label" for="sessionCompleted{{ $session->id }}">Đánh dấu buổi học hoàn thành (tính lương GV)</label>
+                    <div class="small text-muted">
+                        Bắt buộc <strong>điểm danh đủ học viên</strong> trước khi hoàn thành.
+                        Tự tick khi chọn trạng thái <em>Hoàn thành</em> — hệ thống tạo nhật ký sẵn.
+                    </div>
                 </div>
                 <div class="form-group mb-0"><label>Ghi chú</label>
                     <textarea name="notes" class="form-control" rows="2">{{ $session->notes }}</textarea>
@@ -208,4 +260,78 @@
         </form>
     </div>
 </div>
+@endcanPerm
 @endforeach
+
+@canPerm('attendances.manage')
+@foreach($sessions as $session)
+@php
+    $dateKey = $session->session_date->format('Y-m-d');
+    $dayAtt = $attendancesByDate->get($dateKey, collect());
+@endphp
+<div class="modal fade" id="attendanceSession{{ $session->id }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <form method="POST" action="{{ route('admin.attendances.store') }}" class="modal-content">
+            @csrf
+            <input type="hidden" name="class_id" value="{{ $class->id }}">
+            <input type="hidden" name="session_date" value="{{ $dateKey }}">
+            <input type="hidden" name="redirect_to" value="{{ request()->getRequestUri() }}">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    Điểm danh — {{ $session->session_date->format('d/m/Y') }}
+                    <small class="text-muted font-weight-normal">
+                        ({{ $session->start_time ? substr($session->start_time,0,5) : '—' }}–{{ $session->end_time ? substr($session->end_time,0,5) : '—' }})
+                    </small>
+                </h5>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body" style="max-height:70vh;overflow-y:auto">
+                @if($classStudents->isEmpty())
+                    <p class="text-muted mb-0">Lớp chưa có học viên. Thêm học viên ở tab <strong>Học viên</strong> trước.</p>
+                @else
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead>
+                            <tr>
+                                <th>Học viên</th>
+                                @foreach(\App\Models\Attendance::statusOptions() as $label)
+                                    <th class="text-center text-nowrap">{{ $label }}</th>
+                                @endforeach
+                                <th style="min-width:160px">Ghi chú</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            @foreach($classStudents as $student)
+                                @php
+                                    $row = $dayAtt->get($student->id);
+                                    $st = $row?->status ?? 'present';
+                                    $note = $row?->note ?? '';
+                                @endphp
+                                <tr>
+                                    <td class="font-weight-bold">{{ $student->name }}</td>
+                                    @foreach(array_keys(\App\Models\Attendance::statusOptions()) as $opt)
+                                        <td class="text-center align-middle">
+                                            <input type="radio" name="statuses[{{ $student->id }}]" value="{{ $opt }}" {{ $st === $opt ? 'checked' : '' }}>
+                                        </td>
+                                    @endforeach
+                                    <td>
+                                        <input type="text" name="notes[{{ $student->id }}]" value="{{ $note }}" class="form-control form-control-sm" placeholder="Ghi chú...">
+                                    </td>
+                                </tr>
+                            @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-dismiss="modal">Đóng</button>
+                @if($classStudents->isNotEmpty())
+                    <button class="btn btn-success">Lưu điểm danh</button>
+                @endif
+            </div>
+        </form>
+    </div>
+</div>
+@endforeach
+@endcanPerm

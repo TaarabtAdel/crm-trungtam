@@ -7,6 +7,8 @@ use App\Models\CourseClass;
 use App\Models\Expense;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Services\Finance\StaffPayrollService;
+use App\Services\Finance\TeacherPayrollService;
 use App\Support\CurrentBranch;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -37,6 +39,16 @@ class FinanceDashboardController extends Controller
             'expense_month' => (clone $expenseQuery)->whereIn('status', ['approved', 'paid'])
                 ->whereBetween('expense_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
                 ->sum('amount'),
+            'salary_paid_month' => (clone $expenseQuery)->where('category', 'salary')
+                ->whereIn('status', ['approved', 'paid'])
+                ->whereBetween('expense_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
+                ->sum('amount'),
+            'payroll_accrued_month' => app(TeacherPayrollService::class)->accruedInRange($branchId, $monthStart, $monthEnd),
+            'staff_salary_paid_month' => (clone $expenseQuery)->where('category', 'staff_salary')
+                ->whereIn('status', ['approved', 'paid'])
+                ->whereBetween('expense_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
+                ->sum('amount'),
+            'staff_payroll_accrued_month' => app(StaffPayrollService::class)->accruedInRange($branchId, $monthStart, $monthEnd),
             'debt_total' => (clone $invoiceQuery)->whereIn('status', ['unpaid', 'partial'])->sum('remaining_amount'),
         ];
         $kpi['profit_month'] = (float) $kpi['revenue_month'] - (float) $kpi['expense_month'];

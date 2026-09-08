@@ -7,14 +7,14 @@
     $helpItems = [
         [
             'title' => 'Trang này dùng để làm gì?',
-            'body' => '<p class="mb-0">Danh sách học viên toàn trung tâm: tìm kiếm, lọc theo trạng thái/lớp, thêm mới và mở <strong>Chi tiết</strong> để quản lý hồ sơ, lớp, học phí và điểm danh.</p>',
+            'body' => '<p class="mb-0">Danh sách học viên toàn trung tâm: tìm kiếm, lọc theo trạng thái/lớp, thêm mới, <strong>nhập Excel</strong> và mở <strong>Chi tiết</strong> để quản lý hồ sơ, lớp, học phí và điểm danh.</p>',
         ],
         [
-            'title' => 'Thêm học viên mới',
+            'title' => 'Thêm học viên & nhập Excel',
             'body' => '<ol class="mb-0 pl-3">'
-                .'<li>Bấm <strong>+ Thêm học viên</strong> (cần quyền quản lý).</li>'
-                .'<li>Điền thông tin HV, người thân, chi nhánh, trạng thái.</li>'
-                .'<li>Lưu → học viên xuất hiện trong danh sách.</li>'
+                .'<li>Bấm <strong>+ Thêm học viên</strong> để nhập từng người.</li>'
+                .'<li>Bấm <em>Nhập Excel</em> → tải file mẫu → điền cột bắt buộc <strong>Họ tên *</strong> rồi tải lên.</li>'
+                .'<li>Cột <em>Lớp học</em> (tuỳ chọn): tên lớp đúng hệ thống, nhiều lớp cách nhau bởi <code>;</code> — không tự tạo hóa đơn.</li>'
                 .'</ol>',
         ],
         [
@@ -38,6 +38,11 @@
             <small class="text-muted">Quản lý hồ sơ học viên, người thân và lớp đang theo học.</small>
         </div>
         <div class="d-flex align-items-center" style="gap:.5rem">
+            @canPerm('students.import')
+            <button class="btn btn-outline-success btn-sm" data-toggle="modal" data-target="#modalImport">
+                <i class="bi bi-file-earmark-excel"></i> Nhập Excel
+            </button>
+            @endcanPerm
             @canPerm('students.manage')
             <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalCreate">+ Thêm học viên</button>
             @endcanPerm
@@ -88,6 +93,12 @@
                                     <span class="lead-meta-chip">{{ $student->dob->format('d/m/Y') }}</span>
                                 @endif
                             </div>
+                            @if($student->phone || $student->email)
+                                <div class="small text-muted mt-1">
+                                    @if($student->phone)<span class="mr-2"><i class="bi bi-telephone mr-1"></i>{{ $student->phone }}</span>@endif
+                                    @if($student->email)<span><i class="bi bi-envelope mr-1"></i>{{ $student->email }}</span>@endif
+                                </div>
+                            @endif
                         </td>
                         <td>
                             @if($student->parent_name || $student->parent_phone || $student->parent_email)
@@ -142,6 +153,40 @@
             <div class="modal-header"><h5 class="modal-title">Thêm học viên mới</h5><button type="button" class="close" data-dismiss="modal"><span>&times;</span></button></div>
             <div class="modal-body">@include('admin.students._student_form', ['student'=>null,'branches'=>$branches,'classes'=>$classes])</div>
             <div class="modal-footer"><button type="button" class="btn btn-light" data-dismiss="modal">Hủy</button><button class="btn btn-primary">Lưu học viên</button></div>
+        </form>
+    </div>
+</div>
+@endcanPerm
+
+@canPerm('students.import')
+<div class="modal fade" id="modalImport" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="POST" action="{{ route('admin.students.import') }}" enctype="multipart/form-data" class="modal-content">
+            @csrf
+            <div class="modal-header">
+                <h5 class="modal-title">Nhập học viên từ Excel</h5>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small mb-3">
+                    Tải file mẫu, điền dữ liệu rồi tải lên. Cột bắt buộc: <strong>Họ tên *</strong>.
+                    Nếu để trống <em>Chi nhánh</em>, hệ thống dùng chi nhánh đang chọn trên header.
+                    Cột <em>Lớp học</em> dùng tên lớp có sẵn, nhiều lớp cách nhau bởi dấu <code>;</code> (không tự tạo hóa đơn).
+                </p>
+                <div class="mb-3">
+                    <a href="{{ route('admin.students.import.template') }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-download"></i> Tải file mẫu Excel
+                    </a>
+                </div>
+                <div class="form-group mb-0">
+                    <label>File Excel (.xlsx, .xls, .csv) *</label>
+                    <input type="file" name="file" class="form-control-file" accept=".xlsx,.xls,.csv" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-dismiss="modal">Hủy</button>
+                <button class="btn btn-success">Nhập dữ liệu</button>
+            </div>
         </form>
     </div>
 </div>

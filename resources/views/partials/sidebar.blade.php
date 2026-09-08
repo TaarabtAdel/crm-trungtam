@@ -8,7 +8,17 @@
     <a href="{{ route('admin.dashboard') }}" class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
         <i class="bi bi-speedometer2 mr-2"></i> Bảng điều khiển
     </a>
+    @else
+    <div class="nav-section">Tổng quan</div>
     @endif
+    @if($u->hasAnyPermission('system.settings.manage','system.branches.manage','training.classes.manage'))
+    <a href="{{ route('admin.quick-setup.index') }}" class="nav-link {{ request()->routeIs('admin.quick-setup.*') ? 'active' : '' }}">
+        <i class="bi bi-magic mr-2"></i> Cài đặt nhanh
+    </a>
+    @endif
+    <a href="{{ route('admin.guide') }}" class="nav-link {{ request()->routeIs('admin.guide') ? 'active' : '' }}">
+        <i class="bi bi-question-circle mr-2"></i> Hướng dẫn sử dụng
+    </a>
 
     @if($u->hasAnyPermission('crm.sales.view','crm.leads.view','crm.interactions.view'))
     <div class="nav-section">Tuyển sinh (CRM)</div>
@@ -62,7 +72,7 @@
     @endif
     @endif
 
-    @if($u->hasAnyPermission('finance.dashboard.view','finance.invoices.view','finance.expenses.view','finance.debts.view','finance.commissions.view','finance.refunds.manage','finance.reports.view'))
+    @if($u->hasAnyPermission('finance.dashboard.view','finance.invoices.view','finance.expenses.view','finance.debts.view','finance.commissions.view','finance.refunds.manage','finance.reports.view','finance.staff_payroll.view'))
     <div class="nav-section">Quản trị tài chính</div>
     @if($u->hasPermission('finance.dashboard.view'))
     <a href="{{ route('admin.finance.dashboard') }}" class="nav-link {{ request()->routeIs('admin.finance.dashboard') ? 'active' : '' }}">
@@ -80,8 +90,27 @@
     </a>
     @endif
     @if($u->hasPermission('finance.expenses.view'))
-    <a href="{{ route('admin.expenses.index') }}" class="nav-link {{ request()->routeIs('admin.expenses.*') ? 'active' : '' }}">
+    @php
+        $pendingExpensesCount = \App\Models\Expense::query()
+            ->tap(fn ($q) => \App\Support\CurrentBranch::apply($q))
+            ->where('status', 'pending')
+            ->count();
+    @endphp
+    <a href="{{ route('admin.expenses.index', $pendingExpensesCount > 0 ? ['status' => 'pending'] : []) }}" class="nav-link {{ request()->routeIs('admin.expenses.*') ? 'active' : '' }}">
         <i class="bi bi-wallet2 mr-2"></i> Chi phí
+        @if($pendingExpensesCount > 0)
+            <span class="badge badge-danger ml-auto">{{ $pendingExpensesCount }}</span>
+        @endif
+    </a>
+    @endif
+    @if($u->hasPermission('finance.reports.view'))
+    <a href="{{ route('admin.finance.teacher-payroll') }}" class="nav-link {{ request()->routeIs('admin.finance.teacher-payroll*') ? 'active' : '' }}">
+        <i class="bi bi-person-badge mr-2"></i> Lương GV
+    </a>
+    @endif
+    @if($u->hasPermission('finance.staff_payroll.view'))
+    <a href="{{ route('admin.finance.staff-payroll') }}" class="nav-link {{ request()->routeIs('admin.finance.staff-payroll*') ? 'active' : '' }}">
+        <i class="bi bi-cash-stack mr-2"></i> Lương NV
     </a>
     @endif
     @if($u->hasPermission('finance.refunds.manage'))
@@ -100,13 +129,13 @@
     </a>
     @endif
     @if($u->hasPermission('finance.reports.view'))
-    <a href="{{ route('admin.finance.reports') }}" class="nav-link {{ request()->routeIs('admin.finance.reports*') ? 'active' : '' }}">
+    <a href="{{ route('admin.finance.reports') }}" class="nav-link {{ request()->routeIs('admin.finance.reports') ? 'active' : '' }}">
         <i class="bi bi-bar-chart-line mr-2"></i> Báo cáo TC
     </a>
     @endif
     @endif
 
-    @if($u->hasAnyPermission('system.branches.view','system.users.view','system.permissions.manage','system.reports.view','system.demo_data.manage','system.settings.manage'))
+    @if($u->hasAnyPermission('system.branches.view','system.users.view','system.staff_attendances.view','system.permissions.manage','system.reports.view','system.demo_data.manage','system.settings.manage','system.notification_templates.manage','system.backups.manage'))
     <div class="nav-section">Hệ thống</div>
     @if($u->hasPermission('system.branches.view'))
     <a href="{{ route('admin.branches.index') }}" class="nav-link {{ request()->routeIs('admin.branches.*') ? 'active' : '' }}">
@@ -114,8 +143,13 @@
     </a>
     @endif
     @if($u->hasPermission('system.users.view'))
-    <a href="{{ route('admin.users.index') }}" class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
+    <a href="{{ route('admin.users.index') }}" class="nav-link {{ request()->routeIs('admin.users.index') || request()->routeIs('admin.users.show') ? 'active' : '' }}">
         <i class="bi bi-person-gear mr-2"></i> Quản lý người dùng
+    </a>
+    @endif
+    @if($u->hasPermission('system.staff_attendances.view'))
+    <a href="{{ route('admin.staff-attendances.index') }}" class="nav-link {{ request()->routeIs('admin.staff-attendances.*') ? 'active' : '' }}">
+        <i class="bi bi-calendar2-check mr-2"></i> Chấm công NV
     </a>
     @endif
     @if($u->hasPermission('system.permissions.manage'))
@@ -128,9 +162,19 @@
         <i class="bi bi-bar-chart mr-2"></i> Báo cáo
     </a>
     @endif
+    @if($u->hasPermission('system.backups.manage'))
+    <a href="{{ route('admin.backups.index') }}" class="nav-link {{ request()->routeIs('admin.backups.*') ? 'active' : '' }}">
+        <i class="bi bi-database-down mr-2"></i> Backup dữ liệu
+    </a>
+    @endif
     @if($u->hasPermission('system.demo_data.manage'))
     <a href="{{ route('admin.demo-data.index') }}" class="nav-link {{ request()->routeIs('admin.demo-data.*') ? 'active' : '' }}">
         <i class="bi bi-database-add mr-2"></i> Khởi tạo data demo
+    </a>
+    @endif
+    @if($u->hasPermission('system.notification_templates.manage'))
+    <a href="{{ route('admin.notification-templates.index') }}" class="nav-link {{ request()->routeIs('admin.notification-templates.*') ? 'active' : '' }}">
+        <i class="bi bi-envelope-paper mr-2"></i> Mẫu thông báo
     </a>
     @endif
     @if($u->hasPermission('system.settings.manage'))

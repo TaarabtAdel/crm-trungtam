@@ -12,6 +12,9 @@
     <div class="login-card">
         <h4 class="mb-1 text-center font-weight-bold">{{ \App\Models\Setting::get('center_name', 'CRM Trung Tâm') }}</h4>
         <p class="text-muted text-center mb-4">Đăng nhập quản trị</p>
+        @if(session('status'))
+            <div class="alert alert-success">{{ session('status') }}</div>
+        @endif
         @if($errors->any())
             <div class="alert alert-danger">{{ $errors->first() }}</div>
         @endif
@@ -22,8 +25,11 @@
                 <input type="email" name="email" class="form-control" value="{{ old('email', 'admin@crm.local') }}" required autofocus>
             </div>
             <div class="form-group">
-                <label>Mật khẩu</label>
-                <input type="password" name="password" class="form-control" value="password" required>
+                <div class="d-flex justify-content-between align-items-center">
+                    <label class="mb-0">Mật khẩu</label>
+                    <a href="{{ route('password.request') }}" class="small">Quên mật khẩu?</a>
+                </div>
+                <input type="password" name="password" class="form-control mt-1" value="password" required>
             </div>
             <div class="form-group form-check">
                 <input type="checkbox" class="form-check-input" name="remember" id="remember">

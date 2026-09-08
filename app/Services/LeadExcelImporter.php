@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Branch;
 use App\Models\Lead;
 use App\Models\User;
+use App\Services\LeadAssignmentNotifier;
 use App\Support\CurrentBranch;
 use Illuminate\Http\UploadedFile;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -16,16 +17,17 @@ class LeadExcelImporter
 {
     public const HEADERS = [
         'Họ tên *',
-        'SĐT *',
+        'SĐT',
         'Email',
-        'Người liên quan - Họ tên',
-        'Người liên quan - SĐT',
-        'Người liên quan - Email',
+        'Người thân - Họ tên',
+        'Người thân - SĐT',
+        'Người thân - Email',
         'Nguồn',
         'Chi nhánh',
         'Doanh thu dự kiến',
         'Sales (email)',
         'Trạng thái',
+        'Hạn xử lý (YYYY-MM-DD)',
     ];
 
     public function downloadTemplate(): StreamedResponse
@@ -47,10 +49,11 @@ class LeadExcelImporter
                 '5000000',
                 '',
                 'new',
+                now()->addDays(2)->format('Y-m-d'),
             ],
         ], null, 'A2');
 
-        foreach (range('A', 'K') as $col) {
+        foreach (range('A', 'L') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
@@ -78,11 +81,11 @@ class LeadExcelImporter
         $headerRow = array_shift($rows);
         $map = $this->mapHeaders($headerRow);
 
-        if (! isset($map['name']) || ! isset($map['phone'])) {
+        if (! isset($map['name'])) {
             return [
                 'imported' => 0,
                 'skipped' => 0,
-                'errors' => ['Thiếu cột bắt buộc: Họ tên * và SĐT *. Hãy dùng file mẫu.'],
+                'errors' => ['Thiếu cột bắt buộc: Họ tên *. Hãy dùng file mẫu.'],
             ];
         }
 
@@ -93,6 +96,8 @@ class LeadExcelImporter
         $defaultBranchId = CurrentBranch::id()
             ?? $branches->first()?->id;
         $forceSalesId = auth()->user()?->isSales() ? auth()->id() : null;
+        $actorId = auth()->id();
+        $assignmentNotifier = app(LeadAssignmentNotifier::class);
 
         $imported = 0;
         $skipped = 0;
@@ -106,10 +111,10 @@ class LeadExcelImporter
             }
 
             $name = trim((string) ($row[$map['name']] ?? ''));
-            $phone = trim((string) ($row[$map['phone']] ?? ''));
+            $phone = isset($map['phone']) ? trim((string) ($row[$map['phone']] ?? '')) : '';
 
-            if ($name === '' || $phone === '') {
-                $errors[] = "Dòng {$line}: thiếu họ tên hoặc SĐT.";
+            if ($name === '') {
+                $errors[] = "Dòng {$line}: thiếu họ tên.";
                 $skipped++;
                 continue;
             }
@@ -174,9 +179,14 @@ class LeadExcelImporter
                 $expectedRevenue = (float) preg_replace('/[^\d.]/', '', $revenueRaw);
             }
 
-            Lead::create([
+            $followUpAt = $this->parseDate($this->nullableString($row, $map, 'follow_up_at'));
+            if (! $followUpAt && $salesId && $status === 'new') {
+                $followUpAt = now()->addDays(2)->toDateString();
+            }
+
+            $lead = Lead::create([
                 'name' => $name,
-                'phone' => $phone,
+                'phone' => $phone !== '' ? $phone : null,
                 'email' => $email,
                 'related_name' => $this->nullableString($row, $map, 'related_name'),
                 'related_phone' => $this->nullableString($row, $map, 'related_phone'),
@@ -186,7 +196,9 @@ class LeadExcelImporter
                 'expected_revenue' => $expectedRevenue,
                 'assigned_sales_id' => $salesId,
                 'status' => $status,
+                'follow_up_at' => $followUpAt,
             ]);
+            $assignmentNotifier->notifyIfAssigned($lead, $salesId, $actorId);
             $imported++;
         }
 
@@ -203,14 +215,15 @@ class LeadExcelImporter
             'name' => ['họ tên *', 'ho ten *', 'họ tên', 'ho ten', 'name', 'ten'],
             'phone' => ['sđt *', 'sdt *', 'sđt', 'sdt', 'phone', 'so dien thoai', 'số điện thoại', 'số điện thoại *'],
             'email' => ['email'],
-            'related_name' => ['người liên quan - họ tên', 'nguoi lien quan - ho ten', 'related_name', 'phụ huynh', 'ten phu huynh'],
-            'related_phone' => ['người liên quan - sđt', 'nguoi lien quan - sdt', 'related_phone', 'sdt phu huynh'],
-            'related_email' => ['người liên quan - email', 'nguoi lien quan - email', 'related_email', 'email phu huynh'],
+            'related_name' => ['người thân - họ tên', 'nguoi than - ho ten', 'người liên quan - họ tên', 'nguoi lien quan - ho ten', 'related_name', 'phụ huynh', 'ten phu huynh'],
+            'related_phone' => ['người thân - sđt', 'nguoi than - sdt', 'người liên quan - sđt', 'nguoi lien quan - sdt', 'related_phone', 'sdt phu huynh'],
+            'related_email' => ['người thân - email', 'nguoi than - email', 'người liên quan - email', 'nguoi lien quan - email', 'related_email', 'email phu huynh'],
             'source' => ['nguồn', 'nguon', 'source'],
             'branch' => ['chi nhánh', 'chi nhanh', 'branch'],
             'expected_revenue' => ['doanh thu dự kiến', 'doanh thu du kien', 'expected_revenue', 'doanh thu'],
             'sales' => ['sales (email)', 'sales', 'sales email', 'email sales'],
             'status' => ['trạng thái', 'trang thai', 'status'],
+            'follow_up_at' => ['hạn xử lý (yyyy-mm-dd)', 'hạn xử lý', 'han xu ly', 'follow_up_at', 'deadline', 'due date'],
         ];
 
         $map = [];
@@ -292,5 +305,19 @@ class LeadExcelImporter
         ];
 
         return $map[$key] ?? null;
+    }
+
+    protected function parseDate(?string $value): ?string
+    {
+        if ($value === null || trim($value) === '') {
+            return null;
+        }
+
+        $value = trim($value);
+        try {
+            return \Carbon\Carbon::parse($value)->toDateString();
+        } catch (\Throwable) {
+            return null;
+        }
     }
 }

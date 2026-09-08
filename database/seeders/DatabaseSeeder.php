@@ -31,7 +31,7 @@ class DatabaseSeeder extends Seeder
                 'branch_id' => $branch->id,
                 'is_active' => true,
             ]
-        );
+        )->syncRoles(['super_admin']);
 
         User::query()->updateOrCreate(
             ['email' => 'sales@crm.local'],
@@ -42,9 +42,22 @@ class DatabaseSeeder extends Seeder
                 'branch_id' => $branch->id,
                 'is_active' => true,
             ]
-        );
+        )->syncRoles(['sales']);
+
+        User::query()->updateOrCreate(
+            ['email' => 'daotao@crm.local'],
+            [
+                'name' => 'Nhân viên Đào tạo',
+                'password' => Hash::make('password'),
+                'role' => 'training',
+                'branch_id' => $branch->id,
+                'is_active' => true,
+            ]
+        )->syncRoles(['training']);
 
         Setting::set('center_name', 'CRM Trung Tâm');
         Setting::set('logo_text', 'TPT2');
+
+        $this->call(NotificationTemplateSeeder::class);
     }
 }

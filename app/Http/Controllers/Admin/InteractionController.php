@@ -36,11 +36,15 @@ class InteractionController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        $leadsQuery = CurrentBranch::apply(Lead::query())->whereNotIn('status', ['won', 'lost']);
-        if ($user->isSales()) {
-            $leadsQuery->where('assigned_sales_id', $user->id);
+        // Prefill Select2 (edit / old) — không load toàn bộ lead
+        $leads = collect();
+        $prefillIds = $interactions->pluck('lead_id')->filter()->unique()->values();
+        if (old('lead_id')) {
+            $prefillIds = $prefillIds->push((int) old('lead_id'))->unique()->values();
         }
-        $leads = $leadsQuery->orderBy('name')->get();
+        if ($prefillIds->isNotEmpty()) {
+            $leads = Lead::query()->whereIn('id', $prefillIds)->get()->keyBy('id');
+        }
 
         $salesUsers = User::whereIn('role', ['sales', 'admin', 'super_admin'])
             ->where('is_active', true)

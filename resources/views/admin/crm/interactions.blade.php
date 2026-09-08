@@ -167,4 +167,38 @@
     'title' => 'Hướng dẫn — Lịch hẹn / Tương tác',
     'items' => $helpItems,
 ])
+
+@include('partials.select2')
 @endsection
+
+@push('scripts')
+<script>
+(function () {
+    var leadsUrl = @json(route('admin.lookup.leads'));
+
+    function initInteractionSelect2($modal) {
+        if (!$modal || !$modal.length || typeof crmSelect2Ajax !== 'function') return;
+        crmSelect2Ajax($modal.find('.js-interaction-lead'), leadsUrl, {
+            placeholder: 'Tìm lead theo tên, SĐT...',
+            allowClear: false,
+            dropdownParent: $modal.find('.modal-content')
+        });
+        var $sales = $modal.find('.js-interaction-sales');
+        if ($sales.length) {
+            crmSelect2Local($sales, {
+                placeholder: 'Chọn Sales',
+                allowClear: true,
+                dropdownParent: $modal.find('.modal-content')
+            });
+        }
+    }
+
+    $(document).on('shown.bs.modal', '.modal', function () {
+        var $modal = $(this);
+        if ($modal.find('.js-interaction-lead').length) {
+            initInteractionSelect2($modal);
+        }
+    });
+})();
+</script>
+@endpush

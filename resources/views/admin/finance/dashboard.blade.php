@@ -10,10 +10,14 @@
             'title' => 'Các chỉ số (KPI) nghĩa là gì?',
             'body' => '<ul class="mb-0 pl-3">'
                 .'<li><strong>Thu tháng này</strong>: tổng tiền đã thu từ thanh toán trong tháng hiện tại.</li>'
-                .'<li><strong>Chi tháng này</strong>: tổng khoản chi đã thực chi trong tháng.</li>'
+                .'<li><strong>Chi tháng này</strong>: tổng khoản chi đã duyệt/đã chi (gồm lương GV đã chi).</li>'
                 .'<li><strong>Lãi/Lỗ tháng</strong>: Thu − Chi trong tháng.</li>'
                 .'<li><strong>Tổng công nợ</strong>: số tiền học viên còn nợ trên các hóa đơn chưa thu đủ.</li>'
                 .'</ul>',
+        ],
+        [
+            'title' => 'Lương GV & dòng tiền',
+            'body' => '<p class="mb-0">Buổi hoàn thành chỉ <em>tạm tính</em> lương. Khi <a href="'.route('admin.finance.teacher-payroll').'">Chi lương</a>, hệ thống tạo Chi phí → mới trừ vào dòng tiền / lãi lỗ.</p>',
         ],
         [
             'title' => 'Công nợ ưu tiên',
@@ -23,7 +27,7 @@
             'title' => 'Liên kết nhanh',
             'body' => '<ul class="mb-0 pl-3">'
                 .'<li><a href="'.route('admin.invoices.index').'">Hóa đơn</a> — tạo HĐ, theo dõi trạng thái thu.</li>'
-                .'<li><a href="'.route('admin.debts.index').'">Công nợ</a> — lọc quá hạn / sắp đến hạn.</li>'
+                .'<li><a href="'.route('admin.finance.teacher-payroll').'">Lương GV</a> — báo cáo & chi lương.</li>'
                 .'<li><a href="'.route('admin.finance.reports').'">Báo cáo</a> — xem thu chi theo kỳ, xuất Excel/PDF.</li>'
                 .'</ul>',
         ],
@@ -39,6 +43,12 @@
         <div class="d-flex align-items-center" style="gap:.5rem">
             @canPerm('finance.invoices.manage')
             <a href="{{ route('admin.invoices.index') }}" class="btn btn-sm btn-primary">+ Hóa đơn</a>
+            @endcanPerm
+            @canPerm('finance.reports.view')
+            <a href="{{ route('admin.finance.teacher-payroll') }}" class="btn btn-sm btn-outline-secondary">Lương GV</a>
+            @endcanPerm
+            @canPerm('finance.staff_payroll.view')
+            <a href="{{ route('admin.finance.staff-payroll') }}" class="btn btn-sm btn-outline-secondary">Lương NV</a>
             @endcanPerm
             @canPerm('finance.reports.view')
             <a href="{{ route('admin.finance.reports') }}" class="btn btn-sm btn-outline-secondary">Báo cáo</a>
@@ -67,6 +77,54 @@
             </div>
         </div>
     @endforeach
+</div>
+
+<div class="page-card mb-3">
+    <div class="card-header-custom">
+        <strong>Lương GV tháng này</strong>
+        <a href="{{ route('admin.finance.teacher-payroll') }}" class="btn btn-sm btn-outline-primary">Chi lương</a>
+    </div>
+    <div class="card-body-custom">
+        <div class="row">
+            <div class="col-md-4 mb-2 mb-md-0">
+                <div class="small text-muted">Tạm tính (buổi HT × đơn giá)</div>
+                <div class="h5 mb-0">{{ $fmt($kpi['payroll_accrued_month']) }}</div>
+            </div>
+            <div class="col-md-4 mb-2 mb-md-0">
+                <div class="small text-muted">Đã chi (trong Chi phí)</div>
+                <div class="h5 mb-0 text-danger">{{ $fmt($kpi['salary_paid_month']) }}</div>
+            </div>
+            <div class="col-md-4">
+                <div class="small text-muted">Còn phải chi (ước tính)</div>
+                <div class="h5 mb-0 text-warning">{{ $fmt(max(0, $kpi['payroll_accrued_month'] - $kpi['salary_paid_month'])) }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="page-card mb-3">
+    <div class="card-header-custom">
+        <strong>Lương NV tháng này</strong>
+        @canPerm('finance.staff_payroll.view')
+        <a href="{{ route('admin.finance.staff-payroll') }}" class="btn btn-sm btn-outline-primary">Chi lương</a>
+        @endcanPerm
+    </div>
+    <div class="card-body-custom">
+        <div class="row">
+            <div class="col-md-4 mb-2 mb-md-0">
+                <div class="small text-muted">Tạm tính (công × lương ngày)</div>
+                <div class="h5 mb-0">{{ $fmt($kpi['staff_payroll_accrued_month']) }}</div>
+            </div>
+            <div class="col-md-4 mb-2 mb-md-0">
+                <div class="small text-muted">Đã chi (trong Chi phí)</div>
+                <div class="h5 mb-0 text-danger">{{ $fmt($kpi['staff_salary_paid_month']) }}</div>
+            </div>
+            <div class="col-md-4">
+                <div class="small text-muted">Còn phải chi (ước tính)</div>
+                <div class="h5 mb-0 text-warning">{{ $fmt(max(0, $kpi['staff_payroll_accrued_month'] - $kpi['staff_salary_paid_month'])) }}</div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="page-card">
