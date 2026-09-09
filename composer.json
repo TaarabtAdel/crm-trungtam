@@ -64,7 +64,7 @@
         "preferred-install": "dist",
         "sort-packages": true,
         "platform": {
-            "php": "8.3.33"
+            "php": "8.2.28"
         },
         "allow-plugins": {
             "pestphp/pest-plugin": true,
