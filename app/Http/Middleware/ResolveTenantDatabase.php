@@ -19,6 +19,14 @@ class ResolveTenantDatabase
         $baseDomain = (string) config('tenant.base_domain');
         $isInstall = $request->is('install') || $request->is('install/*');
 
+        // .env mặc định SESSION/CACHE=database, nhưng lúc /install bảng chưa có.
+        if ($isInstall) {
+            config([
+                'session.driver' => 'file',
+                'cache.default' => 'file',
+            ]);
+        }
+
         if (! config('tenant.tenant_resolve')) {
             $subdomain = TenantHostResolver::resolve($request, $baseDomain) ?? 'local';
             $databaseName = (string) config('database.connections.mysql.database');
