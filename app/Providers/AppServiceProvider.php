@@ -8,6 +8,7 @@ use App\Support\CurrentBranch;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -20,6 +21,9 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // MySQL/MariaDB cũ (cPanel): index utf8mb4 tối đa ~1000 bytes → varchar(255) PK/unique bị lỗi 1071.
+        Schema::defaultStringLength(191);
+
         Paginator::useBootstrap();
 
         Route::bind('class', fn (string $value) => CourseClass::query()->findOrFail($value));

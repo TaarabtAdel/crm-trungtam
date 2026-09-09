@@ -10,9 +10,15 @@ use Illuminate\Support\Facades\Schema;
  */
 class Ver1
 {
-    public static function doUpdate(): bool
+    /**
+     * @return array{success:bool,message:string}
+     */
+    public static function doUpdate(): array
     {
         try {
+            // Đảm bảo an toàn kể cả khi AppServiceProvider chưa kịp boot (edge case).
+            Schema::defaultStringLength(191);
+
             static::createLaravelSystemTables();
             static::createCoreTables();
             static::createCrmTables();
@@ -21,11 +27,11 @@ class Ver1
             static::createNotificationTables();
             static::createPayrollTables();
 
-            return true;
+            return ['success' => true, 'message' => ''];
         } catch (\Throwable $e) {
             report($e);
 
-            return false;
+            return ['success' => false, 'message' => $e->getMessage()];
         }
     }
 
@@ -33,7 +39,8 @@ class Ver1
     {
         if (! Schema::hasTable('password_reset_tokens')) {
             Schema::create('password_reset_tokens', function (Blueprint $table) {
-                $table->string('email')->primary();
+                $table->engine = 'InnoDB';
+                $table->string('email', 191)->primary();
                 $table->string('token');
                 $table->timestamp('created_at')->nullable();
             });
@@ -41,7 +48,8 @@ class Ver1
 
         if (! Schema::hasTable('sessions')) {
             Schema::create('sessions', function (Blueprint $table) {
-                $table->string('id')->primary();
+                $table->engine = 'InnoDB';
+                $table->string('id', 191)->primary();
                 $table->foreignId('user_id')->nullable()->index();
                 $table->string('ip_address', 45)->nullable();
                 $table->text('user_agent')->nullable();
@@ -52,7 +60,8 @@ class Ver1
 
         if (! Schema::hasTable('cache')) {
             Schema::create('cache', function (Blueprint $table) {
-                $table->string('key')->primary();
+                $table->engine = 'InnoDB';
+                $table->string('key', 191)->primary();
                 $table->mediumText('value');
                 $table->integer('expiration');
             });
@@ -60,7 +69,8 @@ class Ver1
 
         if (! Schema::hasTable('cache_locks')) {
             Schema::create('cache_locks', function (Blueprint $table) {
-                $table->string('key')->primary();
+                $table->engine = 'InnoDB';
+                $table->string('key', 191)->primary();
                 $table->string('owner');
                 $table->integer('expiration');
             });
@@ -126,9 +136,10 @@ class Ver1
 
         if (! Schema::hasTable('users')) {
             Schema::create('users', function (Blueprint $table) {
+                $table->engine = 'InnoDB';
                 $table->id();
                 $table->string('name');
-                $table->string('email')->unique();
+                $table->string('email', 191)->unique();
                 $table->timestamp('email_verified_at')->nullable();
                 $table->string('password');
                 $table->string('role')->default('admin');
@@ -143,8 +154,9 @@ class Ver1
 
         if (! Schema::hasTable('settings')) {
             Schema::create('settings', function (Blueprint $table) {
+                $table->engine = 'InnoDB';
                 $table->id();
-                $table->string('key')->unique();
+                $table->string('key', 191)->unique();
                 $table->text('value')->nullable();
                 $table->timestamps();
             });
@@ -246,10 +258,11 @@ class Ver1
     {
         if (! Schema::hasTable('teachers')) {
             Schema::create('teachers', function (Blueprint $table) {
+                $table->engine = 'InnoDB';
                 $table->id();
                 $table->foreignId('branch_id')->constrained('branches')->cascadeOnDelete();
                 $table->string('name');
-                $table->string('email')->unique();
+                $table->string('email', 191)->unique();
                 $table->string('phone')->nullable();
                 $table->string('specialty')->nullable();
                 $table->string('qualification')->nullable();

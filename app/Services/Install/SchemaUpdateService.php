@@ -47,11 +47,15 @@ class SchemaUpdateService
             }
 
             $class = $this->versions[$version];
-            $ok = $class::doUpdate();
+            $result = $class::doUpdate();
+            $ok = is_array($result) ? ($result['success'] ?? false) : (bool) $result;
             if (! $ok) {
+                $detail = is_array($result) ? (string) ($result['message'] ?? '') : '';
+
                 return [
                     'success' => false,
-                    'message' => 'Cập nhật schema thất bại tại phiên bản '.$version.'.',
+                    'message' => 'Cập nhật schema thất bại tại phiên bản '.$version
+                        .($detail !== '' ? ': '.$detail : '.'),
                     'from' => $current,
                     'to' => $version,
                 ];
