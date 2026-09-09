@@ -132,4 +132,11 @@ return [
     */
     'scheduler_tick_token' => env('SCHEDULER_TICK_TOKEN', ''),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Schema version (cPanel installer / Versions)
+    |--------------------------------------------------------------------------
+    */
+    'schema_version' => '1.0',
+
 ];

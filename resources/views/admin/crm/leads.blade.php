@@ -18,7 +18,7 @@
         ],
         [
             'title' => 'Gán Sales & xem chi tiết',
-            'body' => '<p class="mb-0">Cột <em>Phân bổ</em> cho biết Sales phụ trách. Bấm tên lead hoặc <em>Chi tiết</em> để mở hồ sơ, cập nhật trạng thái và ghi lịch sử tư vấn.</p>',
+            'body' => '<p class="mb-0">Cột <em>Phân bổ</em> cho biết Sales phụ trách. Bấm tên lead hoặc <em>Chi tiết</em> để mở hồ sơ. Nút <em>lịch</em> tạo nhanh lịch hẹn → lưu vào menu <strong>Lịch hẹn / Tương tác</strong>.</p>',
         ],
         [
             'title' => 'Phạm vi hiển thị',
@@ -45,6 +45,11 @@
             @canPerm('crm.leads.import')
             <button class="btn btn-outline-success btn-sm" data-toggle="modal" data-target="#modalImport">
                 <i class="bi bi-file-earmark-excel"></i> Nhập Excel
+            </button>
+            @endcanPerm
+            @canPerm('crm.interactions.manage')
+            <button class="btn btn-outline-primary btn-sm" data-toggle="modal" data-target="#modalQuickAppointment" data-lead-id="" data-lead-name="" data-lead-phone="" data-sales-id="">
+                <i class="bi bi-calendar-plus"></i> Lịch hẹn nhanh
             </button>
             @endcanPerm
             @canPerm('crm.leads.manage')
@@ -125,7 +130,20 @@
                         </td>
                         <td class="text-nowrap small text-muted">{{ $lead->created_at->format('d/m/Y') }}</td>
                         <td class="text-nowrap text-right">
-                            <a href="{{ route('admin.leads.show', $lead) }}" class="btn btn-sm btn-primary">Chi tiết</a>
+                            <a href="{{ route('admin.leads.show', $lead) }}" class="btn btn-sm btn-outline-primary" title="Chi tiết">Chi tiết</a>
+                            @canPerm('crm.interactions.manage')
+                            <button type="button"
+                                    class="btn btn-sm btn-primary js-quick-appointment"
+                                    title="Tạo lịch hẹn nhanh"
+                                    data-toggle="modal"
+                                    data-target="#modalQuickAppointment"
+                                    data-lead-id="{{ $lead->id }}"
+                                    data-lead-name="{{ $lead->name }}"
+                                    data-lead-phone="{{ $lead->phone }}"
+                                    data-sales-id="{{ $lead->assigned_sales_id }}">
+                                <i class="bi bi-calendar-plus"></i>
+                            </button>
+                            @endcanPerm
                             @canPerm('crm.leads.manage')
                             <form action="{{ route('admin.leads.destroy', $lead) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa?')">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger" title="Xóa"><i class="bi bi-trash"></i></button></form>
                             @endcanPerm
@@ -183,6 +201,72 @@
     </div>
 </div>
 
+@canPerm('crm.interactions.manage')
+<div class="modal fade" id="modalQuickAppointment" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="POST" action="{{ route('admin.interactions.store') }}" class="modal-content">
+            @csrf
+            <input type="hidden" name="redirect_to" value="interactions">
+            <div class="modal-header">
+                <h5 class="modal-title">Lịch hẹn nhanh — <span id="qaLeadLabel">chọn lead</span></h5>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Lead *</label>
+                    <select name="lead_id" id="qaLeadId" class="form-control js-qa-lead" required style="width:100%" data-placeholder="Tìm lead theo tên, SĐT...">
+                        <option value=""></option>
+                    </select>
+                </div>
+                @unless(auth()->user()->isSales())
+                <div class="form-group">
+                    <label>Sales phụ trách</label>
+                    <select name="sales_id" id="qaSalesId" class="form-control">
+                        <option value="">— Sales của lead / mặc định —</option>
+                        @foreach($salesUsers as $u)
+                            <option value="{{ $u->id }}">{{ $u->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                @endunless
+                <div class="form-group">
+                    <label>Loại *</label>
+                    <select name="type" class="form-control" required>
+                        @foreach(\App\Models\Interaction::typeOptions() as $k => $v)
+                            <option value="{{ $k }}" @selected($k === 'Lịch hẹn Test')>{{ $v }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-7">
+                        <label>Thời gian hẹn *</label>
+                        <input type="datetime-local" name="scheduled_at" class="form-control" required
+                               value="{{ now()->addHour()->format('Y-m-d\TH:00') }}">
+                    </div>
+                    <div class="form-group col-md-5">
+                        <label>Trạng thái</label>
+                        <select name="status" class="form-control">
+                            @foreach(\App\Models\Interaction::statusOptions() as $k => $v)
+                                <option value="{{ $k }}" @selected($k === 'upcoming')>{{ $v }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group mb-0">
+                    <label>Ghi chú</label>
+                    <textarea name="notes" class="form-control" rows="2" placeholder="Nội dung cần trao đổi..."></textarea>
+                </div>
+                <p class="small text-muted mb-0 mt-2">Lịch sẽ hiện tại menu <a href="{{ route('admin.interactions.index') }}">Lịch hẹn / Tương tác</a>.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-dismiss="modal">Hủy</button>
+                <button class="btn btn-primary">Lưu lịch hẹn</button>
+            </div>
+        </form>
+    </div>
+</div>
+@endcanPerm
+
 @include('partials.page_help', [
     'modalId' => 'modalLeadsHelp',
     'title' => 'Hướng dẫn — Danh sách Leads',
@@ -209,6 +293,52 @@
 
     $modal.on('shown.bs.modal', function () {
         initSalesSelect2($modal);
+    });
+
+    var $qa = $('#modalQuickAppointment');
+    if (!$qa.length) return;
+
+    var leadsUrl = @json(route('admin.lookup.leads'));
+    var leadSelectReady = false;
+
+    function ensureLeadSelect2() {
+        if (leadSelectReady || typeof crmSelect2Ajax !== 'function') return;
+        crmSelect2Ajax($qa.find('.js-qa-lead'), leadsUrl, {
+            placeholder: 'Tìm lead theo tên, SĐT...',
+            dropdownParent: $qa.find('.modal-content'),
+            allowClear: false
+        });
+        leadSelectReady = true;
+    }
+
+    $qa.on('show.bs.modal', function (e) {
+        var btn = $(e.relatedTarget);
+        var leadId = btn.data('lead-id');
+        var leadName = btn.data('lead-name') || '';
+        var leadPhone = btn.data('lead-phone') || '';
+        var salesId = btn.data('sales-id') || '';
+
+        ensureLeadSelect2();
+
+        var $lead = $qa.find('.js-qa-lead');
+        $lead.empty();
+        if (leadId) {
+            var label = leadName + (leadPhone ? ' — ' + leadPhone : '');
+            var opt = new Option(label, leadId, true, true);
+            $lead.append(opt).trigger('change');
+            $('#qaLeadLabel').text(leadName || ('#' + leadId));
+        } else {
+            $lead.val(null).trigger('change');
+            $('#qaLeadLabel').text('chọn lead');
+        }
+
+        if ($('#qaSalesId').length) {
+            $('#qaSalesId').val(salesId || '');
+        }
+    });
+
+    $qa.on('shown.bs.modal', function () {
+        ensureLeadSelect2();
     });
 })();
 </script>

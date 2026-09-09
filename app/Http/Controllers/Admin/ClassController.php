@@ -13,8 +13,11 @@ use App\Models\Subject;
 use App\Models\Teacher;
 use App\Services\ClassSessionJournalService;
 use App\Services\ClassTimetableGenerator;
+use App\Services\ScheduleConflictService;
 use App\Support\CurrentBranch;
 use App\Support\Notifier;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
@@ -29,6 +32,18 @@ class ClassController extends Controller
         $classes = CourseClass::with(['branch', 'subject', 'teacher'])
             ->withCount(['sessions', 'students'])
             ->tap(fn ($query) => CurrentBranch::apply($query))
+            ->when($request->user()?->isRestrictedTeacher(), function ($query) use ($request) {
+                $teacher = $request->user()->linkedTeacher();
+                if (! $teacher) {
+                    $query->whereRaw('1 = 0');
+
+                    return;
+                }
+                $query->where(function ($inner) use ($teacher) {
+                    $inner->where('teacher_id', $teacher->id)
+                        ->orWhereHas('sessions', fn ($s) => $s->where('teacher_id', $teacher->id));
+                });
+            })
             ->when($q, function ($query) use ($q) {
                 $query->where(function ($inner) use ($q) {
                     $inner->where('name', 'like', "%{$q}%")
@@ -53,9 +68,16 @@ class ClassController extends Controller
 
     public function show(Request $request, CourseClass $class)
     {
+        $this->authorizeTeacherClassAccess($request->user(), $class);
+
         $tab = $request->get('tab', 'info');
         if (! in_array($tab, ['info', 'students', 'timetable', 'tuition', 'journal'], true)) {
             $tab = 'info';
+        }
+
+        // GV thường: ưu tiên tab nhật ký, không vào học phí
+        if ($request->user()?->isRestrictedTeacher() && $tab === 'tuition') {
+            $tab = 'journal';
         }
 
         $class->load(['branch', 'subject', 'teacher']);
@@ -70,6 +92,7 @@ class ClassController extends Controller
         $availableStudents = collect();
         $classStudents = collect();
         $sessions = collect();
+        $cancelledSessions = collect();
         $month = '';
         $availableMonths = [];
         $attendancesByDate = collect();
@@ -105,7 +128,7 @@ class ClassController extends Controller
         }
 
         if ($tab === 'timetable') {
-            $sessionsQuery = $class->sessions()->with(['teacher', 'journal']);
+            $sessionsQuery = $class->sessions()->with(['teacher', 'journal', 'makeupOf']);
             if ($month !== '') {
                 [$year, $monthNum] = array_map('intval', explode('-', $month));
                 $sessionsQuery
@@ -115,6 +138,12 @@ class ClassController extends Controller
             $sessions = $sessionsQuery
                 ->orderBy('session_date')
                 ->orderBy('start_time')
+                ->get();
+
+            $cancelledSessions = $class->sessions()
+                ->where('status', 'cancelled')
+                ->orderByDesc('session_date')
+                ->limit(50)
                 ->get();
 
             $classStudents = $class->students()->orderBy('name')->get();
@@ -137,6 +166,14 @@ class ClassController extends Controller
             $completedQuery = $class->sessions()
                 ->with(['teacher', 'journal.filledByUser'])
                 ->where('status', 'completed');
+            if ($request->user()?->isRestrictedTeacher()) {
+                $linked = $request->user()->linkedTeacher();
+                if ($linked) {
+                    $completedQuery->where('teacher_id', $linked->id);
+                } else {
+                    $completedQuery->whereRaw('1 = 0');
+                }
+            }
             if ($month !== '') {
                 [$year, $monthNum] = array_map('intval', explode('-', $month));
                 $completedQuery
@@ -184,7 +221,7 @@ class ClassController extends Controller
         return view('admin.training.class_show', compact(
             'class', 'tab', 'branches', 'subjects', 'teachers', 'sessionTeachers', 'days',
             'availableStudents', 'classStudents',
-            'sessions', 'month', 'availableMonths', 'attendancesByDate', 'defaultFrom', 'defaultTo',
+            'sessions', 'cancelledSessions', 'month', 'availableMonths', 'attendancesByDate', 'defaultFrom', 'defaultTo',
             'invoices', 'billingMonth', 'suggestion', 'billingPreviews', 'defaultFeeType',
             'selectableSessions', 'unitFee', 'journals'
         ));
@@ -226,6 +263,61 @@ class ClassController extends Controller
         ]);
     }
 
+    public function exportTimetablePdf(Request $request, CourseClass $class)
+    {
+        $class->load(['branch', 'subject', 'teacher']);
+
+        $month = (string) $request->get('month', '');
+        if ($month !== '' && ! preg_match('/^\d{4}-\d{2}$/', $month)) {
+            $month = '';
+        }
+
+        $sessionsQuery = $class->sessions()->with(['teacher', 'makeupOf']);
+        if ($month !== '') {
+            [$year, $monthNum] = array_map('intval', explode('-', $month));
+            $sessionsQuery
+                ->whereYear('session_date', $year)
+                ->whereMonth('session_date', $monthNum);
+        }
+        $sessions = $sessionsQuery
+            ->orderBy('session_date')
+            ->orderBy('start_time')
+            ->get();
+
+        $calendarWeeks = [];
+        if ($month !== '') {
+            $cursor = Carbon::createFromFormat('Y-m', $month)->startOfMonth()->startOfWeek(Carbon::MONDAY);
+            $end = Carbon::createFromFormat('Y-m', $month)->endOfMonth()->endOfWeek(Carbon::SUNDAY);
+            $byDate = $sessions->groupBy(fn ($s) => $s->session_date->format('Y-m-d'));
+
+            while ($cursor->lte($end)) {
+                $week = [];
+                for ($i = 0; $i < 7; $i++) {
+                    $key = $cursor->format('Y-m-d');
+                    $week[] = [
+                        'date' => $cursor->copy(),
+                        'in_month' => $cursor->format('Y-m') === $month,
+                        'sessions' => $byDate->get($key, collect()),
+                    ];
+                    $cursor->addDay();
+                }
+                $calendarWeeks[] = $week;
+            }
+        }
+
+        $filename = 'TKB-'.($class->code ?: 'lop-'.$class->id);
+        if ($month !== '') {
+            $filename .= '-'.$month;
+        }
+        $filename .= '.pdf';
+
+        $pdf = Pdf::loadView('pdf.timetable', compact(
+            'class', 'sessions', 'month', 'calendarWeeks'
+        ))->setPaper('a4', 'portrait');
+
+        return $pdf->download($filename);
+    }
+
     public function generateTimetable(Request $request, CourseClass $class, ClassTimetableGenerator $generator)
     {
         $data = $request->validate([
@@ -262,7 +354,7 @@ class ClassController extends Controller
             ->with('success', $msg);
     }
 
-    public function storeSession(Request $request, CourseClass $class, ClassSessionJournalService $journals)
+    public function storeSession(Request $request, CourseClass $class, ClassSessionJournalService $journals, ScheduleConflictService $conflicts)
     {
         $data = $request->validate([
             'session_date' => 'required|date',
@@ -271,6 +363,8 @@ class ClassController extends Controller
             'teacher_id' => 'required|exists:teachers,id',
             'status' => 'nullable|in:scheduled,completed,cancelled',
             'notes' => 'nullable|string',
+            'makeup_of_session_id' => 'nullable|exists:class_sessions,id',
+            'force_conflict' => 'nullable|boolean',
         ]);
 
         $exists = ClassSession::query()
@@ -280,6 +374,27 @@ class ClassController extends Controller
 
         if ($exists) {
             return back()->with('error', 'Đã có buổi học vào ngày này.');
+        }
+
+        if (! empty($data['makeup_of_session_id'])) {
+            $orig = ClassSession::query()->find($data['makeup_of_session_id']);
+            if (! $orig || (int) $orig->class_id !== (int) $class->id) {
+                return back()->withInput()->with('error', 'Buổi gốc bù không thuộc lớp này.');
+            }
+        }
+
+        if (($data['status'] ?? 'scheduled') !== 'cancelled' && ! $request->boolean('force_conflict')) {
+            $hits = $conflicts->conflicts(
+                $class,
+                $data['session_date'],
+                $data['start_time'] ?? null,
+                $data['end_time'] ?? null,
+                (int) $data['teacher_id'],
+            );
+            if ($hits !== []) {
+                return back()->withInput()->with('error', 'Trùng lịch: '.collect($hits)->pluck('message')->unique()->implode(' | ')
+                    .' — tick “Bỏ qua cảnh báo trùng” nếu vẫn muốn lưu.');
+            }
         }
 
         if (($data['status'] ?? 'scheduled') === 'completed') {
@@ -297,6 +412,7 @@ class ClassController extends Controller
             'end_time' => $data['end_time'] ?? $class->end_time,
             'status' => $data['status'] ?? 'scheduled',
             'notes' => $data['notes'] ?? null,
+            'makeup_of_session_id' => $data['makeup_of_session_id'] ?? null,
         ]);
 
         if ($session->status === 'completed') {
@@ -315,7 +431,7 @@ class ClassController extends Controller
         return back()->with('success', 'Đã thêm buổi học.');
     }
 
-    public function updateSession(Request $request, CourseClass $class, ClassSession $session, ClassSessionJournalService $journals)
+    public function updateSession(Request $request, CourseClass $class, ClassSession $session, ClassSessionJournalService $journals, ScheduleConflictService $conflicts)
     {
         abort_unless($session->class_id === $class->id, 404);
 
@@ -326,6 +442,8 @@ class ClassController extends Controller
             'teacher_id' => 'required|exists:teachers,id',
             'status' => 'required|in:scheduled,completed,cancelled',
             'notes' => 'nullable|string',
+            'makeup_of_session_id' => 'nullable|exists:class_sessions,id',
+            'force_conflict' => 'nullable|boolean',
         ]);
 
         $dup = ClassSession::query()
@@ -336,6 +454,31 @@ class ClassController extends Controller
 
         if ($dup) {
             return back()->with('error', 'Đã có buổi học khác vào ngày này.');
+        }
+
+        if (! empty($data['makeup_of_session_id'])) {
+            if ((int) $data['makeup_of_session_id'] === (int) $session->id) {
+                return back()->withInput()->with('error', 'Buổi bù không thể trỏ chính nó.');
+            }
+            $orig = ClassSession::query()->find($data['makeup_of_session_id']);
+            if (! $orig || (int) $orig->class_id !== (int) $class->id) {
+                return back()->withInput()->with('error', 'Buổi gốc bù không thuộc lớp này.');
+            }
+        }
+
+        if ($data['status'] !== 'cancelled' && ! $request->boolean('force_conflict')) {
+            $hits = $conflicts->conflicts(
+                $class,
+                $data['session_date'],
+                $data['start_time'] ?? null,
+                $data['end_time'] ?? null,
+                (int) $data['teacher_id'],
+                (int) $session->id,
+            );
+            if ($hits !== []) {
+                return back()->withInput()->with('error', 'Trùng lịch: '.collect($hits)->pluck('message')->unique()->implode(' | ')
+                    .' — tick “Bỏ qua cảnh báo trùng” nếu vẫn muốn lưu.');
+            }
         }
 
         $wasCompleted = $session->status === 'completed';
@@ -360,7 +503,15 @@ class ClassController extends Controller
             }
         }
 
-        $session->update($data);
+        $session->update([
+            'session_date' => $data['session_date'],
+            'start_time' => $data['start_time'] ?? null,
+            'end_time' => $data['end_time'] ?? null,
+            'teacher_id' => $data['teacher_id'],
+            'status' => $data['status'],
+            'notes' => $data['notes'] ?? null,
+            'makeup_of_session_id' => $data['makeup_of_session_id'] ?? null,
+        ]);
 
         if ($nowCompleted) {
             $journals->ensureForSession($session->fresh());
@@ -415,6 +566,7 @@ class ClassController extends Controller
         ClassSessionJournalService $journals
     ) {
         abort_unless($session->class_id === $class->id, 404);
+        $this->authorizeTeacherSessionJournal($request->user(), $session);
 
         if ($session->status !== 'completed') {
             return back()->with('error', 'Chỉ cập nhật nhật ký khi buổi đã hoàn thành.');
@@ -664,6 +816,7 @@ class ClassController extends Controller
             'code' => 'nullable|string|max:50',
             'subject_id' => 'nullable|exists:subjects,id',
             'teacher_id' => 'nullable|exists:teachers,id',
+            'teacher_hourly_rate' => 'nullable|numeric|min:0',
             'schedule_days' => 'nullable|array',
             'schedule_days.*' => 'in:T2,T3,T4,T5,T6,T7,CN',
             'start_time' => 'nullable',
@@ -681,7 +834,39 @@ class ClassController extends Controller
         $data['tuition_fee'] = $data['tuition_fee'] ?? 0;
         $data['tuition_type'] = $data['tuition_type'] ?? 'monthly';
         $data['status'] = $data['status'] ?? 'active';
+        $data['teacher_hourly_rate'] = filled($data['teacher_hourly_rate'] ?? null)
+            ? $data['teacher_hourly_rate']
+            : null;
 
         return $data;
+    }
+
+    protected function authorizeTeacherClassAccess(?\App\Models\User $user, CourseClass $class): void
+    {
+        if (! $user?->isRestrictedTeacher()) {
+            return;
+        }
+
+        $teacher = $user->linkedTeacher();
+        abort_unless($teacher, 403, 'Tài khoản giáo viên chưa gắn hồ sơ Teacher (cùng email).');
+
+        $owns = (int) $class->teacher_id === (int) $teacher->id
+            || $class->sessions()->where('teacher_id', $teacher->id)->exists();
+
+        abort_unless($owns, 403, 'Bạn chỉ được xem lớp mình phụ trách.');
+    }
+
+    protected function authorizeTeacherSessionJournal(?\App\Models\User $user, ClassSession $session): void
+    {
+        if (! $user?->isRestrictedTeacher()) {
+            return;
+        }
+
+        $teacher = $user->linkedTeacher();
+        abort_unless(
+            $teacher && (int) $session->teacher_id === (int) $teacher->id,
+            403,
+            'Bạn chỉ được ghi nhật ký buổi mình dạy.'
+        );
     }
 }

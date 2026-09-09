@@ -25,6 +25,10 @@
         @if($month !== '')
             <a href="{{ route('admin.classes.show', ['class' => $class, 'tab' => 'timetable']) }}" class="btn btn-sm btn-outline-secondary">Xem tất cả</a>
         @endif
+        <a href="{{ route('admin.classes.timetable.pdf', ['class' => $class, 'month' => $month ?: null]) }}"
+           class="btn btn-sm btn-outline-danger" target="_blank" title="Xuất thời khóa biểu PDF">
+            <i class="bi bi-file-earmark-pdf"></i> Xuất TKB
+        </a>
     </form>
 </div>
 
@@ -103,6 +107,22 @@
                     </select>
                     <small class="text-muted">Hoàn thành chỉ khi đã điểm danh đủ HV trong lớp.</small>
                 </div>
+                <div class="form-group">
+                    <label>Buổi bù cho (tuỳ chọn)</label>
+                    <select name="makeup_of_session_id" class="form-control">
+                        <option value="">— Không phải buổi bù —</option>
+                        @foreach($cancelledSessions as $cancelled)
+                            <option value="{{ $cancelled->id }}">
+                                Hủy {{ $cancelled->session_date?->format('d/m/Y') }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="custom-control custom-checkbox mb-2">
+                    <input type="hidden" name="force_conflict" value="0">
+                    <input type="checkbox" class="custom-control-input" id="forceConflictStore" name="force_conflict" value="1">
+                    <label class="custom-control-label small" for="forceConflictStore">Bỏ qua cảnh báo trùng lịch (GV/phòng/HV)</label>
+                </div>
                 <button class="btn btn-outline-secondary btn-sm btn-block">Thêm buổi</button>
             </form>
         </div>
@@ -118,7 +138,13 @@
                     Tất cả buổi học
                 @endif
             </strong>
-            <span class="badge badge-secondary">{{ $sessions->count() }} buổi</span>
+            <div class="d-flex align-items-center" style="gap:.4rem">
+                <span class="badge badge-secondary">{{ $sessions->count() }} buổi</span>
+                <a href="{{ route('admin.classes.timetable.pdf', ['class' => $class, 'month' => $month ?: null]) }}"
+                   class="btn btn-sm btn-danger" target="_blank">
+                    <i class="bi bi-file-earmark-pdf"></i> Xuất TKB
+                </a>
+            </div>
         </div>
         <div class="table-responsive border rounded" style="max-height:560px;overflow:auto">
             <table class="table table-hover mb-0">
@@ -161,6 +187,9 @@
                                 };
                             @endphp
                             <span class="badge badge-{{ $badge }}">{{ $session->statusLabel() }}</span>
+                            @if($session->isMakeup())
+                                <br><span class="badge badge-warning">Bù {{ $session->makeupOf?->session_date?->format('d/m') }}</span>
+                            @endif
                         </td>
                         <td class="text-nowrap">
                             @canPerm('attendances.manage')
@@ -240,6 +269,22 @@
                             <option value="{{ $k }}" @selected($session->status===$k)>{{ $v }}</option>
                         @endforeach
                     </select>
+                </div>
+                <div class="form-group">
+                    <label>Buổi bù cho</label>
+                    <select name="makeup_of_session_id" class="form-control">
+                        <option value="">— Không —</option>
+                        @foreach($cancelledSessions as $cancelled)
+                            <option value="{{ $cancelled->id }}" @selected((int) $session->makeup_of_session_id === (int) $cancelled->id)>
+                                Hủy {{ $cancelled->session_date?->format('d/m/Y') }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="custom-control custom-checkbox mb-2">
+                    <input type="hidden" name="force_conflict" value="0">
+                    <input type="checkbox" class="custom-control-input" id="forceConflict{{ $session->id }}" name="force_conflict" value="1">
+                    <label class="custom-control-label small" for="forceConflict{{ $session->id }}">Bỏ qua cảnh báo trùng lịch</label>
                 </div>
                 <div class="form-check mb-3">
                     <input type="checkbox" class="form-check-input js-session-completed-flag" id="sessionCompleted{{ $session->id }}" value="1">

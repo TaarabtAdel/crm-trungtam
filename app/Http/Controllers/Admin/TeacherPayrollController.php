@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Expense;
+use App\Models\PayrollAdjustment;
 use App\Models\Teacher;
 use App\Services\Finance\ExpenseService;
+use App\Services\Finance\PayrollAdjustmentService;
 use App\Services\Finance\TeacherPayrollService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 
 class TeacherPayrollController extends Controller
@@ -14,22 +16,103 @@ class TeacherPayrollController extends Controller
     public function __construct(
         protected TeacherPayrollService $payroll,
         protected ExpenseService $expenses,
+        protected PayrollAdjustmentService $adjustments,
     ) {}
 
     public function index(Request $request)
     {
-        $month = (int) $request->get('month', now()->month);
-        $year = (int) $request->get('year', now()->year);
-        if ($month < 1 || $month > 12) {
-            $month = (int) now()->month;
-        }
-        if ($year < 2000 || $year > 2100) {
-            $year = (int) now()->year;
-        }
-
+        [$month, $year] = $this->monthYear($request);
         $report = $this->payroll->report($month, $year);
 
         return view('admin.finance.teacher_payroll', compact('report', 'month', 'year'));
+    }
+
+    public function pdf(Request $request)
+    {
+        [$month, $year] = $this->monthYear($request);
+        $report = $this->payroll->report($month, $year);
+        $pdf = Pdf::loadView('pdf.teacher_payroll', compact('report'))
+            ->setPaper('a4', 'portrait');
+
+        return $pdf->download(sprintf('bang-luong-gv-%04d-%02d.pdf', $year, $month));
+    }
+
+    public function pdfPerson(Request $request, Teacher $teacher)
+    {
+        [$month, $year] = $this->monthYear($request);
+        $detail = $this->payroll->detail($teacher, $month, $year);
+        $slug = \Illuminate\Support\Str::slug($teacher->name) ?: ('gv-'.$teacher->id);
+        $pdf = Pdf::loadView('pdf.teacher_payroll_person', compact('detail'))
+            ->setPaper('a4', 'portrait');
+
+        return $pdf->download(sprintf('bang-luong-gv-%s-%04d-%02d.pdf', $slug, $year, $month));
+    }
+
+    public function storeAdjustment(Request $request)
+    {
+        $data = $request->validate([
+            'teacher_id' => 'required|exists:teachers,id',
+            'billing_month' => 'required|date_format:Y-m',
+            'type' => 'required|in:bonus,penalty,advance',
+            'amount' => 'required|numeric|min:1',
+            'note' => 'required|string|max:1000',
+            'mark_paid' => 'nullable|boolean',
+        ]);
+
+        $teacher = Teacher::findOrFail($data['teacher_id']);
+        [$y, $m] = array_map('intval', explode('-', $data['billing_month']));
+
+        $this->adjustments->createTeacherAdjustment(
+            $teacher,
+            $data['billing_month'],
+            $data['type'],
+            (float) $data['amount'],
+            $data['note'],
+            $request->user(),
+            $request->boolean('mark_paid', true),
+        );
+
+        $label = PayrollAdjustment::typeOptions()[$data['type']] ?? $data['type'];
+
+        return redirect()
+            ->route('admin.finance.teacher-payroll', ['month' => $m, 'year' => $y])
+            ->with('success', 'Đã thêm '.$label.' cho '.$teacher->name.'.');
+    }
+
+    public function bulkAdjustment(Request $request)
+    {
+        $data = $request->validate([
+            'billing_month' => 'required|date_format:Y-m',
+            'type' => 'required|in:bonus,penalty',
+            'amount' => 'required|numeric|min:1',
+            'note' => 'required|string|max:1000',
+        ]);
+
+        [$y, $m] = array_map('intval', explode('-', $data['billing_month']));
+        $result = $this->adjustments->bulkTeachers(
+            $data['billing_month'],
+            $data['type'],
+            (float) $data['amount'],
+            $data['note'],
+            $request->user(),
+        );
+
+        $label = PayrollAdjustment::typeOptions()[$data['type']] ?? $data['type'];
+
+        return redirect()
+            ->route('admin.finance.teacher-payroll', ['month' => $m, 'year' => $y])
+            ->with('success', "Đã áp {$label} cho {$result['count']} giáo viên.");
+    }
+
+    public function destroyAdjustment(Request $request, PayrollAdjustment $adjustment)
+    {
+        abort_unless($adjustment->scope === 'teacher', 404);
+        [$y, $m] = array_map('intval', explode('-', $adjustment->billing_month));
+        $this->adjustments->delete($adjustment);
+
+        return redirect()
+            ->route('admin.finance.teacher-payroll', ['month' => $m, 'year' => $y])
+            ->with('success', 'Đã xóa khoản điều chỉnh.');
     }
 
     public function pay(Request $request)
@@ -80,5 +163,20 @@ class TeacherPayrollController extends Controller
         return redirect()
             ->route('admin.finance.teacher-payroll', ['month' => $m, 'year' => $y])
             ->with('success', $msg);
+    }
+
+    /** @return array{0:int,1:int} */
+    protected function monthYear(Request $request): array
+    {
+        $month = (int) $request->get('month', now()->month);
+        $year = (int) $request->get('year', now()->year);
+        if ($month < 1 || $month > 12) {
+            $month = (int) now()->month;
+        }
+        if ($year < 2000 || $year > 2100) {
+            $year = (int) now()->year;
+        }
+
+        return [$month, $year];
     }
 }

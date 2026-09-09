@@ -10,6 +10,7 @@ class ClassSession extends Model
 {
     protected $fillable = [
         'class_id', 'teacher_id', 'session_date', 'start_time', 'end_time', 'status', 'notes',
+        'makeup_of_session_id',
     ];
 
     protected function casts(): array
@@ -30,6 +31,21 @@ class ClassSession extends Model
     public function journal(): HasOne
     {
         return $this->hasOne(ClassSessionJournal::class, 'class_session_id');
+    }
+
+    public function makeupOf(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'makeup_of_session_id');
+    }
+
+    public function makeups(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(self::class, 'makeup_of_session_id');
+    }
+
+    public function isMakeup(): bool
+    {
+        return $this->makeup_of_session_id !== null;
     }
 
     public function hours(): float

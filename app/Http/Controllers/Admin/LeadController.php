@@ -4,9 +4,12 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
+use App\Models\CourseClass;
 use App\Models\Interaction;
 use App\Models\Lead;
+use App\Models\PlacementTest;
 use App\Models\Student;
+use App\Models\Subject;
 use App\Models\User;
 use App\Services\LeadAssignmentNotifier;
 use App\Services\LeadExcelImporter;
@@ -44,6 +47,7 @@ class LeadController extends Controller
             ->withQueryString();
 
         $branches = Branch::where('is_active', true)->orderBy('name')->get();
+        $subjects = CurrentBranch::apply(Subject::query())->where('status', 'active')->orderBy('name')->get();
         $salesUsers = User::whereIn('role', ['sales', 'admin', 'super_admin'])
             ->where('is_active', true)
             ->when(CurrentBranch::id(), fn ($q) => $q->where('branch_id', CurrentBranch::id()))
@@ -51,7 +55,7 @@ class LeadController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('admin.crm.leads', compact('leads', 'branches', 'salesUsers', 'q', 'status'));
+        return view('admin.crm.leads', compact('leads', 'branches', 'subjects', 'salesUsers', 'q', 'status'));
     }
 
     public function show(Request $request, Lead $lead)
@@ -59,14 +63,15 @@ class LeadController extends Controller
         $this->ensureSalesOwnsLead($request, $lead);
 
         $tab = $request->get('tab', 'info');
-        if (! in_array($tab, ['info', 'history'], true)) {
+        if (! in_array($tab, ['info', 'history', 'placement', 'handoff'], true)) {
             $tab = 'info';
         }
 
-        $lead->load(['branch', 'assignedSales', 'student']);
-        $lead->loadCount('interactions');
+        $lead->load(['branch', 'assignedSales', 'student', 'interestSubject']);
+        $lead->loadCount(['interactions', 'placementTests']);
 
         $branches = Branch::where('is_active', true)->orderBy('name')->get();
+        $subjects = CurrentBranch::apply(Subject::query())->where('status', 'active')->orderBy('name')->get();
         $salesUsers = User::whereIn('role', ['sales', 'admin', 'super_admin'])
             ->where('is_active', true)
             ->when(CurrentBranch::id(), fn ($q) => $q->where('branch_id', CurrentBranch::id()))
@@ -84,8 +89,53 @@ class LeadController extends Controller
                 ->withQueryString();
         }
 
+        $placementTests = collect();
+        $recommendClasses = collect();
+        if ($tab === 'placement' || $tab === 'handoff') {
+            $placementTests = $lead->placementTests()
+                ->with(['subject', 'recommendedClass', 'creator'])
+                ->latest('tested_at')
+                ->latest('id')
+                ->get();
+            $recommendClasses = CurrentBranch::apply(CourseClass::query())
+                ->where('status', 'active')
+                ->orderBy('name')
+                ->get(['id', 'name', 'code', 'subject_id']);
+        }
+
+        $handoff = null;
+        if ($tab === 'handoff' && $lead->student_id) {
+            $student = $lead->student()->withCount('classes')->first();
+            $classCount = (int) ($student?->classes_count ?? 0);
+            $invoiceCount = $student
+                ? \App\Models\Invoice::query()->where('student_id', $student->id)->count()
+                : 0;
+            $handoff = [
+                'student' => $student,
+                'has_student' => true,
+                'enrolled' => $classCount > 0,
+                'class_count' => $classCount,
+                'has_invoice' => $invoiceCount > 0,
+                'invoice_count' => $invoiceCount,
+                'has_placement' => $lead->placement_tests_count > 0,
+                'interest_subject' => $lead->interestSubject?->name,
+            ];
+        } elseif ($tab === 'handoff') {
+            $handoff = [
+                'student' => null,
+                'has_student' => false,
+                'enrolled' => false,
+                'class_count' => 0,
+                'has_invoice' => false,
+                'invoice_count' => 0,
+                'has_placement' => $lead->placement_tests_count > 0,
+                'interest_subject' => $lead->interestSubject?->name,
+            ];
+        }
+
         return view('admin.crm.lead_show', compact(
-            'lead', 'tab', 'branches', 'salesUsers', 'interactions'
+            'lead', 'tab', 'branches', 'subjects', 'salesUsers', 'interactions',
+            'placementTests', 'recommendClasses', 'handoff'
         ));
     }
 
@@ -168,8 +218,44 @@ class LeadController extends Controller
         ])->save();
 
         return redirect()
-            ->route('admin.students.show', $student)
-            ->with('success', 'Đã đưa lead vào danh sách học viên.');
+            ->route('admin.leads.show', ['lead' => $lead, 'tab' => 'handoff'])
+            ->with('success', 'Đã tạo học viên. Tiếp tục checklist bàn giao: gắn lớp → tạo hóa đơn.');
+    }
+
+    public function storePlacement(Request $request, Lead $lead)
+    {
+        $this->ensureSalesOwnsLead($request, $lead);
+
+        $data = $request->validate([
+            'subject_id' => 'nullable|exists:subjects,id',
+            'score' => 'nullable|numeric|min:0|max:9999',
+            'level' => 'nullable|string|max:50',
+            'recommended_class_id' => 'nullable|exists:classes,id',
+            'tested_at' => 'nullable|date',
+            'notes' => 'nullable|string|max:2000',
+            'interaction_id' => 'nullable|exists:interactions,id',
+        ]);
+
+        PlacementTest::create([
+            'lead_id' => $lead->id,
+            'student_id' => $lead->student_id,
+            'subject_id' => $data['subject_id'] ?? $lead->interest_subject_id,
+            'interaction_id' => $data['interaction_id'] ?? null,
+            'recommended_class_id' => $data['recommended_class_id'] ?? null,
+            'created_by' => $request->user()->id,
+            'score' => $data['score'] ?? null,
+            'level' => $data['level'] ?? null,
+            'tested_at' => $data['tested_at'] ?? now()->toDateString(),
+            'notes' => $data['notes'] ?? null,
+        ]);
+
+        if (! empty($data['level']) && empty($lead->interest_level)) {
+            $lead->forceFill(['interest_level' => $data['level']])->save();
+        }
+
+        return redirect()
+            ->route('admin.leads.show', ['lead' => $lead, 'tab' => 'placement'])
+            ->with('success', 'Đã lưu kết quả test đầu vào.');
     }
 
     public function storeInteraction(Request $request, Lead $lead)
@@ -257,6 +343,9 @@ class LeadController extends Controller
             'related_phone' => 'nullable|string|max:30',
             'related_email' => 'nullable|email',
             'source' => 'nullable|string|max:100',
+            'interest_subject_id' => 'nullable|exists:subjects,id',
+            'interest_level' => 'nullable|string|max:50',
+            'interest_note' => 'nullable|string|max:255',
             'branch_id' => 'required|exists:branches,id',
             'expected_revenue' => 'nullable|numeric|min:0',
             'assigned_sales_id' => 'nullable|exists:users,id',
@@ -270,6 +359,9 @@ class LeadController extends Controller
         $data['related_name'] = $data['related_name'] ?: null;
         $data['related_phone'] = $data['related_phone'] ?: null;
         $data['related_email'] = $data['related_email'] ?: null;
+        $data['interest_subject_id'] = $data['interest_subject_id'] ?: null;
+        $data['interest_level'] = $data['interest_level'] ?: null;
+        $data['interest_note'] = $data['interest_note'] ?: null;
         $data['follow_up_at'] = $data['follow_up_at'] ?: null;
 
         if ($request->user()->isSales()) {

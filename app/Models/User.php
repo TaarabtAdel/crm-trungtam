@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
+use App\Notifications\ResetPasswordNotification;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use App\Notifications\ResetPasswordNotification;
 
 class User extends Authenticatable
 {
@@ -134,6 +134,81 @@ class User extends Authenticatable
     public function isSales(): bool
     {
         return $this->hasRole('sales');
+    }
+
+    public function isTeacherRole(): bool
+    {
+        return $this->hasRole('teacher');
+    }
+
+    /**
+     * Có thể xem lương GV trên "Bảng lương của tôi".
+     */
+    public function canViewTeacherMyPayroll(): bool
+    {
+        return $this->isTeacherRole();
+    }
+
+    /**
+     * Có thể xem lương NV khi có ít nhất một role không phải Giáo viên.
+     */
+    public function canViewStaffMyPayroll(): bool
+    {
+        foreach ($this->roleKeys() as $role) {
+            if ($role !== 'teacher') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function hasDualMyPayroll(): bool
+    {
+        return $this->canViewTeacherMyPayroll() && $this->canViewStaffMyPayroll();
+    }
+
+    /**
+     * Mặc định: dual → ưu tiên type trên URL; chỉ GV → teacher; còn lại → staff.
+     */
+    public function defaultMyPayrollMode(): string
+    {
+        if ($this->canViewTeacherMyPayroll() && ! $this->canViewStaffMyPayroll()) {
+            return 'teacher';
+        }
+
+        return 'staff';
+    }
+
+    /**
+     * @deprecated Dùng canViewTeacherMyPayroll() / resolveMyPayrollMode()
+     */
+    public function usesTeacherPayroll(): bool
+    {
+        return $this->canViewTeacherMyPayroll() && ! $this->canViewStaffMyPayroll();
+    }
+
+    /**
+     * Hồ sơ giáo viên gắn theo cùng email (để ghi nhật ký / tính lương).
+     */
+    public function linkedTeacher(): ?Teacher
+    {
+        $email = trim((string) $this->email);
+        if ($email === '') {
+            return null;
+        }
+
+        return Teacher::query()
+            ->whereRaw('LOWER(email) = ?', [mb_strtolower($email)])
+            ->first();
+    }
+
+    /**
+     * GV chỉ quản lý lớp mình (không có quyền quản lý lớp đầy đủ).
+     */
+    public function isRestrictedTeacher(): bool
+    {
+        return $this->isTeacherRole() && ! $this->hasPermission('training.classes.manage');
     }
 
     public function hasPermission(string $permission): bool

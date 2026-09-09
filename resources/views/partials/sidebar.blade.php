@@ -19,6 +19,9 @@
     <a href="{{ route('admin.guide') }}" class="nav-link {{ request()->routeIs('admin.guide') ? 'active' : '' }}">
         <i class="bi bi-question-circle mr-2"></i> Hướng dẫn sử dụng
     </a>
+    <a href="{{ route('admin.my-payroll') }}" class="nav-link {{ request()->routeIs('admin.my-payroll*') ? 'active' : '' }}">
+        <i class="bi bi-wallet mr-2"></i> Bảng lương của tôi
+    </a>
 
     @if($u->hasAnyPermission('crm.sales.view','crm.leads.view','crm.interactions.view'))
     <div class="nav-section">Tuyển sinh (CRM)</div>
@@ -51,7 +54,7 @@
         <i class="bi bi-book mr-2"></i> Môn học
     </a>
     @endif
-    @if($u->hasPermission('training.teachers.view'))
+    @if($u->hasPermission('training.teachers.view') && ! $u->isRestrictedTeacher())
     <a href="{{ route('admin.teachers.index') }}" class="nav-link {{ request()->routeIs('admin.teachers.*') ? 'active' : '' }}">
         <i class="bi bi-person-badge mr-2"></i> Giáo viên
     </a>
@@ -81,12 +84,12 @@
     @endif
     @if($u->hasPermission('finance.invoices.view'))
     <a href="{{ route('admin.invoices.index') }}" class="nav-link {{ request()->routeIs('admin.invoices.*') ? 'active' : '' }}">
-        <i class="bi bi-receipt mr-2"></i> Hóa đơn
+        <i class="bi bi-receipt mr-2"></i> Hóa đơn học phí
     </a>
     @endif
     @if($u->hasPermission('finance.debts.view'))
     <a href="{{ route('admin.debts.index') }}" class="nav-link {{ request()->routeIs('admin.debts.*') ? 'active' : '' }}">
-        <i class="bi bi-exclamation-triangle mr-2"></i> Công nợ
+        <i class="bi bi-exclamation-triangle mr-2"></i> Công nợ học phí
     </a>
     @endif
     @if($u->hasPermission('finance.expenses.view'))

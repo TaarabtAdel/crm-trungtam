@@ -18,6 +18,7 @@ use App\Http\Controllers\Admin\InteractionController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\LeadController;
 use App\Http\Controllers\Admin\LookupController;
+use App\Http\Controllers\Admin\MyPayrollController;
 use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\NotificationTemplateController;
 use App\Http\Controllers\Admin\PermissionController;
@@ -82,6 +83,9 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('notifications/{id}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
     Route::post('notifications/{id}/mark-read', [NotificationController::class, 'markAsReadOnly'])->name('notifications.mark-read');
 
+    Route::get('my-payroll', [MyPayrollController::class, 'show'])->name('my-payroll');
+    Route::get('my-payroll/pdf', [MyPayrollController::class, 'pdf'])->name('my-payroll.pdf');
+
     // Select2 AJAX lookups (phân trang)
     Route::get('lookup/students', [LookupController::class, 'students'])->name('lookup.students');
     Route::get('lookup/leads', [LookupController::class, 'leads'])->name('lookup.leads');
@@ -103,6 +107,8 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
         Route::post('leads/{lead}/convert-student', [LeadController::class, 'convertToStudent'])
             ->middleware('permission:students.manage')
             ->name('leads.convert-student');
+        Route::post('leads/{lead}/placement-tests', [LeadController::class, 'storePlacement'])
+            ->name('leads.placement.store');
     });
     Route::post('leads/{lead}/interactions', [LeadController::class, 'storeInteraction'])
         ->middleware('permission:crm.interactions.manage,crm.leads.manage')
@@ -143,6 +149,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
         Route::get('classes', [ClassController::class, 'index'])->name('classes.index');
         Route::get('classes/{class}', [ClassController::class, 'show'])->name('classes.show');
         Route::get('classes/{class}/timetable', [ClassController::class, 'timetable'])->name('classes.timetable');
+        Route::get('classes/{class}/timetable/pdf', [ClassController::class, 'exportTimetablePdf'])->name('classes.timetable.pdf');
         Route::get('classes/{class}/available-students', [ClassController::class, 'availableStudents'])->name('classes.students.available');
     });
     Route::middleware('permission:training.classes.manage')->group(function () {
@@ -238,13 +245,23 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::middleware('permission:finance.reports.view')->group(function () {
         Route::get('finance/reports', [FinanceReportController::class, 'index'])->name('finance.reports');
         Route::get('finance/teacher-payroll', [TeacherPayrollController::class, 'index'])->name('finance.teacher-payroll');
+        Route::get('finance/teacher-payroll/pdf', [TeacherPayrollController::class, 'pdf'])->name('finance.teacher-payroll.pdf');
+        Route::get('finance/teacher-payroll/{teacher}/pdf', [TeacherPayrollController::class, 'pdfPerson'])->name('finance.teacher-payroll.person-pdf');
     });
     Route::middleware('permission:finance.staff_payroll.view')->group(function () {
         Route::get('finance/staff-payroll', [StaffPayrollController::class, 'index'])->name('finance.staff-payroll');
+        Route::get('finance/staff-payroll/pdf', [StaffPayrollController::class, 'pdf'])->name('finance.staff-payroll.pdf');
+        Route::get('finance/staff-payroll/{user}/pdf', [StaffPayrollController::class, 'pdfPerson'])->name('finance.staff-payroll.person-pdf');
     });
     Route::middleware('permission:finance.expenses.manage')->group(function () {
         Route::post('finance/teacher-payroll/pay', [TeacherPayrollController::class, 'pay'])->name('finance.teacher-payroll.pay');
+        Route::post('finance/teacher-payroll/adjustments', [TeacherPayrollController::class, 'storeAdjustment'])->name('finance.teacher-payroll.adjustments.store');
+        Route::post('finance/teacher-payroll/adjustments/bulk', [TeacherPayrollController::class, 'bulkAdjustment'])->name('finance.teacher-payroll.adjustments.bulk');
+        Route::delete('finance/teacher-payroll/adjustments/{adjustment}', [TeacherPayrollController::class, 'destroyAdjustment'])->name('finance.teacher-payroll.adjustments.destroy');
         Route::post('finance/staff-payroll/pay', [StaffPayrollController::class, 'pay'])->name('finance.staff-payroll.pay');
+        Route::post('finance/staff-payroll/adjustments', [StaffPayrollController::class, 'storeAdjustment'])->name('finance.staff-payroll.adjustments.store');
+        Route::post('finance/staff-payroll/adjustments/bulk', [StaffPayrollController::class, 'bulkAdjustment'])->name('finance.staff-payroll.adjustments.bulk');
+        Route::delete('finance/staff-payroll/adjustments/{adjustment}', [StaffPayrollController::class, 'destroyAdjustment'])->name('finance.staff-payroll.adjustments.destroy');
     });
     Route::middleware('permission:finance.reports.export')->group(function () {
         Route::get('finance/reports/export-excel', [FinanceReportController::class, 'exportExcel'])->name('finance.reports.excel');

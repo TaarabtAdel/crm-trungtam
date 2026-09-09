@@ -37,7 +37,10 @@
         </li>
         <li>
             <strong>Tạo giáo viên</strong> tại <a href="{{ route('admin.teachers.index') }}">Giáo viên</a>
-            → điền Họ tên*, Email*, Chi nhánh*, <em>Lương theo giờ</em> nếu tính lương theo buổi.
+            → Họ tên*, Email*, Chi nhánh*, <em>Lương theo giờ</em>;
+            tick <em>Tạo tài khoản đăng nhập</em> (role Giáo viên) nếu GV cần ghi nhật ký / xem
+            <a href="{{ route('admin.my-payroll') }}">Bảng lương của tôi</a>.
+            Email hồ sơ phải trùng email login.
         </li>
         <li>
             <strong>Tạo lớp</strong> tại <a href="{{ route('admin.classes.index') }}">Lớp học</a>
@@ -131,7 +134,7 @@
 <div class="guide-section">
     <h6 class="guide-section-title"><i class="bi bi-receipt"></i> Giai đoạn F — Thu học phí</h6>
     <p class="guide-path">
-        <a href="{{ route('admin.invoices.index') }}">Hóa đơn</a>
+        <a href="{{ route('admin.invoices.index') }}">Hóa đơn học phí</a>
         · hoặc tab Thu học phí trong lớp
     </p>
     <ol>
@@ -139,7 +142,7 @@
             <strong>Tạo hóa đơn</strong> theo 1 cách:
             <ul>
                 <li>Từ lớp → tab <strong>Thu học phí</strong> → <em>Tạo hóa đơn học phí</em> (Hàng loạt / 1 HV).</li>
-                <li>Từ <a href="{{ route('admin.invoices.index') }}">Hóa đơn</a> → <em>+ Tạo hóa đơn</em>.</li>
+                <li>Từ <a href="{{ route('admin.invoices.index') }}">Hóa đơn học phí</a> → <em>+ Tạo hóa đơn</em>.</li>
             </ul>
         </li>
         <li>
@@ -153,7 +156,7 @@
             Xuất <strong>PDF</strong> gửi PH. Nếu chi nhánh có STK → QR VietQR (số còn nợ, nội dung = mã HĐ).
         </li>
         <li>
-            Theo dõi còn nợ tại <a href="{{ route('admin.debts.index') }}">Công nợ</a>
+            Theo dõi còn nợ tại <a href="{{ route('admin.debts.index') }}">Công nợ học phí</a>
             (Tất cả / Quá hạn / Sắp đến hạn 7 ngày).
         </li>
     </ol>
@@ -176,9 +179,13 @@
             → Đề xuất chi → Admin duyệt → Đã chi.
         </li>
         <li>
-            <strong>Chi lương GV:</strong>
+            <strong>Chi lương:</strong>
             <a href="{{ route('admin.finance.teacher-payroll') }}">Lương GV</a>
-            (tháng/năm) → Chi lương (tạo phiếu chi loại Lương GV).
+            /
+            <a href="{{ route('admin.finance.staff-payroll') }}">Lương NV</a>
+            — net = gốc + thưởng − phạt − ứng; menu <em>Hành động</em> → Chi lương / Ứng / Thưởng / Phạt;
+            PDF tổng hợp gộp cột Gốc·Thưởng·Phạt·Ứng.
+            Mỗi user xem lương cá nhân tại <a href="{{ route('admin.my-payroll') }}">Bảng lương của tôi</a>.
         </li>
         <li>
             <strong>Báo cáo:</strong>
@@ -203,6 +210,7 @@
     <strong>Đi sâu theo vai:</strong>
     <a href="{{ route('admin.guide', ['tab' => 'sales']) }}">Sale</a> ·
     <a href="{{ route('admin.guide', ['tab' => 'training']) }}">Đào tạo</a> ·
+    <a href="{{ route('admin.guide', ['tab' => 'teacher']) }}">Giáo viên</a> ·
     <a href="{{ route('admin.guide', ['tab' => 'accountant']) }}">Kế toán</a> ·
     <a href="{{ route('admin.guide', ['tab' => 'admin']) }}">Admin</a>.
     Hệ thống trống? Quay lại <a href="{{ route('admin.guide', ['tab' => 'setup']) }}">Cài đặt ban đầu</a>.

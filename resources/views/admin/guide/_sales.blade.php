@@ -92,10 +92,10 @@
 </div>
 
 <div class="guide-section">
-    <h6 class="guide-section-title"><i class="bi bi-receipt"></i> 6. Hóa đơn &amp; công nợ (theo dõi)</h6>
+    <h6 class="guide-section-title"><i class="bi bi-receipt"></i> 6. Hóa đơn học phí &amp; công nợ (theo dõi)</h6>
     <p class="guide-path">
-        Sidebar → <a href="{{ route('admin.invoices.index') }}">Hóa đơn</a>
-        · <a href="{{ route('admin.debts.index') }}">Công nợ</a>
+        Sidebar → <a href="{{ route('admin.invoices.index') }}">Hóa đơn học phí</a>
+        · <a href="{{ route('admin.debts.index') }}">Công nợ học phí</a>
     </p>
     <ul>
         <li>Xem HĐ / còn nợ liên quan HV mình phụ trách (theo quyền).</li>

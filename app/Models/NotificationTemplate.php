@@ -58,6 +58,8 @@ class NotificationTemplate extends Model
             'end_time' => 'Giờ kết thúc',
             'room' => 'Phòng học',
             'teacher_name' => 'Tên giáo viên',
+            'attendance_status' => 'Trạng thái điểm danh (Vắng/Muộn)',
+            'due_date' => 'Hạn thanh toán',
         ];
     }
 }

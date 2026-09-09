@@ -119,6 +119,103 @@
             }
         });
     })();
+
+    // Dropdown trong .table-responsive: gắn menu ra body (fixed) để không bị scroll/clip theo bảng.
+    (function () {
+        function placeMenu($toggle, $menu) {
+            var rect = $toggle[0].getBoundingClientRect();
+            var menuWidth = $menu.outerWidth();
+            var left = rect.right - menuWidth;
+            if (left < 8) {
+                left = 8;
+            }
+            if (left + menuWidth > window.innerWidth - 8) {
+                left = Math.max(8, window.innerWidth - menuWidth - 8);
+            }
+            var top = rect.bottom + 2;
+            var menuHeight = $menu.outerHeight();
+            if (top + menuHeight > window.innerHeight - 8 && rect.top - menuHeight - 2 > 8) {
+                top = rect.top - menuHeight - 2;
+            }
+            $menu.css({
+                position: 'fixed',
+                top: top,
+                left: left,
+                right: 'auto',
+                bottom: 'auto',
+                transform: 'none',
+                zIndex: 1060
+            });
+        }
+
+        function findDetachedMenu(ddEl) {
+            return $('body > .dropdown-menu[data-table-dropdown="1"]').filter(function () {
+                return $(this).data('dropdownParent') === ddEl;
+            });
+        }
+
+        $(document).on('shown.bs.dropdown', '.table-responsive .dropdown', function () {
+            var $dd = $(this);
+            var $toggle = $dd.children('[data-toggle="dropdown"]').add($dd.children('.dropdown-toggle')).first();
+            if (!$toggle.length) {
+                $toggle = $dd.find('> [data-toggle="dropdown"], > .dropdown-toggle').first();
+            }
+            var $menu = $dd.children('.dropdown-menu');
+            if (!$menu.length) {
+                $menu = findDetachedMenu($dd[0]);
+            }
+            if (!$toggle.length || !$menu.length) {
+                return;
+            }
+
+            $menu.attr('data-table-dropdown', '1').data('dropdownParent', $dd[0]);
+            $('body').append($menu);
+            $menu.addClass('show');
+            placeMenu($toggle, $menu);
+
+            var $scrollParents = $dd.closest('.table-responsive')
+                .add('.admin-content, .admin-main, .admin-wrapper');
+
+            var closeOnScroll = function (e) {
+                if ($menu[0] && $menu[0].contains(e.target)) {
+                    return;
+                }
+                $toggle.dropdown('hide');
+            };
+            var reposition = function () {
+                if ($menu.hasClass('show')) {
+                    placeMenu($toggle, $menu);
+                }
+            };
+
+            $scrollParents.on('scroll.tableDropdownFix', closeOnScroll);
+            $(window).on('scroll.tableDropdownFix', reposition);
+            $(window).on('resize.tableDropdownFix', reposition);
+
+            $dd.data('tableDropdownCleanup', function () {
+                $scrollParents.off('.tableDropdownFix');
+                $(window).off('.tableDropdownFix');
+            });
+        });
+
+        $(document).on('hide.bs.dropdown', '.table-responsive .dropdown', function () {
+            var $dd = $(this);
+            var cleanup = $dd.data('tableDropdownCleanup');
+            if (typeof cleanup === 'function') {
+                cleanup();
+                $dd.removeData('tableDropdownCleanup');
+            }
+            var $menu = findDetachedMenu($dd[0]);
+            if (!$menu.length) {
+                return;
+            }
+            $menu.removeClass('show')
+                .removeAttr('data-table-dropdown')
+                .removeData('dropdownParent')
+                .css({ position: '', top: '', left: '', right: '', bottom: '', transform: '', zIndex: '' });
+            $dd.append($menu);
+        });
+    })();
 </script>
 @stack('scripts')
 </body>

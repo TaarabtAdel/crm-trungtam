@@ -11,6 +11,9 @@
         'journal' => ['label' => 'Nhật ký', 'icon' => 'bi-journal-text'],
         'tuition' => ['label' => 'Thu học phí', 'icon' => 'bi-cash-coin'],
     ];
+    if (auth()->user()?->isRestrictedTeacher()) {
+        unset($tabs['tuition']);
+    }
     $helpItems = [
         [
             'title' => 'Các tab chi tiết',

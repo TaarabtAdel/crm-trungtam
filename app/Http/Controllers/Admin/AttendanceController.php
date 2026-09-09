@@ -115,10 +115,12 @@ class AttendanceController extends Controller
         $class = CourseClass::with('students')->findOrFail($data['class_id']);
         $statuses = $data['statuses'] ?? [];
         $notes = $data['notes'] ?? [];
+        $resolvedStatuses = [];
 
         foreach ($class->students as $student) {
             $status = $statuses[$student->id] ?? 'absent';
             $note = trim((string) ($notes[$student->id] ?? ''));
+            $resolvedStatuses[$student->id] = $status;
 
             Attendance::updateOrCreate(
                 [
@@ -137,6 +139,13 @@ class AttendanceController extends Controller
             (int) $class->id,
             $data['session_date']
         );
+
+        try {
+            app(\App\Services\AttendanceNotificationService::class)
+                ->notifyForClassDate($class, $data['session_date'], $resolvedStatuses);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Attendance notify failed: '.$e->getMessage());
+        }
 
         $redirectTo = (string) $request->input('redirect_to', '');
         if ($redirectTo !== '' && str_starts_with($redirectTo, '/admin/')) {

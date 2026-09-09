@@ -48,7 +48,7 @@
     <ol>
         <li>Vào <a href="{{ route('admin.users.index') }}">/admin/users</a> → <em>Thêm người dùng</em>.</li>
         <li>Họ tên*, Email*, Mật khẩu; <strong>tick một hoặc nhiều vai trò</strong> (quyền = hợp các role).</li>
-        <li>Gợi ý: Sales, Đào Tạo, Kế toán, Giáo viên (email GV nên trùng hồ sơ Giáo viên để nhận nhắc nhật ký).</li>
+        <li>Gợi ý: Sales, Đào Tạo, Kế toán, Giáo viên (tick tạo login trên hồ sơ GV; email trùng để nhật ký + <em>Bảng lương của tôi</em>).</li>
         <li>Gắn chi nhánh nếu cần giới hạn phạm vi.</li>
     </ol>
 </div>

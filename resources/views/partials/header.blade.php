@@ -92,9 +92,14 @@
                 </div>
             </a>
             <div class="dropdown-menu dropdown-menu-right">
+                <a class="dropdown-item" href="{{ route('admin.my-payroll') }}">
+                    <i class="bi bi-wallet mr-1"></i> Bảng lương của tôi
+                </a>
                 <a class="dropdown-item" href="{{ route('admin.guide') }}">Hướng dẫn sử dụng</a>
                 <a class="dropdown-item" href="{{ route('admin.notifications.index') }}">Thông báo</a>
+                @if(auth()->user()->hasPermission('system.settings.manage'))
                 <a class="dropdown-item" href="{{ route('admin.settings.edit') }}">Cài đặt</a>
+                @endif
                 <div class="dropdown-divider"></div>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf

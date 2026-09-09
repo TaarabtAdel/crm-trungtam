@@ -54,6 +54,31 @@
         </div>
     </div>
     <div class="col-md-6">
+        <div class="form-group"><label>Môn / khóa quan tâm</label>
+            <select name="interest_subject_id" class="form-control">
+                <option value="">— Chưa xác định —</option>
+                @foreach(($subjects ?? []) as $s)
+                    <option value="{{ $s->id }}" @selected(old('interest_subject_id', $lead->interest_subject_id ?? '')==$s->id)>{{ $s->name }}</option>
+                @endforeach
+            </select>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="form-group"><label>Mức quan tâm / level dự kiến</label>
+            <select name="interest_level" class="form-control">
+                <option value="">—</option>
+                @foreach(\App\Models\PlacementTest::levelOptions() as $k => $v)
+                    <option value="{{ $k }}" @selected(old('interest_level', $lead->interest_level ?? '')===$k)>{{ $v }}</option>
+                @endforeach
+            </select>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="form-group"><label>Ghi chú quan tâm</label>
+            <input name="interest_note" class="form-control" value="{{ old('interest_note', $lead->interest_note ?? '') }}" placeholder="VD: IELTS 6.5, Excel văn phòng…">
+        </div>
+    </div>
+    <div class="col-md-6">
         <div class="form-group">
             <label>Doanh thu dự kiến (VNĐ)</label>
             <input type="number" name="expected_revenue" class="form-control" value="{{ old('expected_revenue', $lead->expected_revenue ?? 0) }}" min="0">

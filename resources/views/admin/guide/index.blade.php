@@ -20,6 +20,7 @@
             <ul class="mb-0 pl-3">
                 <li><strong>Chi nhánh</strong> (góc trên): chọn 1 cơ sở hoặc “Tất cả” — hầu hết danh sách/báo cáo lọc theo lựa chọn này.</li>
                 <li><strong>Thông báo</strong> (chuông): lead follow-up, buổi chưa cập nhật trạng thái, <em>nhắc ghi nhật ký</em>, chi phí chờ duyệt, phân lead… — bấm để mở hoặc đánh dấu đã đọc.</li>
+                <li><strong>Bảng lương của tôi</strong> (sidebar / avatar): mỗi user xem lương cá nhân — GV / NV / cả hai nếu dual-role.</li>
                 <li>Menu trái chỉ hiện mục được phân quyền. Đường dẫn xanh bên dưới là <strong>liên kết bấm được</strong> (mở tab mới nếu bạn có quyền vào trang đó).</li>
                 <li>Mới nhận tài khoản / data trống → bắt đầu tab <a href="{{ route('admin.guide', ['tab' => 'setup']) }}">Cài đặt ban đầu</a> (có <strong>checklist tự tick</strong>). Muốn nắm toàn bộ vòng đời → tab <a href="{{ route('admin.guide', ['tab' => 'flow']) }}">Quy trình</a>.</li>
             </ul>
@@ -39,6 +40,9 @@
                 <a class="nav-link {{ $tab === 'training' ? 'active' : '' }}" href="{{ route('admin.guide', ['tab' => 'training']) }}">Đào tạo</a>
             </li>
             <li class="nav-item">
+                <a class="nav-link {{ $tab === 'teacher' ? 'active' : '' }}" href="{{ route('admin.guide', ['tab' => 'teacher']) }}">Giáo viên</a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link {{ $tab === 'sales' ? 'active' : '' }}" href="{{ route('admin.guide', ['tab' => 'sales']) }}">Sale</a>
             </li>
             <li class="nav-item">
@@ -55,6 +59,8 @@
             @include('admin.guide._accountant')
         @elseif($tab === 'training')
             @include('admin.guide._training')
+        @elseif($tab === 'teacher')
+            @include('admin.guide._teacher')
         @elseif($tab === 'sales')
             @include('admin.guide._sales')
         @else

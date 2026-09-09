@@ -55,6 +55,30 @@ class DatabaseSeeder extends Seeder
             ]
         )->syncRoles(['training']);
 
+        $teacherUser = User::query()->updateOrCreate(
+            ['email' => 'teacher@crm.local'],
+            [
+                'name' => 'Giáo viên Demo',
+                'password' => Hash::make('password'),
+                'role' => 'teacher',
+                'branch_id' => $branch->id,
+                'is_active' => true,
+            ]
+        );
+        $teacherUser->syncRoles(['teacher']);
+
+        \App\Models\Teacher::query()->updateOrCreate(
+            ['email' => 'teacher@crm.local'],
+            [
+                'branch_id' => $branch->id,
+                'name' => 'Giáo viên Demo',
+                'phone' => '0900000001',
+                'specialty' => 'Tiếng Anh',
+                'hourly_rate' => 200000,
+                'status' => 'active',
+            ]
+        );
+
         Setting::set('center_name', 'CRM Trung Tâm');
         Setting::set('logo_text', 'TPT2');
 

@@ -65,8 +65,16 @@ class InteractionController extends Controller
         $data['branch_id'] = $lead->branch_id;
         if ($request->user()->isSales()) {
             $data['sales_id'] = $request->user()->id;
+        } elseif (empty($data['sales_id'])) {
+            $data['sales_id'] = $lead->assigned_sales_id;
         }
         Interaction::create($data);
+
+        if ($request->input('redirect_to') === 'interactions') {
+            return redirect()
+                ->route('admin.interactions.index')
+                ->with('success', 'Đã thêm lịch hẹn cho '.$lead->name.'.');
+        }
 
         return back()->with('success', 'Đã thêm lịch hẹn / tương tác.');
     }

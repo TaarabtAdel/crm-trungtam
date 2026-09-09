@@ -62,7 +62,8 @@
         <li><em>Thêm người dùng</em>: Họ tên*, Email*, Mật khẩu.</li>
         <li><strong>Tick một hoặc nhiều vai trò</strong> — quyền thực tế = hợp quyền các role (Super Admin / Admin / Kế toán / Sales / Đào Tạo / Giáo viên).</li>
         <li>Gắn Chi nhánh, SĐT; tắt Active = khóa đăng nhập.</li>
-        <li>GV: email user nên trùng email hồ sơ Giáo viên để nhận nhắc nhật ký.</li>
+        <li>GV: email user nên trùng email hồ sơ Giáo viên để nhận nhắc nhật ký và xem <a href="{{ route('admin.my-payroll') }}">Bảng lương của tôi</a>.</li>
+        <li>Mỗi user có link <strong>Bảng lương của tôi</strong> (sidebar / avatar): chỉ Giáo viên → lương GV; role khác → lương NV; vừa GV vừa role khác → tab chọn cả hai.</li>
     </ol>
 </div>
 
@@ -126,11 +127,13 @@
     <p class="guide-path">
         <a href="{{ route('admin.expenses.index') }}">Chi phí</a>
         · <a href="{{ route('admin.finance.teacher-payroll') }}">Lương GV</a>
+        · <a href="{{ route('admin.finance.staff-payroll') }}">Lương NV</a>
     </p>
     <ul>
         <li>Trên phiếu <em>Chờ duyệt</em>: bấm <em>Duyệt</em> hoặc <em>Từ chối</em> (cần quyền approve).</li>
         <li>Sau duyệt, Kế toán bấm <em>Đã chi</em> khi đã chuyển tiền.</li>
-        <li>Quyền <em>Chi ngay / pay_immediate</em>: khi chi lương có thể tick bỏ qua chờ duyệt, ghi nhận dòng tiền luôn.</li>
+        <li>Quyền <em>Chi ngay / pay_immediate</em>: khi chi lương hoặc ứng có thể tick bỏ qua chờ duyệt, ghi nhận dòng tiền luôn.</li>
+        <li>Thưởng/phạt/ứng trên bảng lương: ghi chú bắt buộc; ứng tạo phiếu <em>Ứng lương GV/NV</em>.</li>
         <li>Người đề xuất nhận thông báo khi phiếu được duyệt / từ chối / đã thanh toán.</li>
     </ul>
 </div>

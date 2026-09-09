@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CRM Trung Tâm — Danh mục chức năng</title>
+  <style>
+    body { font-family: system-ui, sans-serif; line-height: 1.5; max-width: 48rem; margin: 2rem auto; padding: 0 1rem; color: #111; }
+    h1 { font-size: 1.75rem; margin-bottom: .35rem; }
+    h2 { font-size: 1.25rem; margin-top: 2rem; border-bottom: 1px solid #ddd; padding-bottom: .25rem; }
+    h3 { font-size: 1.05rem; margin-top: 1.25rem; }
+    p, ul { margin: .5rem 0; }
+    ul { padding-left: 1.25rem; }
+    li { margin: .2rem 0; }
+    nav ul { list-style: none; padding-left: 0; }
+    nav li { display: inline; margin-right: .75rem; }
+    .muted { color: #555; }
+    code { font-size: .9em; }
+  </style>
+</head>
+<body>
+
+  <h1>CRM Trung Tâm</h1>
+  <p class="muted">Phần mềm quản lý trung tâm đào tạo — từ tuyển sinh đến thu học phí và chi lương.</p>
+
+  <nav aria-label="Mục lục">
+    <ul>
+      <li><a href="#tong-quan">Tổng quan</a></li>
+      <li><a href="#vai-tro">Vai trò</a></li>
+      <li><a href="#crm">Tuyển sinh</a></li>
+      <li><a href="#dao-tao">Đào tạo</a></li>
+      <li><a href="#hoc-vien">Học viên</a></li>
+      <li><a href="#tai-chinh">Tài chính</a></li>
+      <li><a href="#nhan-su">Nhân sự</a></li>
+      <li><a href="#thong-bao">Thông báo</a></li>
+      <li><a href="#he-thong">Hệ thống</a></li>
+    </ul>
+  </nav>
+
+  <h2 id="tong-quan">Tổng quan</h2>
+  <p>
+    CRM Trung Tâm giúp trung tâm chạy một luồng nghiệp vụ khép kín trên cùng hệ thống,
+    nhiều chi nhánh, phân quyền theo vai trò.
+  </p>
+  <p><strong>Luồng chính:</strong></p>
+  <ul>
+    <li>Tuyển sinh: lead → lịch hẹn / tư vấn → test đầu vào → bàn giao → chuyển thành học viên</li>
+    <li>Đào tạo: môn / GV / lớp → thời khóa biểu → điểm danh → hoàn thành buổi → nhật ký</li>
+    <li>Tài chính: hóa đơn học phí → thu tiền / công nợ → chi phí &amp; lương → báo cáo</li>
+  </ul>
+  <p><strong>Điểm nổi bật:</strong></p>
+  <ul>
+    <li>Đa chi nhánh; lọc dữ liệu theo chi nhánh đang làm việc</li>
+    <li>Phân quyền chi tiết theo chức năng (có thể gán nhiều role cho 1 user)</li>
+    <li>Thông báo trong hệ thống + Email / Zalo cho phụ huynh &amp; học viên</li>
+    <li>Xuất Excel / PDF (hóa đơn, TKB, bảng lương, báo cáo)</li>
+    <li>Mỗi nhân sự tự xem <em>Bảng lương của tôi</em></li>
+    <li>Hỗ trợ multi-tenant (mỗi trung tâm một subdomain + database riêng)</li>
+  </ul>
+
+  <h2 id="vai-tro">Ai dùng phần mềm?</h2>
+  <ul>
+    <li><strong>Ban giám đốc / Admin</strong> — tổng quan, báo cáo, chi nhánh, user, quyền, backup</li>
+    <li><strong>Sales</strong> — lead, lịch hẹn, theo dõi công nợ / hoa hồng</li>
+    <li><strong>Đào tạo</strong> — môn, GV, lớp, TKB, xếp HV, điểm danh, đánh dấu buổi hoàn thành</li>
+    <li><strong>Giáo viên</strong> — xem lớp mình dạy, ghi nhật ký, xem lương GV của mình</li>
+    <li><strong>Kế toán</strong> — hóa đơn học phí, thu tiền, công nợ, chi phí, lương, hoàn tiền, báo cáo TC</li>
+  </ul>
+
+  <!-- —— CRM —— -->
+  <h2 id="crm">1. Tuyển sinh (CRM)</h2>
+  <p class="muted">Quản lý khách tiềm năng từ lúc tiếp nhận đến khi vào học.</p>
+
+  <h3>Dashboard Sales</h3>
+  <ul>
+    <li>Nhìn pipeline / hiệu suất tuyển sinh</li>
+    <li>Lead theo trạng thái và Sales phụ trách</li>
+  </ul>
+
+  <h3>Danh sách Leads</h3>
+  <ul>
+    <li>Thêm / sửa / xóa lead; gán Sales theo chi nhánh</li>
+    <li>Ghi nhu cầu (môn / khóa quan tâm)</li>
+    <li>Nhập Excel hàng loạt + tải mẫu</li>
+    <li>Tạo nhanh lịch hẹn ngay từ danh sách</li>
+    <li>Chuyển lead → học viên</li>
+  </ul>
+
+  <h3>Hồ sơ lead chi tiết</h3>
+  <ul>
+    <li>Lịch sử tư vấn / tương tác</li>
+    <li>Checklist bàn giao sang Đào tạo</li>
+    <li>Placement test: điểm, level, gợi ý lớp</li>
+  </ul>
+
+  <h3>Lịch hẹn / Tương tác</h3>
+  <ul>
+    <li>Quản lý lịch test, gọi điện, gặp phụ huynh…</li>
+    <li>Lọc theo lead, Sales, loại tương tác</li>
+    <li>Nhắc follow-up sắp tới / quá hạn (tự động)</li>
+  </ul>
+
+  <!-- —— Đào tạo —— -->
+  <h2 id="dao-tao">2. Quản trị đào tạo</h2>
+  <p class="muted">Tổ chức lớp học, giáo viên, lịch dạy và nhật ký buổi học.</p>
+
+  <h3>Môn học</h3>
+  <ul>
+    <li>Danh mục môn / chương trình</li>
+  </ul>
+
+  <h3>Giáo viên</h3>
+  <ul>
+    <li>Hồ sơ GV, đơn giá giờ dạy (có thể theo lớp)</li>
+    <li>Tạo tài khoản đăng nhập role Giáo viên (email trùng hồ sơ)</li>
+    <li>Xem lớp đang dạy, lịch dạy, lương theo tháng</li>
+  </ul>
+
+  <h3>Lớp học</h3>
+  <ul>
+    <li>Tạo lớp: GV, phòng, lịch thứ/giờ, sĩ số, học phí</li>
+    <li>Gắn / gỡ học viên</li>
+    <li>Tạo hóa đơn học phí theo lớp (theo tháng / buổi / khóa)</li>
+    <li>Giáo viên đăng nhập chỉ xem lớp mình phụ trách</li>
+  </ul>
+
+  <h3>Thời khóa biểu &amp; nhật ký</h3>
+  <ul>
+    <li>Sinh TKB hàng loạt hoặc thêm buổi lẻ</li>
+    <li>Phát hiện trùng lịch GV / phòng / học viên</li>
+    <li>Buổi học bù (make-up) gắn buổi gốc</li>
+    <li>Xuất PDF thời khóa biểu</li>
+    <li>Đánh dấu buổi hoàn thành (sau khi điểm danh đủ) → tính lương + tạo nhật ký</li>
+    <li>Nhật ký: sĩ số / vắng / muộn từ điểm danh; GV điền tên bài, nội dung, nhận xét</li>
+  </ul>
+
+  <!-- —— Học viên —— -->
+  <h2 id="hoc-vien">3. Quản trị học viên</h2>
+  <p class="muted">Hồ sơ học sinh và điểm danh hàng ngày.</p>
+
+  <h3>Học sinh</h3>
+  <ul>
+    <li>Thông tin HV + phụ huynh / liên hệ</li>
+    <li>Gắn nhiều lớp; xem lịch sử học / học phí / điểm danh</li>
+    <li>Nhập Excel hàng loạt + tải mẫu</li>
+  </ul>
+
+  <h3>Điểm danh</h3>
+  <ul>
+    <li>Điểm danh theo buổi / lớp (có mặt, vắng, muộn…)</li>
+    <li>Tự gửi Zalo / Email phụ huynh khi vắng hoặc muộn</li>
+    <li>Phục vụ % chuyên cần trên báo cáo</li>
+  </ul>
+
+  <!-- —— Tài chính —— -->
+  <h2 id="tai-chinh">4. Quản trị tài chính</h2>
+  <p class="muted">Thu học phí, theo dõi nợ, chi phí vận hành và chi lương.</p>
+
+  <h3>Dashboard tài chính</h3>
+  <ul>
+    <li>Thu / chi / lãi lỗ / công nợ theo chi nhánh</li>
+    <li>Tóm tắt lương GV tháng (tạm tính / đã chi / còn lại)</li>
+  </ul>
+
+  <h3>Hóa đơn học phí</h3>
+  <ul>
+    <li>Tạo / sửa / xóa hóa đơn; xóa hàng loạt</li>
+    <li>Trả góp theo kỳ</li>
+    <li>Ghi nhận thanh toán; in PDF hóa đơn</li>
+    <li>VietQR chuyển khoản</li>
+    <li>Zalo / Email xác nhận khi thanh toán thành công</li>
+  </ul>
+
+  <h3>Công nợ học phí</h3>
+  <ul>
+    <li>Danh sách nợ, lọc quá hạn / sắp đến hạn</li>
+    <li>Nhắc nợ tự động (trong hệ thống + Zalo PH)</li>
+  </ul>
+
+  <h3>Chi phí</h3>
+  <ul>
+    <li>Đề nghị chi → duyệt / từ chối → đánh dấu đã chi</li>
+    <li>Có tùy chọn chi ngay (theo quyền)</li>
+    <li>Loại chi gồm vận hành, lương GV/NV, ứng lương GV/NV, marketing…</li>
+  </ul>
+
+  <h3>Lương giáo viên</h3>
+  <ul>
+    <li>Gốc = buổi hoàn thành × đơn giá/giờ</li>
+    <li>Thưởng / phạt / ứng trước (bắt buộc ghi chú); thưởng·phạt hàng loạt</li>
+    <li>Chi lương → phiếu chi phí; ứng tạo phiếu ngay</li>
+    <li>Xuất PDF cá nhân và PDF tổng hợp</li>
+  </ul>
+
+  <h3>Lương nhân viên</h3>
+  <ul>
+    <li>Gốc = ngày công × lương/ngày (sau khi chấm công)</li>
+    <li>Thưởng / phạt / ứng / chi lương tương tự lương GV</li>
+    <li>Xuất PDF cá nhân và PDF tổng hợp</li>
+  </ul>
+
+  <h3>Bảng lương của tôi</h3>
+  <ul>
+    <li>Mỗi user tự xem lương cá nhân (sidebar / menu tài khoản)</li>
+    <li>Chỉ role Giáo viên → lương GV; role khác → lương NV</li>
+    <li>Vừa Giáo viên vừa role khác → chọn tab lương GV hoặc lương NV</li>
+  </ul>
+
+  <h3>Hoàn tiền</h3>
+  <ul>
+    <li>Tạo yêu cầu hoàn từ dòng thanh toán trên hóa đơn</li>
+    <li>Duyệt / từ chối; cập nhật lại số đã thu và công nợ</li>
+  </ul>
+
+  <h3>Hoa hồng Sales</h3>
+  <ul>
+    <li>Phát sinh khi hóa đơn đã thu + gắn Sales + có quy tắc active</li>
+    <li>Cấu hình quy tắc hoa hồng (% / theo lớp…)</li>
+    <li>Đánh dấu đã trả hoa hồng</li>
+  </ul>
+
+  <h3>Báo cáo tài chính</h3>
+  <ul>
+    <li>Thu, hoàn, thu ròng, chi, lãi/lỗ theo kỳ</li>
+    <li>Xuất Excel / PDF</li>
+  </ul>
+
+  <!-- —— Nhân sự —— -->
+  <h2 id="nhan-su">5. Nhân sự văn phòng</h2>
+  <p class="muted">Chấm công nhân viên hành chính / Sales / hỗ trợ, nối với lương NV.</p>
+  <ul>
+    <li>Chấm công theo ngày (có mặt / nửa ngày…)</li>
+    <li>Gắn đơn giá ngày công trên hồ sơ user</li>
+    <li>Tổng hợp vào bảng lương nhân viên</li>
+  </ul>
+
+  <!-- —— Thông báo —— -->
+  <h2 id="thong-bao">6. Thông báo &amp; tự động hóa</h2>
+
+  <h3>Trong hệ thống</h3>
+  <ul>
+    <li>Chuông thông báo: phân lead, follow-up, nhắc ghi nhật ký, công nợ, chi phí chờ duyệt…</li>
+    <li>Đánh dấu đã đọc / đọc tất cả</li>
+  </ul>
+
+  <h3>Email &amp; Zalo</h3>
+  <ul>
+    <li>Cấu hình SMTP trên Cài đặt</li>
+    <li>Zalo OA / ZNS: thanh toán, nhắc nợ, nhắc lịch, điểm danh</li>
+    <li>Mẫu thông báo tùy biến (biến động)</li>
+  </ul>
+
+  <h3>Lịch tự động</h3>
+  <ul>
+    <li>Nhắc nợ học phí hàng ngày</li>
+    <li>Nhắc lead follow-up sắp tới / quá hạn</li>
+    <li>Cảnh báo buổi học chưa cập nhật trạng thái</li>
+    <li>Nhắc lịch học trước buổi</li>
+    <li>Chạy bằng cron (cPanel) hoặc khi nhân sự mở trang admin</li>
+  </ul>
+
+  <!-- —— Hệ thống —— -->
+  <h2 id="he-thong">7. Hệ thống &amp; vận hành</h2>
+  <ul>
+    <li>Quản lý chi nhánh; chuyển chi nhánh đang làm việc</li>
+    <li>Quản lý người dùng; gán một hoặc nhiều vai trò</li>
+    <li>Ma trận phân quyền theo chức năng</li>
+    <li>Báo cáo vận hành: chuyên cần, giữ chân HV, aging công nợ</li>
+    <li>Cài đặt thương hiệu, SMTP, Zalo, bật/tắt loại thông báo</li>
+    <li>Cài đặt nhanh (wizard) khi triển khai mới</li>
+    <li>Hướng dẫn sử dụng ngay trong phần mềm</li>
+    <li>Backup SQL; khởi tạo data demo</li>
+    <li>Multi-tenant: mỗi trung tâm một subdomain + database</li>
+  </ul>
+
+  <hr>
+  <p class="muted">
+    File nguồn: <code>docs/chuc-nang.html</code> — nội dung thô để thiết kế / in sau.
+  </p>
+
+</body>
+</html>

@@ -22,12 +22,16 @@
                 .'</ul>',
         ],
         [
-            'title' => 'Lương GV',
-            'body' => '<p class="mb-0">Chọn loại <em>Lương GV</em> sẽ hiện ô chọn giáo viên (Select2) và tháng lương. Có thể chi nhanh hơn tại menu <a href="'.route('admin.finance.teacher-payroll').'">Lương GV</a>.</p>',
+            'title' => 'Lương GV &amp; ứng lương GV',
+            'body' => '<p class="mb-0">Loại <em>Lương GV</em> / <em>Ứng lương GV</em>: chọn giáo viên + tháng lương. '
+                .'Thưởng/phạt/ứng và chi lương tháng nên làm tại <a href="'.route('admin.finance.teacher-payroll').'">Lương GV</a> '
+                .'(ứng tạo phiếu Chi phí tự động).</p>',
         ],
         [
-            'title' => 'Lương nhân viên',
-            'body' => '<p class="mb-0">Chọn loại <em>Lương nhân viên</em> → chọn user + tháng lương. Hoặc chi nhanh tại <a href="'.route('admin.finance.staff-payroll').'">Lương NV</a> sau khi đã chấm công.</p>',
+            'title' => 'Lương NV &amp; ứng lương NV',
+            'body' => '<p class="mb-0">Loại <em>Lương nhân viên</em> / <em>Ứng lương NV</em>: chọn user + tháng. '
+                .'Hoặc dùng <a href="'.route('admin.finance.staff-payroll').'">Lương NV</a> sau khi đã chấm công '
+                .'(có thưởng/phạt/ứng từng người hoặc hàng loạt).</p>',
         ],
         [
             'title' => 'Lọc & chứng từ',

@@ -11,7 +11,7 @@
         <li>Vào lớp → tab <strong>Thời khóa biểu</strong> → Sinh buổi.</li>
         <li>Thêm <a href="{{ route('admin.students.index') }}"><strong>Học viên</strong></a> vào lớp.</li>
         <li><strong>Điểm danh đủ</strong> → đánh dấu buổi <em>Hoàn thành</em> → tab <strong>Nhật ký</strong> (GV điền nội dung).</li>
-        <li>Tab <strong>Thu học phí</strong> tạo HĐ (hoặc nhờ Kế toán tại <a href="{{ route('admin.invoices.index') }}">Hóa đơn</a>).</li>
+        <li>Tab <strong>Thu học phí</strong> tạo HĐ (hoặc nhờ Kế toán tại <a href="{{ route('admin.invoices.index') }}">Hóa đơn học phí</a>).</li>
     </ol>
 </div>
 
@@ -37,13 +37,15 @@
     <p class="mb-1"><strong>Thêm GV</strong> (<em>+ Thêm giáo viên</em>)</p>
     <ul>
         <li>Bắt buộc: Chi nhánh*, Họ tên*, Email* — <strong>email nên trùng tài khoản user</strong> để nhận thông báo nhắc ghi nhật ký.</li>
+        <li>Tick <em>Tạo tài khoản đăng nhập</em> để cấp role <strong>Giáo viên</strong> (ghi nhật ký + xem <a href="{{ route('admin.my-payroll') }}">Bảng lương của tôi</a>).</li>
+        <li>GV đăng nhập chỉ thấy lớp / buổi mình dạy; không vào Thu học phí / danh sách quản lý GV.</li>
         <li>Khác: SĐT, chuyên môn, trình độ, <strong>Lương theo giờ</strong>, ngày vào làm, ghi chú, trạng thái.</li>
     </ul>
     <p class="mb-1 mt-2"><strong>Chi tiết GV</strong> — 4 tab (mở từ danh sách)</p>
     <ul>
         <li><em>Thông tin</em> — hồ sơ.</li>
         <li><em>Lớp đang dạy</em> — các lớp gắn GV.</li>
-        <li><em>Lương GV</em> — lọc tháng; tạm tính = buổi <strong>Hoàn thành</strong> × đơn giá/giờ.</li>
+        <li><em>Lương GV</em> — lọc tháng; gốc = buổi <strong>Hoàn thành</strong> × đơn giá/giờ; có thưởng / phạt / ứng (ghi chú bắt buộc); PDF cá nhân hoặc tổng hợp.</li>
         <li><em>Lịch dạy</em> — buổi theo tháng.</li>
     </ul>
     <p class="mb-0">Nút <em>Bảng lương</em> trên list để xuất payroll (nếu có quyền).</p>
@@ -108,7 +110,7 @@
     <h6 class="guide-section-title"><i class="bi bi-cash-stack"></i> 5. Tab Thu học phí — tạo HĐ</h6>
     <p class="guide-path">
         Lớp → tab Thu học phí → <em>Tạo hóa đơn học phí</em>
-        (hoặc <a href="{{ route('admin.invoices.index') }}">Hóa đơn</a>)
+        (hoặc <a href="{{ route('admin.invoices.index') }}">Hóa đơn học phí</a>)
     </p>
     <ol>
         <li>Chọn hình thức: Theo tháng / Theo buổi / Theo khóa (giống Kế toán).</li>
@@ -134,7 +136,7 @@
         <li><em>Nhập Excel</em>: tải mẫu → cột Họ tên* bắt buộc; lớp tùy chọn (nhiều lớp cách bằng <code>;</code>) → import.</li>
         <li>Lọc: tên, trạng thái, lớp.</li>
         <li><strong>Chi tiết HV</strong> tabs: Thông tin | Lớp học | Lịch sử học phí | Điểm danh. Có thể gắn lớp kèm tùy chọn <em>Tự tạo hóa đơn học phí</em>.</li>
-        <li>Shortcut: <em>Hóa đơn</em>, <em>Điểm danh lớp</em>.</li>
+        <li>Shortcut: <em>Hóa đơn học phí</em>, <em>Điểm danh lớp</em>.</li>
     </ol>
 </div>
 

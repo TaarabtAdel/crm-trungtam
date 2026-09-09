@@ -11,7 +11,7 @@ class Lead extends Model
     protected $fillable = [
         'name', 'phone', 'email',
         'related_name', 'related_phone', 'related_email',
-        'source', 'branch_id',
+        'source', 'interest_subject_id', 'interest_level', 'interest_note', 'branch_id',
         'expected_revenue', 'assigned_sales_id', 'student_id', 'status', 'follow_up_at',
     ];
 
@@ -26,6 +26,16 @@ class Lead extends Model
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    public function interestSubject(): BelongsTo
+    {
+        return $this->belongsTo(Subject::class, 'interest_subject_id');
+    }
+
+    public function placementTests(): HasMany
+    {
+        return $this->hasMany(PlacementTest::class);
     }
 
     public function assignedSales(): BelongsTo

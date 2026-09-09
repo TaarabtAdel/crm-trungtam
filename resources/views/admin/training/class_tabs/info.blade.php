@@ -34,6 +34,7 @@
     </div>
 </div>
 
+@canPerm('training.classes.manage')
 <form method="POST" action="{{ route('admin.classes.update', $class) }}">
     @csrf @method('PUT')
     <input type="hidden" name="from_detail" value="1">
@@ -42,3 +43,8 @@
         <button class="btn btn-primary">Lưu thông tin lớp</button>
     </div>
 </form>
+@else
+<div class="alert alert-light border mb-0">
+    Bạn đang xem thông tin lớp ở chế độ chỉ đọc. Dùng tab <strong>Nhật ký</strong> để ghi nhật ký buổi dạy.
+</div>
+@endcanPerm

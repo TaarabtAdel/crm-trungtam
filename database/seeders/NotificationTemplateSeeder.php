@@ -57,7 +57,7 @@ class NotificationTemplateSeeder extends Seeder
                 ],
                 'is_active_email' => false,
                 'is_active_zalo' => false,
-                'notes' => 'Mẫu dự phòng cho nhắc nợ (có thể gắn job sau).',
+                'notes' => 'Nhắc công nợ PH qua Email (Laravel mail) + Zalo nếu bật Cài đặt và template Zalo. Không còn SMS stub.',
             ],
             [
                 'code' => 'session_reminder',
@@ -86,6 +86,30 @@ class NotificationTemplateSeeder extends Seeder
                 'is_active_email' => false,
                 'is_active_zalo' => false,
                 'notes' => 'Gửi HV + PH trước buổi học ~2 tiếng. Bật Zalo tại Cài đặt (Nhắc lịch học) + điền Zalo Template ID.',
+            ],
+            [
+                'code' => 'attendance_alert',
+                'title' => 'Thông báo điểm danh (vắng / muộn)',
+                'email_subject' => '[{{center_name}}] Điểm danh {{class_name}} — {{student_name}} {{attendance_status}}',
+                'content_email' => "Xin chào {{recipient_name}},\n\n"
+                    ."Trung tâm {{center_name}} thông báo điểm danh:\n"
+                    ."- Học viên: {{student_name}}\n"
+                    ."- Lớp: {{class_name}}\n"
+                    ."- Ngày: {{session_date}}\n"
+                    ."- Trạng thái: {{attendance_status}}\n"
+                    ."- Chi nhánh: {{branch_name}}\n\n"
+                    ."Vui lòng liên hệ trung tâm nếu có thắc mắc.",
+                'zalo_template_id' => null,
+                'params_mapping' => [
+                    'customer_name' => '{{recipient_name}}',
+                    'student_name' => '{{student_name}}',
+                    'course_name' => '{{class_name}}',
+                    'date' => '{{session_date}}',
+                    'status' => '{{attendance_status}}',
+                ],
+                'is_active_email' => false,
+                'is_active_zalo' => false,
+                'notes' => 'Gửi PH khi lưu điểm danh Vắng/Muộn. Bật Cài đặt → Zalo điểm danh + Template ID.',
             ],
         ];
 

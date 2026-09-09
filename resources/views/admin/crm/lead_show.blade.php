@@ -7,6 +7,8 @@
     $tabs = [
         'info' => ['label' => 'Thông tin', 'icon' => 'bi-info-circle'],
         'history' => ['label' => 'Lịch sử tư vấn', 'icon' => 'bi-chat-left-text', 'count' => $lead->interactions_count],
+        'placement' => ['label' => 'Test đầu vào', 'icon' => 'bi-clipboard-check', 'count' => $lead->placement_tests_count ?? 0],
+        'handoff' => ['label' => 'Bàn giao', 'icon' => 'bi-arrow-left-right'],
     ];
     $helpItems = [
         [
@@ -94,6 +96,10 @@
             @include('admin.crm.lead_tabs.info')
         @elseif($tab === 'history')
             @include('admin.crm.lead_tabs.history')
+        @elseif($tab === 'placement')
+            @include('admin.crm.lead_tabs.placement')
+        @elseif($tab === 'handoff')
+            @include('admin.crm.lead_tabs.handoff')
         @endif
     </div>
 </div>

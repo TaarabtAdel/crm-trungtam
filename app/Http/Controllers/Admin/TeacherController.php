@@ -7,14 +7,19 @@ use App\Models\Branch;
 use App\Models\ClassSession;
 use App\Models\CourseClass;
 use App\Models\Teacher;
+use App\Models\User;
 use App\Support\CurrentBranch;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TeacherController extends Controller
 {
     public function index(Request $request)
     {
+        abort_if($request->user()?->isRestrictedTeacher(), 403);
+
         $q = $request->get('q');
         $status = $request->get('status');
         $teachers = Teacher::with('branch')
@@ -43,6 +48,8 @@ class TeacherController extends Controller
 
     public function show(Request $request, Teacher $teacher)
     {
+        abort_if($request->user()?->isRestrictedTeacher(), 403);
+
         $tab = $request->get('tab', 'info');
         if (! in_array($tab, ['info', 'classes', 'payroll', 'schedule'], true)) {
             $tab = 'info';
@@ -165,6 +172,7 @@ class TeacherController extends Controller
     {
         $data = $this->validated($request);
         $teacher = Teacher::create($data);
+        $this->syncTeacherLogin($request, $teacher);
 
         return redirect()
             ->route('admin.teachers.show', $teacher)
@@ -175,6 +183,7 @@ class TeacherController extends Controller
     {
         $data = $this->validated($request, $teacher->id);
         $teacher->update($data);
+        $this->syncTeacherLogin($request, $teacher);
 
         if ($request->boolean('from_detail')) {
             return redirect()
@@ -229,6 +238,50 @@ class TeacherController extends Controller
         $data['status'] = $data['status'] ?? 'active';
 
         return $data;
+    }
+
+    protected function syncTeacherLogin(Request $request, Teacher $teacher): void
+    {
+        if (! $request->boolean('create_login')) {
+            return;
+        }
+
+        $password = (string) $request->input('password', '');
+        if (strlen($password) < 6) {
+            throw ValidationException::withMessages([
+                'password' => 'Nhập mật khẩu tối thiểu 6 ký tự khi tạo tài khoản đăng nhập.',
+            ]);
+        }
+
+        $user = User::query()
+            ->whereRaw('LOWER(email) = ?', [mb_strtolower($teacher->email)])
+            ->first();
+
+        if ($user) {
+            $user->forceFill([
+                'name' => $teacher->name,
+                'password' => Hash::make($password),
+                'branch_id' => $teacher->branch_id,
+                'is_active' => true,
+            ])->save();
+            if (! $user->hasRole('teacher')) {
+                $roles = $user->roleKeys();
+                $roles[] = 'teacher';
+                $user->syncRoles($roles);
+            }
+
+            return;
+        }
+
+        $user = User::create([
+            'name' => $teacher->name,
+            'email' => $teacher->email,
+            'password' => Hash::make($password),
+            'branch_id' => $teacher->branch_id,
+            'role' => 'teacher',
+            'is_active' => true,
+        ]);
+        $user->syncRoles(['teacher']);
     }
 
     protected function buildPayroll(int $month, int $year): array

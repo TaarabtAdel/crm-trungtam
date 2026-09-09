@@ -36,6 +36,24 @@ Hoặc chạy local: PHP 8.2+, Composer, Node 20+, MySQL 8.
 
 ---
 
+## Cài đặt trên cPanel (không SSH / không migrate)
+
+1. Upload code, trỏ document root vào `public/`.
+2. Tạo MySQL database trống + user (grant đầy đủ trên DB đó).
+3. Chmod ghi được: `storage/`, `bootstrap/cache/`, file `.env` (copy từ `.env.example` nếu chưa có).
+4. Mở trình duyệt: `https://your-domain.com/install`
+5. Làm wizard:
+   - Kiểm tra môi trường
+   - Nhập Host / Port / Database / User / Pass → hệ thống ghi `.env` và **tạo bảng bằng code** (`App\Models\Versions\Ver1`, không cần `php artisan migrate`)
+   - Tạo tài khoản Super Admin
+6. Đăng nhập → dùng **Cài đặt nhanh** / Hướng dẫn trong app.
+
+File khóa không dùng (nhiều subdomain chung 1 code). Hệ thống coi **đã cài** khi DB hiện tại đã có bảng `users`/`settings` và có ít nhất 1 user admin.
+
+Nâng cấp schema sau này (khi có `Ver2`, `Ver3`…): chạy qua `SchemaUpdateService` (admin update — sẽ bổ sung UI nếu cần) hoặc gọi service sau deploy.
+
+---
+
 ## Cài đặt (Docker)
 
 ```bash
@@ -82,6 +100,9 @@ docker compose exec app php artisan db:seed --class=DemoDataSeeder --force
 | `admin@crm.local` | `password` | Super Admin |
 | `sales@crm.local` | `password` | Sales |
 | `daotao@crm.local` | `password` | Đào Tạo |
+| `teacher@crm.local` | `password` | Giáo viên (ghi nhật ký + xem lương GV) |
+
+Mỗi user có mục **Bảng lương của tôi** (sidebar / avatar): chỉ Giáo viên → lương GV; role khác → lương NV; vừa GV vừa role khác → tab chọn cả hai.
 
 > Đổi mật khẩu ngay trên môi trường thật.
 
@@ -118,7 +139,7 @@ TENANT_RESOLVE=false
 
 1. DNS: `*.quanlytrungtam.com` → server (wildcard).
 2. Tạo MySQL database: `{TENANT_DATABASE_PREFIX}{subdomain}` (vd `crmtt_tpt-academy`) và grant user app.
-3. Chạy migrate (+ seed) trên DB đó, ví dụ:
+3. Cài schema **không cần SSH migrate** — tạm thời trỏ `.env` `DB_DATABASE` sang DB mới rồi mở `/install` (hoặc gọi `Ver1::doUpdate()` + seed admin trên DB đó). Nếu có SSH:
    ```bash
    DB_DATABASE=crmtt_tpt-academy php artisan migrate --force
    DB_DATABASE=crmtt_tpt-academy php artisan db:seed --force
@@ -146,6 +167,12 @@ docker compose down -v       # dừng + xoá volume MySQL
 ---
 
 ## Cài đặt (không Docker)
+
+### Cách A — Wizard web (khuyến nghị shared hosting)
+
+Copy `.env.example` → `.env` (có thể để DB tạm), `composer install`, `npm run build`, rồi mở `/install`.
+
+### Cách B — Artisan (máy có SSH)
 
 ```bash
 cp .env.example .env

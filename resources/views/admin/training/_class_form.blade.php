@@ -20,6 +20,12 @@
             @foreach($teachers as $t)<option value="{{ $t->id }}" @selected(old('teacher_id', $class->teacher_id ?? '')==$t->id)>{{ $t->name }}</option>@endforeach
         </select>
     </div></div>
+    <div class="col-md-6"><div class="form-group"><label>Đơn giá GV / giờ (theo lớp)</label>
+        <input type="number" name="teacher_hourly_rate" class="form-control" min="0" step="1000"
+               value="{{ old('teacher_hourly_rate', $class->teacher_hourly_rate ?? '') }}"
+               placeholder="Để trống = lấy đơn giá của GV">
+        <small class="text-muted">Ghi đè đơn giá giờ dạy khi tính lương cho lớp này (vd IELTS khác tin học cơ bản).</small>
+    </div></div>
     <div class="col-md-6"><div class="form-group"><label>Phòng học</label><input name="room" class="form-control" value="{{ old('room', $class->room ?? '') }}"></div></div>
     <div class="col-12"><div class="form-group"><label>Lịch học</label><div class="day-toggle">
         @foreach($days as $d)

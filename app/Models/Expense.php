@@ -50,7 +50,9 @@ class Expense extends Model
         return [
             'operations' => 'Vận hành',
             'salary' => 'Lương GV',
+            'salary_advance' => 'Ứng lương GV',
             'staff_salary' => 'Lương nhân viên',
+            'staff_salary_advance' => 'Ứng lương NV',
             'marketing' => 'Marketing',
             'other' => 'Khác',
         ];
