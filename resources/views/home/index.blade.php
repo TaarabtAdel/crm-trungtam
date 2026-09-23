@@ -168,7 +168,7 @@
                 </div>
                 <div class="wb-tasks-list">
                     @forelse($tasksToday ?? [] as $task)
-                        <a href="{{ route('admin.tasks.index', ['open' => $task->id]) }}"
+                        <a href="{{ route('admin.tasks.index', ['task' => $task->id]) }}"
                            class="wb-tasks-item {{ $task->isOverdue() ? 'is-overdue' : '' }}"
                            title="{{ $task->title }}">
                             <span class="wb-tasks-priority task-priority-{{ $task->priority }}"></span>

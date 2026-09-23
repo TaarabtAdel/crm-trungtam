@@ -27,7 +27,7 @@ class TaskEventNotification extends Notification
         return [
             'title' => $this->title,
             'body' => $this->body,
-            'url' => route('admin.tasks.index', ['open' => $this->task->id]),
+            'url' => route('admin.tasks.index', ['task' => $this->task->id]),
             'icon' => 'bi-check2-square',
             'task_id' => $this->task->id,
             'type' => 'task_'.$this->eventType,

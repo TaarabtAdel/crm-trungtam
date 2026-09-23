@@ -480,7 +480,7 @@
                         if (!r.ok) throw new Error('publish failed');
                         return r.json();
                     }).then(function () {
-                        location.href = cfg.urls.show + '?open=' + taskId;
+                        location.href = cfg.urls.show + '?task=' + taskId;
                     }).catch(function () {
                         publishBtn.disabled = false;
                         publishBtn.innerHTML = '<i class="bi bi-broadcast mr-1"></i>Công bố';
@@ -503,7 +503,7 @@
                         return r.json();
                     }).then(function (data) {
                         var openId = data.open || (data.task && data.task.id);
-                        location.href = cfg.urls.show + '?open=' + openId;
+                        location.href = cfg.urls.show + '?task=' + openId;
                     }).catch(function () {
                         dupBtn.disabled = false;
                         alert('Không sao chép được. Vui lòng thử lại.');

@@ -26,7 +26,8 @@ class TaskController extends Controller
         $dueFrom = $request->get('due_from');
         $dueTo = $request->get('due_to');
         $dueFilter = $request->get('due_filter'); // open|done|due_soon|overdue
-        $openId = (int) $request->get('open', 0);
+        // Dùng ?task= thay ?open= — LiteSpeed/ModSecurity hay chặn query "open"
+        $openId = (int) $request->get('task', $request->get('open', 0));
 
         $canFilterAssignees = $tasks->canFilterAssignees($user);
         $assigneeId = $canFilterAssignees ? $request->get('assignee_id') : null;
@@ -103,7 +104,7 @@ class TaskController extends Controller
             return response()->json(['ok' => true, 'task' => $this->cardPayload($task)]);
         }
 
-        return redirect()->route('admin.tasks.index', ['open' => $task->id])
+        return redirect()->route('admin.tasks.index', ['task' => $task->id])
             ->with('success', 'Đã tạo bản nháp. Công bố khi sẵn sàng để gửi thông báo.');
     }
 
@@ -154,7 +155,7 @@ class TaskController extends Controller
             return response()->json(['ok' => true, 'task' => $this->cardPayload($copy), 'open' => $copy->id]);
         }
 
-        return redirect()->route('admin.tasks.index', ['open' => $copy->id])
+        return redirect()->route('admin.tasks.index', ['task' => $copy->id])
             ->with('success', 'Đã sao chép thành bản nháp.');
     }
 
