@@ -18,9 +18,9 @@
     </div>
     <div class="d-flex align-items-center" style="gap:.5rem">
         <div class="btn-group btn-group-sm">
-            <a href="{{ route('admin.tasks.index', array_filter(['view' => 'board', 'q' => $q, 'assignee_id' => $canFilterAssignees ? $assigneeId : null, 'priority' => $priority, 'due_filter' => $dueFilter ?? null])) }}"
+            <a href="{{ route('admin.tasks.index', array_filter(['view' => 'board', 'q' => $q, 'assignee_id' => $canFilterAssignees ? $assigneeId : null, 'priority' => $priority, 'due_filter' => $dueFilter ?? null, 'due_from' => $dueFrom, 'due_to' => $dueTo])) }}"
                class="btn {{ $view === 'board' ? 'btn-primary' : 'btn-outline-primary' }}">Board</a>
-            <a href="{{ route('admin.tasks.index', array_filter(['view' => 'list', 'q' => $q, 'assignee_id' => $canFilterAssignees ? $assigneeId : null, 'status' => $status, 'priority' => $priority, 'due_filter' => $dueFilter ?? null])) }}"
+            <a href="{{ route('admin.tasks.index', array_filter(['view' => 'list', 'q' => $q, 'assignee_id' => $canFilterAssignees ? $assigneeId : null, 'status' => $status, 'priority' => $priority, 'due_filter' => $dueFilter ?? null, 'due_from' => $dueFrom, 'due_to' => $dueTo])) }}"
                class="btn {{ $view === 'list' ? 'btn-primary' : 'btn-outline-primary' }}">List</a>
         </div>
         @canPerm('tasks.manage')
@@ -31,20 +31,22 @@
     </div>
 </div>
 
-<form method="GET" class="card card-body mb-3 py-2" id="taskFilterForm">
+<form method="GET" class="card card-body mb-3" id="taskFilterForm">
     <input type="hidden" name="view" value="{{ $view }}">
     <div class="form-row align-items-end">
-        <div class="col-md-3 mb-2">
+        <div class="col-md-4 mb-2">
             <label class="small text-muted mb-1">Tìm kiếm</label>
             <input type="text" name="q" value="{{ $q }}" class="form-control form-control-sm" placeholder="Tên công việc...">
         </div>
         @if($canFilterAssignees ?? false)
-        <div class="col-md-2 mb-2">
+        <div class="col-md-3 mb-2">
             <label class="small text-muted mb-1">Người thực hiện</label>
-            <select name="assignee_id" class="form-control form-control-sm js-filter-assignee" data-placeholder="Tất cả">
-                <option value="">Tất cả</option>
+            <select name="assignee_id" class="form-control form-control-sm js-filter-assignee" data-placeholder="Tôi">
+                <option value="{{ auth()->id() }}" @selected((string) $assigneeId === (string) auth()->id())>Tôi ({{ auth()->user()->name }})</option>
+                <option value="all" @selected($assigneeId === 'all')>Tất cả</option>
                 @foreach($users as $u)
-                    <option value="{{ $u->id }}" @selected((string)$assigneeId === (string)$u->id)>{{ $u->name }}</option>
+                    @continue((int) $u->id === (int) auth()->id())
+                    <option value="{{ $u->id }}" @selected((string) $assigneeId === (string) $u->id)>{{ $u->name }}</option>
                 @endforeach
             </select>
         </div>
@@ -60,7 +62,7 @@
             </select>
         </div>
         @endif
-        <div class="col-md-2 mb-2">
+        <div class="col-md-3 mb-2">
             <label class="small text-muted mb-1">Ưu tiên</label>
             <select name="priority" class="form-control form-control-sm">
                 <option value="">Tất cả</option>
@@ -69,8 +71,10 @@
                 @endforeach
             </select>
         </div>
-        <div class="col-md-2 mb-2">
-            <label class="small text-muted mb-1">Trạng thái</label>
+    </div>
+    <div class="form-row align-items-end">
+        <div class="col-md-3 mb-2">
+            <label class="small text-muted mb-1">Trạng thái hạn</label>
             <select name="due_filter" class="form-control form-control-sm">
                 <option value="">Tất cả</option>
                 <option value="open" @selected(($dueFilter ?? '') === 'open')>Chưa hoàn thành</option>
@@ -79,12 +83,24 @@
                 <option value="overdue" @selected(($dueFilter ?? '') === 'overdue')>Quá hạn</option>
             </select>
         </div>
-        <div class="col-md-2 mb-2">
-            <label class="small text-muted mb-1">Hạn từ</label>
+        <div class="col-md-3 mb-2">
+            <label class="small text-muted mb-1">Hạn từ ngày</label>
             <input type="date" name="due_from" value="{{ $dueFrom }}" class="form-control form-control-sm">
         </div>
-        <div class="col-md-1 mb-2">
-            <button class="btn btn-sm btn-outline-secondary btn-block">Lọc</button>
+        <div class="col-md-3 mb-2">
+            <label class="small text-muted mb-1">Đến ngày</label>
+            <input type="date" name="due_to" value="{{ $dueTo }}" class="form-control form-control-sm">
+        </div>
+        <div class="col-md-3 mb-2">
+            <label class="small text-muted mb-1 d-none d-md-block">&nbsp;</label>
+            <div class="d-flex" style="gap:.5rem">
+                <button type="submit" class="btn btn-sm btn-primary flex-grow-1">
+                    <i class="bi bi-funnel"></i> Lọc
+                </button>
+                <a href="{{ route('admin.tasks.index', ['view' => $view]) }}" class="btn btn-sm btn-outline-secondary flex-grow-1">
+                    <i class="bi bi-arrow-counterclockwise"></i> Reset
+                </a>
+            </div>
         </div>
     </div>
 </form>

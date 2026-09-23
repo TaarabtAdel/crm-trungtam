@@ -168,17 +168,26 @@ class UserController extends Controller
             unset($data['password']);
         }
         $data['role'] = in_array('super_admin', $roles, true) ? 'super_admin' : $roles[0];
-        $data['branch_id'] = $this->resolvedBranchId($data['branch_id'] ?? null);
+
+        // Chỉ HQ (không gắn CN) mới được đổi/bỏ gắn chi nhánh trên form.
+        // Admin đang khóa CN → giữ nguyên branch_id hiện tại (không tự “thoát” khóa).
+        if (CurrentBranch::canSwitch()) {
+            $data['branch_id'] = $this->resolvedBranchId($data['branch_id'] ?? null);
+        } else {
+            unset($data['branch_id']);
+        }
 
         $user->fill($data);
-        // Gán tường minh để chắc chắn ghi null khi bỏ chọn chi nhánh
-        $user->branch_id = $data['branch_id'];
+        if (array_key_exists('branch_id', $data)) {
+            // Gán tường minh để chắc chắn ghi null khi bỏ chọn chi nhánh
+            $user->branch_id = $data['branch_id'];
+        }
         $user->save();
         $user->syncRoles($roles);
 
         if ($request->boolean('from_detail')) {
             // Bỏ gắn CN + đang lọc theo CN → không mở lại show (binding sẽ 404)
-            if ($data['branch_id'] === null && CurrentBranch::id()) {
+            if (array_key_exists('branch_id', $data) && $data['branch_id'] === null && CurrentBranch::id()) {
                 return redirect()
                     ->route('admin.users.index')
                     ->with('success', 'Đã cập nhật người dùng (đã bỏ gắn chi nhánh).');
@@ -276,8 +285,9 @@ class UserController extends Controller
     }
 
     /**
-     * User bị khóa chi nhánh → luôn ghi branch của họ.
-     * Ngược lại → tôn trọng form (null = bỏ gắn).
+     * Gắn CN khi tạo user:
+     * - Actor bị khóa CN → luôn ghi CN của actor
+     * - HQ → tôn trọng form (null = không gắn / toàn hệ thống)
      */
     protected function resolvedBranchId(mixed $branchId): ?int
     {

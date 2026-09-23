@@ -55,13 +55,21 @@
             if ($selectedBranchId === '' || $selectedBranchId === false) {
                 $selectedBranchId = null;
             }
+            $canEditBranch = \App\Support\CurrentBranch::canSwitch();
         @endphp
-        <select name="branch_id" class="form-control">
-            <option value="" @selected($selectedBranchId === null)>— Không gắn / toàn hệ thống —</option>
-            @foreach($branches as $b)
-                <option value="{{ $b->id }}" @selected((string) $selectedBranchId === (string) $b->id)>{{ $b->name }}</option>
-            @endforeach
-        </select>
+        @if($canEditBranch)
+            <select name="branch_id" class="form-control">
+                <option value="" @selected($selectedBranchId === null)>— Không gắn / toàn hệ thống —</option>
+                @foreach($branches as $b)
+                    <option value="{{ $b->id }}" @selected((string) $selectedBranchId === (string) $b->id)>{{ $b->name }}</option>
+                @endforeach
+            </select>
+            <small class="text-muted">Bỏ gắn = tài khoản HQ (xem / chuyển được mọi chi nhánh).</small>
+        @else
+            {{-- Khóa: không gửi branch_id → server giữ nguyên gắn hiện tại --}}
+            <input type="text" class="form-control" value="{{ $branches->firstWhere('id', $selectedBranchId)?->name ?? 'Chi nhánh đã gán' }}" disabled>
+            <small class="text-muted">Bạn đang gắn một chi nhánh — chỉ tài khoản HQ (không gắn CN) mới đổi/bỏ gắn được.</small>
+        @endif
     </div>
     <div class="form-group col-md-6 d-flex align-items-end">
         @if($user)

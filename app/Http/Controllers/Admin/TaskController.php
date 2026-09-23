@@ -29,12 +29,34 @@ class TaskController extends Controller
         $openId = (int) $request->get('task', 0);
 
         $canFilterAssignees = $tasks->canFilterAssignees($user);
-        $assigneeId = $canFilterAssignees ? $request->get('assignee_id') : null;
+        // Admin: mặc định chỉ việc của mình; ?assignee_id=… → user đó; ?assignee_id=all → mọi người trong CN
+        $assigneeRaw = $canFilterAssignees ? $request->get('assignee_id') : null;
+        if ($canFilterAssignees) {
+            if ($assigneeRaw === null || $assigneeRaw === '') {
+                $assigneeId = (string) $user->id;
+            } elseif ($assigneeRaw === 'all') {
+                $assigneeId = 'all';
+            } else {
+                $assigneeId = (string) $assigneeRaw;
+            }
+        } else {
+            $assigneeId = null;
+        }
+
+        // Deep-link ?task= : nếu việc không thuộc filter hiện tại → chuyển sang đúng người thực hiện
+        if ($canFilterAssignees && $openId > 0 && $assigneeId !== 'all') {
+            $openTask = $tasks->visibleQuery($user)->whereKey($openId)->first(['id', 'assignee_id']);
+            if ($openTask && (string) $openTask->assignee_id !== (string) $assigneeId) {
+                $assigneeId = $openTask->assignee_id
+                    ? (string) $openTask->assignee_id
+                    : 'all';
+            }
+        }
 
         $query = $tasks->visibleQuery($user)
             ->with(['assignee', 'creator', 'watchers', 'checklistItems', 'subtasks'])
             ->when($q !== '', fn ($builder) => $builder->where('title', 'like', '%'.$q.'%'))
-            ->when($canFilterAssignees && $assigneeId, fn ($builder) => $builder->where('assignee_id', $assigneeId))
+            ->when($canFilterAssignees && $assigneeId && $assigneeId !== 'all', fn ($builder) => $builder->where('assignee_id', $assigneeId))
             ->when(! $canFilterAssignees, function ($builder) use ($user) {
                 $builder->where(function ($own) use ($user) {
                     $own->where('assignee_id', $user->id)
