@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Support\AppSettings;
 use App\Support\InstallState;
+use App\Support\SmartCache;
 use App\Support\TenantContext;
 use App\Support\TenantDatabase;
 use App\Support\TenantHostResolver;
@@ -18,6 +19,7 @@ class ResolveTenantDatabase
     {
         $baseDomain = (string) config('tenant.base_domain');
         $isInstall = $request->is('install') || $request->is('install/*');
+        $purgeCache = $this->wantsPurgeCache($request);
 
         // .env mặc định SESSION/CACHE=database, nhưng lúc /install bảng chưa có.
         if ($isInstall) {
@@ -31,9 +33,9 @@ class ResolveTenantDatabase
             $subdomain = TenantHostResolver::resolve($request, $baseDomain) ?? 'local';
             $databaseName = (string) config('database.connections.mysql.database');
             TenantContext::set($subdomain, $databaseName);
-            $this->afterTenantReady();
+            $this->afterTenantReady(purgeCache: $purgeCache);
 
-            return $next($request);
+            return $this->respond($request, $next, $purgeCache);
         }
 
         $subdomain = TenantHostResolver::resolve($request, $baseDomain);
@@ -60,9 +62,9 @@ class ResolveTenantDatabase
         if (! TenantDatabase::exists($databaseName)) {
             if ($isInstall) {
                 // DB chưa tạo trên panel — wizard vẫn mở, form sẽ báo khi test kết nối
-                $this->afterTenantReady(skipMail: true);
+                $this->afterTenantReady(skipMail: true, purgeCache: $purgeCache);
 
-                return $next($request);
+                return $this->respond($request, $next, $purgeCache);
             }
 
             abort(
@@ -73,18 +75,45 @@ class ResolveTenantDatabase
         }
 
         TenantDatabase::connect($databaseName);
-        $this->afterTenantReady(skipMail: $isInstall && ! InstallState::schemaReady());
+        $this->afterTenantReady(skipMail: $isInstall && ! InstallState::schemaReady(), purgeCache: $purgeCache);
+
+        return $this->respond($request, $next, $purgeCache);
+    }
+
+    protected function wantsPurgeCache(Request $request): bool
+    {
+        $v = $request->query('remove_cache');
+
+        return $v === '1' || $v === 1 || $v === true || $v === 'true';
+    }
+
+    /**
+     * @param  Closure(Request): Response  $next
+     */
+    protected function respond(Request $request, Closure $next, bool $purgeCache): Response
+    {
+        if ($purgeCache) {
+            return redirect()->to($request->fullUrlWithoutQuery(['remove_cache']));
+        }
 
         return $next($request);
     }
 
-    protected function afterTenantReady(bool $skipMail = false): void
+    protected function afterTenantReady(bool $skipMail = false, bool $purgeCache = false): void
     {
         $slug = TenantContext::subdomain() ?: 'local';
         $prefix = rtrim((string) config('cache.prefix'), '_');
         config(['cache.prefix' => ($prefix !== '' ? $prefix.'_' : 'crm_').$slug.'_']);
 
         TenantStorage::configureDisk();
+
+        if ($purgeCache) {
+            try {
+                SmartCache::flushAll();
+            } catch (\Throwable) {
+                //
+            }
+        }
 
         if ($skipMail) {
             return;
@@ -105,16 +134,27 @@ class ResolveTenantDatabase
 
     protected function ensureSchemaUpToDate(): void
     {
+        $target = (string) config('app.schema_version', '1.0');
+
+        // Đã xác nhận OK trong 5 phút → bỏ qua query settings / hasTable
+        if (SmartCache::isSchemaUpToDateCached($target)) {
+            return;
+        }
+
         if (! InstallState::schemaReady()) {
             return;
         }
 
-        $target = (string) config('app.schema_version', '1.0');
         $current = (string) \App\Models\Setting::get('app_schema_version', '0');
         if (version_compare($current, $target, '>=')) {
+            SmartCache::markSchemaUpToDate($target);
+
             return;
         }
 
-        app(\App\Services\Install\SchemaUpdateService::class)->run();
+        $result = app(\App\Services\Install\SchemaUpdateService::class)->run();
+        if (($result['success'] ?? false) === true) {
+            SmartCache::markSchemaUpToDate($target);
+        }
     }
 }

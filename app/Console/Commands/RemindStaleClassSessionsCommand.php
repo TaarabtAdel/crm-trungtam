@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\ClassSession;
 use App\Models\User;
 use App\Notifications\SessionStatusPendingNotification;
+use App\Services\Tasks\AutoTaskService;
 use App\Support\Notifier;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -44,6 +45,9 @@ class RemindStaleClassSessionsCommand extends Command
         }
 
         $sent = 0;
+        $tasks = 0;
+        $auto = app(AutoTaskService::class);
+
         foreach ($sessions as $session) {
             foreach ($recipients as $user) {
                 if ($this->alreadyNotifiedToday($user, $session->id)) {
@@ -53,9 +57,34 @@ class RemindStaleClassSessionsCommand extends Command
                 $user->notify(new SessionStatusPendingNotification($session));
                 $sent++;
             }
+
+            try {
+                $class = $session->courseClass;
+                $date = optional($session->session_date)->format('d/m/Y');
+                $created = $auto->ensureForUsers(
+                    $recipients,
+                    AutoTaskService::SOURCE_SESSION_STATUS,
+                    (int) $session->id,
+                    [
+                        'title' => 'Cập nhật trạng thái buổi: '.($class?->name ?? 'Lớp').' · '.$date,
+                        'description' => 'Buổi đã kết thúc nhưng vẫn Đã lên lịch — hãy đánh dấu Hoàn thành hoặc Hủy.'."\n"
+                            .'Mở: '.route('admin.classes.show', [
+                                'class' => $class?->id ?? $session->class_id,
+                                'tab' => 'timetable',
+                            ], absolute: false),
+                        'priority' => 'high',
+                        'due_date' => now()->endOfDay(),
+                        'branch_id' => $class?->branch_id,
+                        'status' => 'todo',
+                    ]
+                );
+                $tasks += count($created);
+            } catch (\Throwable $e) {
+                report($e);
+            }
         }
 
-        $this->info("Đã gửi {$sent} nhắc trạng thái buổi học ({$sessions->count()} buổi).");
+        $this->info("Đã gửi {$sent} nhắc trạng thái buổi học ({$sessions->count()} buổi), {$tasks} việc trên board.");
 
         return self::SUCCESS;
     }

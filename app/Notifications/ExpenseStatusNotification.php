@@ -28,7 +28,7 @@ class ExpenseStatusNotification extends Notification
         [$title, $body, $icon] = match ($this->action) {
             'approved' => [
                 'Đề xuất chi đã được duyệt',
-                'Khoản '.$amount.' ('.$expense->categoryLabel().') đã được duyệt.',
+                'Khoản '.$amount.' ('.$expense->categoryLabel().') đã được duyệt — vui lòng tiến hành chi.',
                 'bi-check-circle',
             ],
             'rejected' => [
@@ -51,7 +51,12 @@ class ExpenseStatusNotification extends Notification
         return [
             'title' => $title,
             'body' => $body,
-            'url' => route('admin.expenses.index'),
+            'url' => match ($this->action) {
+                'approved' => route('admin.expenses.index', ['status' => 'approved']),
+                'rejected' => route('admin.expenses.index', ['status' => 'rejected']),
+                'paid' => route('admin.expenses.index', ['status' => 'paid']),
+                default => route('admin.expenses.index'),
+            },
             'icon' => $icon,
             'expense_id' => $expense->id,
             'type' => 'expense_'.$this->action,

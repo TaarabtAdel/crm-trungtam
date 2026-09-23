@@ -32,6 +32,7 @@ use App\Http\Controllers\Admin\TeacherController;
 use App\Http\Controllers\Admin\StaffAttendanceController;
 use App\Http\Controllers\Admin\StaffPayrollController;
 use App\Http\Controllers\Admin\TeacherPayrollController;
+use App\Http\Controllers\Admin\TaskController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
@@ -82,6 +83,28 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
         ->name('quick-setup.store');
 
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+
+    Route::middleware('permission:tasks.view')->group(function () {
+        Route::get('tasks', [TaskController::class, 'index'])->name('tasks.index');
+        Route::get('tasks/{task}', [TaskController::class, 'show'])->name('tasks.show');
+    });
+    Route::middleware('permission:tasks.manage')->group(function () {
+        Route::post('tasks', [TaskController::class, 'store'])->name('tasks.store');
+        Route::put('tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
+        Route::put('tasks/{task}/status', [TaskController::class, 'updateStatus'])->name('tasks.status');
+        Route::post('tasks/{task}/publish', [TaskController::class, 'publish'])->name('tasks.publish');
+        Route::post('tasks/{task}/duplicate', [TaskController::class, 'duplicate'])->name('tasks.duplicate');
+        Route::delete('tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
+        Route::post('tasks/{task}/checklist', [TaskController::class, 'storeChecklist'])->name('tasks.checklist.store');
+        Route::put('tasks/{task}/checklist/{item}', [TaskController::class, 'toggleChecklist'])->name('tasks.checklist.toggle');
+        Route::delete('tasks/{task}/checklist/{item}', [TaskController::class, 'destroyChecklist'])->name('tasks.checklist.destroy');
+        Route::post('tasks/{task}/subtasks', [TaskController::class, 'storeSubtask'])->name('tasks.subtasks.store');
+        Route::put('tasks/{task}/subtasks/{subtask}', [TaskController::class, 'toggleSubtask'])->name('tasks.subtasks.toggle');
+        Route::delete('tasks/{task}/subtasks/{subtask}', [TaskController::class, 'destroySubtask'])->name('tasks.subtasks.destroy');
+        Route::post('tasks/{task}/comments', [TaskController::class, 'storeComment'])->name('tasks.comments.store');
+        Route::post('tasks/{task}/attachments', [TaskController::class, 'storeAttachment'])->name('tasks.attachments.store');
+        Route::delete('tasks/{task}/attachments/{attachment}', [TaskController::class, 'destroyAttachment'])->name('tasks.attachments.destroy');
+    });
     Route::post('notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
     Route::get('notifications/{id}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
     Route::post('notifications/{id}/mark-read', [NotificationController::class, 'markAsReadOnly'])->name('notifications.mark-read');

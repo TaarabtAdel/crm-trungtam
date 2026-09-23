@@ -45,6 +45,86 @@
     background-color: #007bff;
     color: #fff;
 }
+
+/* Select2 multiple — tags + nút xóa (Select2 4.1 dùng <button>, dễ bị CSS Bootstrap đè) */
+.select2-container--bootstrap4 .select2-selection--multiple {
+    min-height: calc(1.5em + .75rem + 2px) !important;
+    height: auto !important;
+    padding: 0.25rem 0.5rem !important;
+    border: 1px solid #ced4da !important;
+    border-radius: .25rem !important;
+    background-color: #fff !important;
+}
+.select2-container--bootstrap4.select2-container--focus .select2-selection--multiple,
+.select2-container--bootstrap4.select2-container--open .select2-selection--multiple {
+    border-color: #80bdff !important;
+    box-shadow: 0 0 0 .2rem rgba(0,123,255,.25);
+}
+.select2-container--bootstrap4 .select2-selection--multiple .select2-selection__rendered {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+.select2-container--bootstrap4 .select2-selection--multiple .select2-selection__choice {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 0.25rem;
+    margin: 0 !important;
+    padding: 0.15rem 0.45rem 0.15rem 0.25rem !important;
+    border: 1px solid #ced4da !important;
+    border-radius: 0.25rem !important;
+    background-color: #e9ecef !important;
+    color: #495057 !important;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    box-shadow: none !important;
+}
+.select2-container--bootstrap4 .select2-selection--multiple .select2-selection__choice__display {
+    cursor: default;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+.select2-container--bootstrap4 .select2-selection--multiple .select2-selection__choice__remove {
+    position: static !important;
+    order: -1;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 1.15rem;
+    height: 1.15rem;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0.2rem !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #6c757d !important;
+    font-size: 0.95rem !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    float: none !important;
+}
+.select2-container--bootstrap4 .select2-selection--multiple .select2-selection__choice__remove:hover,
+.select2-container--bootstrap4 .select2-selection--multiple .select2-selection__choice__remove:focus {
+    background: #dee2e6 !important;
+    color: #212529 !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+.select2-container--bootstrap4 .select2-selection--multiple .select2-selection__clear {
+    margin-top: 0.15rem;
+    margin-right: 0.15rem;
+}
+.select2-container--bootstrap4 .select2-selection--multiple .select2-search--inline .select2-search__field {
+    margin-top: 0 !important;
+    height: 1.5rem !important;
+    min-height: 1.5rem !important;
+}
 </style>
 @endpush
 @push('scripts')

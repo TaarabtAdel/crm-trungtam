@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
+use App\Support\SmartCache;
 use App\Support\VietQr;
 use Illuminate\Http\Request;
 
@@ -26,6 +27,7 @@ class BranchController extends Controller
     public function store(Request $request)
     {
         Branch::create($this->validated($request, true));
+        SmartCache::forgetActiveBranches();
 
         return back()->with('success', 'Đã thêm chi nhánh.');
     }
@@ -33,6 +35,7 @@ class BranchController extends Controller
     public function update(Request $request, Branch $branch)
     {
         $branch->update($this->validated($request, false));
+        SmartCache::forgetActiveBranches();
 
         return back()->with('success', 'Đã cập nhật chi nhánh.');
     }
@@ -40,6 +43,7 @@ class BranchController extends Controller
     public function destroy(Branch $branch)
     {
         $branch->delete();
+        SmartCache::forgetActiveBranches();
 
         return back()->with('success', 'Đã xóa chi nhánh.');
     }

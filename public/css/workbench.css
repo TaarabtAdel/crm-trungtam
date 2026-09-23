@@ -459,7 +459,8 @@ body.workbench-body {
 }
 
 .wb-clock-card,
-.wb-cal-card {
+.wb-cal-card,
+.wb-tasks-card {
     border: 1px solid var(--wb-border);
     border-radius: 1rem;
     background: rgba(12, 22, 34, 0.42);
@@ -560,6 +561,126 @@ body.workbench-body {
     background: #0284c7;
     color: #fff;
     box-shadow: 0 4px 12px rgba(2, 132, 199, 0.45);
+}
+
+.wb-cal-day.has-task {
+    box-shadow: inset 0 -3px 0 #f59e0b;
+}
+
+.wb-cal-day.is-today.has-task {
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.45), inset 0 -3px 0 #fbbf24;
+}
+
+.wb-tasks-card {
+    padding: 0.85rem 0.85rem 0.75rem;
+}
+
+.wb-tasks-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.65rem;
+}
+
+.wb-tasks-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.92rem;
+    font-weight: 700;
+}
+
+.wb-tasks-title i {
+    color: #5eead4;
+    font-size: 1rem;
+}
+
+.wb-tasks-all {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--wb-muted);
+    text-decoration: none;
+}
+
+.wb-tasks-all:hover {
+    color: var(--wb-text);
+    text-decoration: none;
+}
+
+.wb-tasks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.wb-tasks-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+    padding: 0.45rem 0.4rem;
+    margin: 0 -0.25rem;
+    border-radius: 0.55rem;
+    color: inherit;
+    text-decoration: none;
+    transition: background 0.12s ease;
+}
+
+.wb-tasks-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: inherit;
+    text-decoration: none;
+}
+
+.wb-tasks-priority {
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 50%;
+    margin-top: 0.4rem;
+    flex-shrink: 0;
+    background: #94a3b8;
+}
+
+.wb-tasks-priority.task-priority-low { background: #94a3b8; }
+.wb-tasks-priority.task-priority-medium { background: #38bdf8; }
+.wb-tasks-priority.task-priority-high { background: #fb923c; }
+.wb-tasks-priority.task-priority-urgent { background: #f87171; }
+
+.wb-tasks-item-main {
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+}
+
+.wb-tasks-item-title {
+    display: block;
+    font-size: 0.84rem;
+    font-weight: 600;
+    line-height: 1.35;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.wb-tasks-item-meta {
+    font-size: 0.7rem;
+    color: var(--wb-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.wb-tasks-item.is-overdue .wb-tasks-item-meta {
+    color: #f87171;
+    font-weight: 600;
+}
+
+.wb-tasks-empty {
+    font-size: 0.8rem;
+    color: var(--wb-muted);
+    padding: 0.35rem 0.15rem 0.5rem;
 }
 
 .wb-grid {

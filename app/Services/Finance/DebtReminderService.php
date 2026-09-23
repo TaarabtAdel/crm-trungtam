@@ -7,6 +7,7 @@ use App\Models\Invoice;
 use App\Models\NotificationLog;
 use App\Models\NotificationTemplate;
 use App\Notifications\DebtReminderNotification;
+use App\Services\Tasks\AutoTaskService;
 use App\Services\ZaloZnsService;
 use App\Support\AppSettings;
 use App\Support\NotificationTemplateParser;
@@ -60,8 +61,16 @@ class DebtReminderService
                     $invoice->sales->notify(new DebtReminderNotification($invoice));
                     $this->log($invoice, 'notification', $payload);
                     $stats['notification']++;
+                    $this->createDebtTask($invoice);
                 } catch (\Throwable $e) {
                     Log::warning('Debt notification failed: '.$e->getMessage());
+                }
+            } else {
+                // Không có sales gắn HĐ: vẫn tạo việc cho kế toán / sales có quyền thu
+                try {
+                    $this->createDebtTask($invoice);
+                } catch (\Throwable $e) {
+                    Log::warning('Debt auto-task failed: '.$e->getMessage());
                 }
             }
 
@@ -157,5 +166,48 @@ class DebtReminderService
             'sent_at' => now(),
             'payload' => $payload,
         ]);
+    }
+
+    protected function createDebtTask(Invoice $invoice): void
+    {
+        $invoice->loadMissing(['student', 'sales', 'courseClass']);
+        $overdue = $invoice->isOverdue();
+        $remaining = number_format((float) $invoice->remaining_amount, 0, ',', '.').' đ';
+        $student = $invoice->student?->name ?? 'Học viên';
+        $title = ($overdue ? 'Thu nợ quá hạn: ' : 'Thu học phí: ').$student.' · HĐ '.$invoice->code;
+        $desc = "Còn nợ: {$remaining}\nHạn: ".(optional($invoice->due_date)->format('d/m/Y') ?: '—');
+        if ($invoice->courseClass?->name) {
+            $desc .= "\nLớp: ".$invoice->courseClass->name;
+        }
+        $desc .= "\nMở: ".route('admin.invoices.show', $invoice, absolute: false);
+
+        $assignees = collect();
+        if ($invoice->sales && $invoice->sales->is_active) {
+            $assignees->push($invoice->sales);
+        } else {
+            $assignees = $assignees->merge(
+                \App\Support\Notifier::recipientsForPermission('finance.invoices.manage')
+                    ->filter(fn ($u) => $u->hasAnyRole('sales', 'accountant', 'admin', 'super_admin'))
+                    ->take(5)
+            );
+        }
+
+        if ($assignees->isEmpty()) {
+            return;
+        }
+
+        app(AutoTaskService::class)->ensureForUsers(
+            $assignees->unique('id'),
+            AutoTaskService::SOURCE_INVOICE_DEBT,
+            (int) $invoice->id,
+            [
+                'title' => $title,
+                'description' => $desc,
+                'priority' => $overdue ? 'urgent' : 'high',
+                'due_date' => $invoice->due_date ?: now()->endOfDay(),
+                'branch_id' => $invoice->branch_id ?? $invoice->courseClass?->branch_id,
+                'status' => 'todo',
+            ]
+        );
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Support\SmartCache;
 use Illuminate\Http\Request;
 
 class NotificationController extends Controller
@@ -17,9 +18,11 @@ class NotificationController extends Controller
 
     public function markRead(Request $request, string $id)
     {
-        $notification = $request->user()->notifications()->where('id', $id)->firstOrFail();
+        $user = $request->user();
+        $notification = $user->notifications()->where('id', $id)->firstOrFail();
         if ($notification->read_at === null) {
             $notification->markAsRead();
+            SmartCache::forgetNotifications($user);
         }
 
         $url = $notification->data['url'] ?? route('admin.notifications.index');
@@ -29,9 +32,11 @@ class NotificationController extends Controller
 
     public function markAsReadOnly(Request $request, string $id)
     {
-        $notification = $request->user()->notifications()->where('id', $id)->firstOrFail();
+        $user = $request->user();
+        $notification = $user->notifications()->where('id', $id)->firstOrFail();
         if ($notification->read_at === null) {
             $notification->markAsRead();
+            SmartCache::forgetNotifications($user);
         }
 
         return back()->with('success', 'Đã đánh dấu thông báo là đã đọc.');
@@ -39,7 +44,9 @@ class NotificationController extends Controller
 
     public function markAllRead(Request $request)
     {
-        $request->user()->unreadNotifications->markAsRead();
+        $user = $request->user();
+        $user->unreadNotifications->markAsRead();
+        SmartCache::forgetNotifications($user);
 
         return back()->with('success', 'Đã đánh dấu tất cả thông báo là đã đọc.');
     }

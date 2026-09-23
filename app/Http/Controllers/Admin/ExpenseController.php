@@ -25,7 +25,8 @@ class ExpenseController extends Controller
             ->tap(fn ($q) => CurrentBranch::apply($q))
             ->when($status, fn ($q) => $q->where('status', $status))
             ->when($category, fn ($q) => $q->where('category', $category))
-            ->latest('expense_date')
+            ->orderByDesc('expense_date')
+            ->orderByDesc('id')
             ->paginate(15)
             ->withQueryString();
 

@@ -269,6 +269,15 @@ class WorkbenchApps
                 'any' => true,
             ],
             [
+                'id' => 'tasks',
+                'name' => 'Công việc',
+                'route' => 'admin.tasks.index',
+                'icon' => 'bi-check2-square',
+                'color' => '#0d9488',
+                'category' => 'personal',
+                'permissions' => ['tasks.view'],
+            ],
+            [
                 'id' => 'guide',
                 'name' => 'Hướng dẫn',
                 'route' => 'admin.guide',

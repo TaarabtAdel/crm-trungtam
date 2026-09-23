@@ -95,6 +95,11 @@
                 <a class="dropdown-item" href="{{ route('home') }}">
                     <i class="bi bi-grid-1x2 mr-1"></i> Bàn làm việc
                 </a>
+                @if(auth()->user()->hasPermission('tasks.view'))
+                <a class="dropdown-item" href="{{ route('admin.tasks.index') }}">
+                    <i class="bi bi-check2-square mr-1"></i> Công việc
+                </a>
+                @endif
                 <a class="dropdown-item" href="{{ route('admin.my-payroll') }}">
                     <i class="bi bi-wallet mr-1"></i> Bảng lương của tôi
                 </a>

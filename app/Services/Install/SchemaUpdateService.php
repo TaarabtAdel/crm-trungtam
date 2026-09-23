@@ -12,6 +12,9 @@ class SchemaUpdateService
     protected array $versions = [
         '1.0' => \App\Models\Versions\Ver1::class,
         '1.1' => \App\Models\Versions\Ver2::class,
+        '1.2' => \App\Models\Versions\Ver3::class,
+        '1.3' => \App\Models\Versions\Ver4::class,
+        '1.4' => \App\Models\Versions\Ver5::class,
     ];
 
     public function currentVersion(): string

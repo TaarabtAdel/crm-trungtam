@@ -2,11 +2,16 @@
 
 namespace App\Providers;
 
-use App\Models\Branch;
+use App\Listeners\ForgetUserNotificationCache;
 use App\Models\CourseClass;
+use App\Models\Task;
+use App\Observers\TaskObserver;
 use App\Support\CurrentBranch;
+use App\Support\SmartCache;
+use Illuminate\Notifications\Events\NotificationSent;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
@@ -28,6 +33,10 @@ class AppServiceProvider extends ServiceProvider
 
         Route::bind('class', fn (string $value) => CourseClass::query()->findOrFail($value));
 
+        Task::observe(TaskObserver::class);
+
+        Event::listen(NotificationSent::class, ForgetUserNotificationCache::class);
+
         Blade::directive('vnd', function ($expression) {
             return "<?php echo number_format((float) ({$expression}), 0, ',', '.') . ' đ'; ?>";
         });
@@ -47,12 +56,13 @@ class AppServiceProvider extends ServiceProvider
             $headerUnreadNotifications = 0;
 
             if ($user) {
-                $headerNotifications = $user->notifications()->latest()->limit(12)->get();
-                $headerUnreadNotifications = $user->unreadNotifications()->count();
+                $inbox = SmartCache::headerNotifications($user);
+                $headerNotifications = $inbox['items'];
+                $headerUnreadNotifications = $inbox['unread'];
             }
 
             $view->with([
-                'headerBranches' => Branch::query()->where('is_active', true)->orderBy('name')->get(),
+                'headerBranches' => SmartCache::activeBranches(),
                 'currentBranchId' => CurrentBranch::id(),
                 'headerNotifications' => $headerNotifications,
                 'headerUnreadNotifications' => $headerUnreadNotifications,

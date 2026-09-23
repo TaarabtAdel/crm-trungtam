@@ -82,6 +82,11 @@ class ReminderScheduler
                 'options' => ['--minutes' => 120, '--window' => 12],
                 'interval' => 'every_15m',
             ],
+            [
+                'key' => 'tasks_remind_deadlines',
+                'command' => 'tasks:remind-deadlines',
+                'interval' => 'hourly',
+            ],
         ];
     }
 

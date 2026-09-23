@@ -32,6 +32,7 @@
       <li><a href="#hoc-vien">Học viên</a></li>
       <li><a href="#tai-chinh">Tài chính</a></li>
       <li><a href="#nhan-su">Nhân sự</a></li>
+      <li><a href="#cong-viec">Công việc</a></li>
       <li><a href="#thong-bao">Thông báo</a></li>
       <li><a href="#he-thong">Hệ thống</a></li>
     </ul>
@@ -55,6 +56,7 @@
     <li>Thông báo trong hệ thống + Email / Zalo cho phụ huynh &amp; học viên</li>
     <li>Xuất Excel / PDF (hóa đơn, TKB, bảng lương, báo cáo)</li>
     <li>Mỗi nhân sự tự xem <em>Bảng lương của tôi</em></li>
+    <li>Module <em>Công việc</em>: Kanban, checklist, nhắc hạn, đính kèm</li>
     <li>Hỗ trợ multi-tenant (mỗi trung tâm một subdomain + database riêng)</li>
   </ul>
 
@@ -234,8 +236,24 @@
     <li>Tổng hợp vào bảng lương nhân viên</li>
   </ul>
 
+  <!-- —— Công việc —— -->
+  <h2 id="cong-viec">6. Công việc</h2>
+  <p class="muted">Quản lý việc nội bộ theo kiểu Kanban — giao việc, theo dõi hạn, checklist.</p>
+  <ul>
+    <li>Board (Cần làm / Đang làm / Chờ duyệt / Hoàn thành) + chế độ danh sách</li>
+    <li>Tạo mặc định là <strong>bản nháp</strong>; <em>Công bố</em> mới gửi thông báo</li>
+    <li>Sao chép công việc thành bản nháp mới</li>
+    <li>Kéo thả đổi trạng thái; lọc theo người làm, ưu tiên, hạn</li>
+    <li>Người thực hiện, người liên quan (watcher), checklist, công việc con</li>
+    <li>Bình luận (mention <code>@id:123</code>), tệp đính kèm, nhật ký hoạt động</li>
+    <li>Việc tự động (đã công bố) từ nghiệp vụ: nhắc thu học phí, ghi nhật ký sau buổi hoàn thành, buổi chưa cập nhật trạng thái, duyệt chi, follow-up lead — tự hoàn thành khi xử lý xong</li>
+    <li>Thông báo (người thực hiện + liên quan, trừ người tạo): công bố, bình luận, đổi trạng thái, gán người, đính kèm, xóa; nhắc hạn</li>
+    <li>Ô lịch trên Bàn làm việc đánh dấu ngày có việc đến hạn</li>
+    <li>Quyền: <code>tasks.view</code>, <code>tasks.manage</code>, <code>tasks.assign</code>, <code>tasks.view_all</code></li>
+  </ul>
+
   <!-- —— Thông báo —— -->
-  <h2 id="thong-bao">6. Thông báo &amp; tự động hóa</h2>
+  <h2 id="thong-bao">7. Thông báo &amp; tự động hóa</h2>
 
   <h3>Trong hệ thống</h3>
   <ul>
@@ -256,11 +274,12 @@
     <li>Nhắc lead follow-up sắp tới / quá hạn</li>
     <li>Cảnh báo buổi học chưa cập nhật trạng thái</li>
     <li>Nhắc lịch học trước buổi</li>
+    <li>Nhắc hạn công việc (hourly / tick cPanel)</li>
     <li>Chạy bằng cron (cPanel) hoặc khi nhân sự mở trang admin</li>
   </ul>
 
   <!-- —— Hệ thống —— -->
-  <h2 id="he-thong">7. Hệ thống &amp; vận hành</h2>
+  <h2 id="he-thong">8. Hệ thống &amp; vận hành</h2>
   <ul>
     <li>Quản lý chi nhánh; chuyển chi nhánh đang làm việc</li>
     <li>Quản lý người dùng; gán một hoặc nhiều vai trò</li>

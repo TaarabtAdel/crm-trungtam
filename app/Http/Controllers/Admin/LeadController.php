@@ -156,8 +156,21 @@ class LeadController extends Controller
     {
         $this->ensureSalesOwnsLead($request, $lead);
         $oldSalesId = $lead->assigned_sales_id;
+        $wasNew = $lead->status === 'new';
         $lead->update($this->validated($request));
         $assignmentNotifier->notifyOnChange($lead->fresh(), $oldSalesId, $lead->assigned_sales_id, $request->user()->id);
+
+        if ($wasNew && $lead->fresh()->status !== 'new') {
+            try {
+                app(\App\Services\Tasks\AutoTaskService::class)->completeBySource(
+                    \App\Services\Tasks\AutoTaskService::SOURCE_LEAD_FOLLOWUP,
+                    (int) $lead->id,
+                    $request->user()->id
+                );
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
 
         if ($request->boolean('from_detail')) {
             return redirect()

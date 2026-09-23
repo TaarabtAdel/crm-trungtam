@@ -70,6 +70,19 @@ class PaymentService
             TenantContext::subdomain()
         );
 
+        try {
+            $invoice = $invoice->fresh();
+            if ($invoice && (float) $invoice->remaining_amount <= 0.0001) {
+                app(\App\Services\Tasks\AutoTaskService::class)->completeBySource(
+                    \App\Services\Tasks\AutoTaskService::SOURCE_INVOICE_DEBT,
+                    (int) $invoice->id,
+                    auth()->id()
+                );
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
         return $payment;
     }
 

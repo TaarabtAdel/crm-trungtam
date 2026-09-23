@@ -159,6 +159,7 @@ class QuickSetupController extends Controller
             'bank_name' => ($bin && $account) ? VietQr::bankName($bin) : null,
             'is_active' => true,
         ]);
+        \App\Support\SmartCache::forgetActiveBranches();
 
         return $this->goNext('branch', 'Đã thêm chi nhánh.');
     }

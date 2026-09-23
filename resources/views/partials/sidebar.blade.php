@@ -19,6 +19,11 @@
     <a href="{{ route('admin.guide') }}" class="nav-link {{ request()->routeIs('admin.guide') ? 'active' : '' }}">
         <i class="bi bi-question-circle mr-2"></i> Hướng dẫn sử dụng
     </a>
+    @if($u->hasPermission('tasks.view'))
+    <a href="{{ route('admin.tasks.index') }}" class="nav-link {{ request()->routeIs('admin.tasks.*') ? 'active' : '' }}">
+        <i class="bi bi-check2-square mr-2"></i> Công việc
+    </a>
+    @endif
     <a href="{{ route('admin.my-payroll') }}" class="nav-link {{ request()->routeIs('admin.my-payroll*') ? 'active' : '' }}">
         <i class="bi bi-wallet mr-2"></i> Bảng lương của tôi
     </a>

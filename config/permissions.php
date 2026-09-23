@@ -15,6 +15,10 @@ return [
             'label' => 'Tổng quan',
             'permissions' => [
                 'dashboard.view' => 'Xem bảng điều khiển',
+                'tasks.view' => 'Xem công việc',
+                'tasks.manage' => 'Tạo / sửa / xóa công việc của mình',
+                'tasks.assign' => 'Giao việc cho người khác',
+                'tasks.view_all' => 'Xem toàn bộ công việc',
             ],
         ],
         'crm' => [
@@ -88,6 +92,7 @@ return [
     'defaults' => [
         'admin' => [
             'dashboard.view',
+            'tasks.view', 'tasks.manage', 'tasks.assign', 'tasks.view_all',
             'crm.sales.view',
             'crm.leads.view', 'crm.leads.manage', 'crm.leads.import',
             'crm.interactions.view', 'crm.interactions.manage',
@@ -117,6 +122,7 @@ return [
         ],
         'accountant' => [
             'dashboard.view',
+            'tasks.view', 'tasks.manage',
             'students.view',
             'finance.dashboard.view',
             'finance.invoices.view', 'finance.invoices.manage', 'finance.payments.manage',
@@ -130,6 +136,7 @@ return [
         ],
         'sales' => [
             'dashboard.view',
+            'tasks.view', 'tasks.manage',
             'crm.sales.view',
             'crm.leads.view', 'crm.leads.manage', 'crm.leads.import',
             'crm.interactions.view', 'crm.interactions.manage',
@@ -141,6 +148,7 @@ return [
         ],
         'training' => [
             'dashboard.view',
+            'tasks.view', 'tasks.manage',
             'training.classes.view', 'training.classes.manage',
             'training.subjects.view', 'training.subjects.manage',
             'training.teachers.view', 'training.teachers.manage', 'training.teachers.payroll',
@@ -150,6 +158,7 @@ return [
         ],
         'teacher' => [
             'dashboard.view',
+            'tasks.view', 'tasks.manage',
             'training.classes.view',
             'training.teachers.view',
             'training.journals.manage',

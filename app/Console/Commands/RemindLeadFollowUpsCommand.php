@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Lead;
 use App\Models\User;
 use App\Notifications\LeadFollowUpReminderNotification;
+use App\Services\Tasks\AutoTaskService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -49,6 +50,26 @@ class RemindLeadFollowUpsCommand extends Command
 
             $sales->notify(new LeadFollowUpReminderNotification($lead));
             $sent++;
+
+            try {
+                $overdue = optional($lead->follow_up_at)->isPast();
+                app(AutoTaskService::class)->ensureForUser(
+                    $sales,
+                    AutoTaskService::SOURCE_LEAD_FOLLOWUP,
+                    (int) $lead->id,
+                    [
+                        'title' => ($overdue ? 'Follow-up quá hạn: ' : 'Follow-up lead: ').($lead->name ?? 'Lead #'.$lead->id),
+                        'description' => 'Hạn xử lý: '.(optional($lead->follow_up_at)->format('d/m/Y H:i') ?: '—')
+                            ."\nMở: ".route('admin.leads.show', $lead, absolute: false),
+                        'priority' => $overdue ? 'urgent' : 'high',
+                        'due_date' => $lead->follow_up_at,
+                        'branch_id' => $lead->branch_id,
+                        'status' => 'todo',
+                    ]
+                );
+            } catch (\Throwable $e) {
+                report($e);
+            }
         }
 
         $this->info("Đã gửi {$sent} nhắc hạn lead.");

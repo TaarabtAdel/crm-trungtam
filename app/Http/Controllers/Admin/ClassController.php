@@ -513,6 +513,18 @@ class ClassController extends Controller
             'makeup_of_session_id' => $data['makeup_of_session_id'] ?? null,
         ]);
 
+        if (in_array($data['status'], ['completed', 'cancelled'], true)) {
+            try {
+                app(\App\Services\Tasks\AutoTaskService::class)->completeBySource(
+                    \App\Services\Tasks\AutoTaskService::SOURCE_SESSION_STATUS,
+                    (int) $session->id,
+                    auth()->id()
+                );
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
         if ($nowCompleted) {
             $journals->ensureForSession($session->fresh());
 
@@ -592,6 +604,16 @@ class ClassController extends Controller
             'filled_by' => auth()->id(),
             'filled_at' => now(),
         ]);
+
+        try {
+            app(\App\Services\Tasks\AutoTaskService::class)->completeBySource(
+                \App\Services\Tasks\AutoTaskService::SOURCE_SESSION_JOURNAL,
+                (int) $session->id,
+                auth()->id()
+            );
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return back()->with('success', 'Đã lưu nhật ký buổi học.');
     }

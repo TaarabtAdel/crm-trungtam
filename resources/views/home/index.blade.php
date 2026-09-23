@@ -154,6 +154,38 @@
             </div>
             <div class="wb-cal-grid" id="wbCalGrid"></div>
         </div>
+
+        @if($user->hasPermission('tasks.view') || $user->isSuperAdmin())
+            <div class="wb-tasks-card">
+                <div class="wb-tasks-head">
+                    <div class="wb-tasks-title">
+                        <i class="bi bi-check2-square"></i>
+                        Việc hôm nay
+                    </div>
+                    <a href="{{ route('admin.tasks.index') }}" class="wb-tasks-all" title="Xem tất cả">Tất cả</a>
+                </div>
+                <div class="wb-tasks-list">
+                    @forelse($tasksToday ?? [] as $task)
+                        <a href="{{ route('admin.tasks.index', ['open' => $task->id]) }}"
+                           class="wb-tasks-item {{ $task->isOverdue() ? 'is-overdue' : '' }}"
+                           title="{{ $task->title }}">
+                            <span class="wb-tasks-priority task-priority-{{ $task->priority }}"></span>
+                            <span class="wb-tasks-item-main">
+                                <span class="wb-tasks-item-title">{{ $task->title }}</span>
+                                <span class="wb-tasks-item-meta">
+                                    {{ $task->due_date?->format('H:i') ?? '—' }}
+                                    @if($task->assignee)
+                                        · {{ $task->assignee->name }}
+                                    @endif
+                                </span>
+                            </span>
+                        </a>
+                    @empty
+                        <div class="wb-tasks-empty">Không có việc đến hạn hôm nay.</div>
+                    @endforelse
+                </div>
+            </div>
+        @endif
     </aside>
 </div>
 @endsection
@@ -310,6 +342,10 @@
         }
     }
 
+    var taskDueDates = @json($taskDueDates ?? []);
+    var taskDueSet = {};
+    taskDueDates.forEach(function (d) { taskDueSet[d] = true; });
+
     function renderCalendar() {
         if (!calGridEl || !calTitleEl) return;
         var year = calView.getFullYear();
@@ -337,13 +373,16 @@
                 dayNum = i - startOffset + 1;
                 d = new Date(year, month, dayNum);
             }
+            var ymd = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
             var isToday = d.getFullYear() === today.getFullYear()
                 && d.getMonth() === today.getMonth()
                 && d.getDate() === today.getDate();
+            var hasTask = !!taskDueSet[ymd];
             html += '<span class="wb-cal-day'
                 + (inMonth ? '' : ' is-out')
                 + (isToday ? ' is-today' : '')
-                + '">' + dayNum + '</span>';
+                + (hasTask ? ' has-task' : '')
+                + '"' + (hasTask ? ' title="Có công việc đến hạn"' : '') + '>' + dayNum + '</span>';
         }
         calGridEl.innerHTML = html;
     }
