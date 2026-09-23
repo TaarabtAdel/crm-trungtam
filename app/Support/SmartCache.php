@@ -123,44 +123,58 @@ class SmartCache
         }
 
         $day = now()->toDateString();
+        $branchKey = CurrentBranch::id() ?? 0;
         $rev = static::tasksHomeRevision();
         $ttl = max(60, (int) now()->diffInSeconds(now()->endOfDay()));
 
-        return static::remember(static::tasksHomeKey((int) $user->id, $day, $rev), $ttl, function () use ($user) {
-            try {
-                $service = app(TaskService::class);
-                $base = $service->visibleQuery($user)
-                    ->where('is_published', true)
-                    ->whereNotNull('due_date')
-                    ->whereNotIn('status', ['done']);
+        return static::remember(
+            static::tasksHomeKey((int) $user->id, $day, $rev).':b'.$branchKey,
+            $ttl,
+            function () use ($user) {
+                try {
+                    $service = app(TaskService::class);
+                    // Chỉ việc chưa hoàn thành (todo / doing / review), được giao cho tôi, đã công bố
+                    $openStatuses = array_values(array_filter(
+                        array_keys(Task::STATUSES),
+                        fn (string $s) => $s !== 'done'
+                    ));
+                    $base = $service->visibleQuery($user)
+                        ->where('is_published', true)
+                        ->where('assignee_id', $user->id)
+                        ->whereNotNull('due_date')
+                        ->whereIn('status', $openStatuses);
 
-                $today = $base->clone()
-                    ->with(['assignee'])
-                    ->whereDate('due_date', now()->toDateString())
-                    ->orderByRaw("CASE priority WHEN 'urgent' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 ELSE 4 END")
-                    ->orderBy('due_date')
-                    ->limit(8)
-                    ->get();
+                    // Hạn trong ngày hôm nay (kể cả 23:59) + quá hạn chưa làm
+                    $endOfToday = now()->endOfDay();
 
-                $dueDates = $base->clone()
-                    ->whereBetween('due_date', [now()->subDays(40), now()->addDays(70)])
-                    ->pluck('due_date')
-                    ->map(fn ($d) => $d->format('Y-m-d'))
-                    ->unique()
-                    ->values()
-                    ->all();
+                    $today = (clone $base)
+                        ->with(['assignee'])
+                        ->where('due_date', '<=', $endOfToday)
+                        ->orderByRaw("CASE priority WHEN 'urgent' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 ELSE 4 END")
+                        ->orderBy('due_date')
+                        ->limit(8)
+                        ->get();
 
-                return [
-                    'today' => $today,
-                    'due_dates' => $dueDates,
-                ];
-            } catch (\Throwable) {
-                return [
-                    'today' => collect(),
-                    'due_dates' => [],
-                ];
+                    $dueDates = (clone $base)
+                        ->whereBetween('due_date', [now()->subDays(40)->startOfDay(), now()->addDays(70)->endOfDay()])
+                        ->pluck('due_date')
+                        ->map(fn ($d) => $d->format('Y-m-d'))
+                        ->unique()
+                        ->values()
+                        ->all();
+
+                    return [
+                        'today' => $today,
+                        'due_dates' => $dueDates,
+                    ];
+                } catch (\Throwable) {
+                    return [
+                        'today' => collect(),
+                        'due_dates' => [],
+                    ];
+                }
             }
-        });
+        );
     }
 
     // ── Chi nhánh header (phụ) ────────────────────────────────────────────
