@@ -73,6 +73,26 @@ class CommissionService
             'paid_at' => now(),
         ]);
 
+        try {
+            $unpaid = Commission::query()->where('status', '!=', 'paid')->count();
+            if ($unpaid === 0) {
+                $sourceId = (int) now()->subMonthNoOverflow()->format('Ym');
+                app(\App\Services\Tasks\AutoTaskService::class)->completeBySource(
+                    \App\Services\Tasks\AutoTaskService::SOURCE_COMMISSION,
+                    $sourceId,
+                    auth()->id()
+                );
+                // cũng đóng tháng hiện tại nếu task tạo cho tháng này
+                app(\App\Services\Tasks\AutoTaskService::class)->completeBySource(
+                    \App\Services\Tasks\AutoTaskService::SOURCE_COMMISSION,
+                    (int) now()->format('Ym'),
+                    auth()->id()
+                );
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
         return $commission->fresh();
     }
 }

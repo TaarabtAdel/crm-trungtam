@@ -18,6 +18,8 @@ class AutoTaskService
 
     public const SOURCE_SESSION_STATUS = 'session_status';
 
+    public const SOURCE_SESSION_TODAY = 'session_today';
+
     public const SOURCE_INVOICE_DEBT = 'invoice_debt';
 
     public const SOURCE_EXPENSE_APPROVE = 'expense_approve';
@@ -25,6 +27,22 @@ class AutoTaskService
     public const SOURCE_EXPENSE_PAY = 'expense_pay';
 
     public const SOURCE_LEAD_FOLLOWUP = 'lead_followup';
+
+    public const SOURCE_STAFF_ATTENDANCE = 'staff_attendance';
+
+    public const SOURCE_REFUND_APPROVE = 'refund_approve';
+
+    public const SOURCE_INTERACTION = 'interaction';
+
+    public const SOURCE_TEACHER_PAYROLL = 'teacher_payroll';
+
+    public const SOURCE_STAFF_PAYROLL = 'staff_payroll';
+
+    public const SOURCE_MONTHLY_INVOICE = 'monthly_invoice';
+
+    public const SOURCE_BACKUP = 'backup';
+
+    public const SOURCE_COMMISSION = 'commission_month';
 
     /**
      * @param  array{

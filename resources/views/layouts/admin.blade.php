@@ -15,6 +15,20 @@
     @include('partials.sidebar')
     <div class="admin-main">
         @include('partials.header')
+        @if(session()->has('impersonator_id'))
+            <div class="alert alert-warning mb-0 rounded-0 d-flex align-items-center justify-content-between px-3 py-2" style="border-left:0;border-right:0">
+                <span class="small mb-0">
+                    <i class="bi bi-person-bounding-box mr-1"></i>
+                    Đang xem với tư cách <strong>{{ auth()->user()->name }}</strong>.
+                </span>
+                <form method="POST" action="{{ route('admin.impersonation.leave') }}" class="mb-0">
+                    @csrf
+                    <button type="submit" class="btn btn-sm btn-dark">
+                        <i class="bi bi-arrow-counterclockwise mr-1"></i> Trở lại tài khoản Admin
+                    </button>
+                </form>
+            </div>
+        @endif
         <div class="admin-content">
             @if(session('success'))
                 <div class="alert alert-success alert-dismissible fade show">

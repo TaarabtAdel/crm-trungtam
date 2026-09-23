@@ -812,6 +812,45 @@ body.workbench-body {
     display: none !important;
 }
 
+.wb-impersonate-bar {
+    position: sticky;
+    top: 0;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.65rem 1.25rem;
+    background: rgba(217, 119, 6, 0.92);
+    color: #111827;
+    font-size: 0.9rem;
+    font-weight: 500;
+    backdrop-filter: blur(8px);
+}
+
+.wb-impersonate-bar strong {
+    font-weight: 700;
+}
+
+.wb-impersonate-leave {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border: 0;
+    border-radius: 999px;
+    padding: 0.4rem 0.85rem;
+    background: #111827;
+    color: #fff;
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.wb-impersonate-leave:hover {
+    filter: brightness(1.1);
+}
+
 .wb-menu {
     position: absolute;
     top: calc(100% + 0.45rem);

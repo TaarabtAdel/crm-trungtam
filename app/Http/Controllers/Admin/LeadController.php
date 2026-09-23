@@ -290,7 +290,7 @@ class LeadController extends Controller
             $data['sales_id'] = $data['sales_id'] ?: $lead->assigned_sales_id ?: $user->id;
         }
 
-        Interaction::create([
+        $interaction = Interaction::create([
             'lead_id' => $lead->id,
             'branch_id' => $lead->branch_id,
             'sales_id' => $data['sales_id'] ?? null,
@@ -299,6 +299,12 @@ class LeadController extends Controller
             'status' => $data['status'] ?? 'upcoming',
             'notes' => $data['notes'] ?? null,
         ]);
+
+        try {
+            app(\App\Services\Tasks\InteractionTaskService::class)->sync($interaction, $user->id);
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return redirect()
             ->route('admin.leads.show', ['lead' => $lead, 'tab' => 'history'])

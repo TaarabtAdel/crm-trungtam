@@ -314,7 +314,9 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
         Route::post('users', [UserController::class, 'store'])->name('users.store');
         Route::put('users/{user}', [UserController::class, 'update'])->name('users.update');
         Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+        Route::post('users/{user}/impersonate', [UserController::class, 'impersonate'])->name('users.impersonate');
     });
+    Route::post('impersonation/leave', [UserController::class, 'leaveImpersonation'])->name('impersonation.leave');
     Route::middleware('permission:system.staff_attendances.view')->group(function () {
         Route::get('staff-attendances', [StaffAttendanceController::class, 'index'])->name('staff-attendances.index');
     });

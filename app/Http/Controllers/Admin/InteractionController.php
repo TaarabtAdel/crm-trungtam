@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Interaction;
 use App\Models\Lead;
 use App\Models\User;
+use App\Services\Tasks\InteractionTaskService;
 use App\Support\CurrentBranch;
 use Illuminate\Http\Request;
 
@@ -68,7 +69,13 @@ class InteractionController extends Controller
         } elseif (empty($data['sales_id'])) {
             $data['sales_id'] = $lead->assigned_sales_id;
         }
-        Interaction::create($data);
+        $interaction = Interaction::create($data);
+
+        try {
+            app(InteractionTaskService::class)->sync($interaction, $request->user()->id);
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         if ($request->input('redirect_to') === 'interactions') {
             return redirect()
@@ -91,12 +98,23 @@ class InteractionController extends Controller
         }
         $interaction->update($data);
 
+        try {
+            app(InteractionTaskService::class)->sync($interaction->fresh(['lead', 'sales']), $request->user()->id);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
         return back()->with('success', 'Đã cập nhật tương tác.');
     }
 
     public function destroy(Request $request, Interaction $interaction)
     {
         $this->authorizeInteractionAccess($request, $interaction);
+        try {
+            app(InteractionTaskService::class)->forget($interaction, $request->user()->id);
+        } catch (\Throwable $e) {
+            report($e);
+        }
         $interaction->delete();
 
         return back()->with('success', 'Đã xóa tương tác.');

@@ -29,8 +29,10 @@
         @endif
 
         <label class="wb-auth-field">
-            <span>Email</span>
-            <input type="email" name="email" value="{{ old('email') }}" required autofocus autocomplete="username" placeholder="ban@trungtam.vn">
+            <span>Email hoặc số điện thoại</span>
+            <input type="text" name="login" value="{{ old('login') }}" required autofocus
+                   autocomplete="username" inputmode="text"
+                   placeholder="email@trungtam.vn hoặc 0901234567">
         </label>
 
         <label class="wb-auth-field">

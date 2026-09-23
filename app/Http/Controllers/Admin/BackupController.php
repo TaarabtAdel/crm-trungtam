@@ -30,6 +30,16 @@ class BackupController extends Controller
             return back()->with('error', 'Không tạo được backup: '.$e->getMessage());
         }
 
+        try {
+            app(\App\Services\Tasks\AutoTaskService::class)->completeBySource(
+                \App\Services\Tasks\AutoTaskService::SOURCE_BACKUP,
+                (int) now()->format('oW'),
+                auth()->id()
+            );
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
         return back()->with(
             'success',
             'Đã tạo backup: '.$result['filename'].' ('.$this->humanSize($result['size']).').'

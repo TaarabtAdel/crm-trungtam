@@ -7,6 +7,7 @@ use App\Models\Branch;
 use App\Models\User;
 use App\Support\CurrentBranch;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
@@ -180,5 +181,64 @@ class UserController extends Controller
         $user->delete();
 
         return back()->with('success', 'Đã xóa người dùng.');
+    }
+
+    /**
+     * Admin / super admin: đăng nhập với tư cách user khác.
+     */
+    public function impersonate(Request $request, User $user)
+    {
+        $actor = $request->user();
+        abort_unless($actor->isSuperAdmin() || $actor->hasAnyRole('admin'), 403);
+
+        if ($request->session()->has('impersonator_id')) {
+            return back()->with('error', 'Đang giả lập tài khoản khác. Hãy thoát trước.');
+        }
+
+        if ($user->id === $actor->id) {
+            return back()->with('error', 'Không thể đăng nhập vào chính tài khoản đang dùng.');
+        }
+
+        if (! $user->is_active) {
+            return back()->with('error', 'Tài khoản đang bị khóa.');
+        }
+
+        if ($user->isSuperAdmin() && ! $actor->isSuperAdmin()) {
+            return back()->with('error', 'Không thể đăng nhập vào tài khoản siêu quản trị.');
+        }
+
+        $request->session()->put('impersonator_id', $actor->id);
+        Auth::login($user);
+        $request->session()->regenerate();
+
+        return redirect()
+            ->route('home')
+            ->with('success', 'Đang đăng nhập với tư cách '.$user->name.'.');
+    }
+
+    public function leaveImpersonation(Request $request)
+    {
+        $actorId = $request->session()->pull('impersonator_id');
+        if (! $actorId) {
+            return redirect()->route('home');
+        }
+
+        $actor = User::query()->find($actorId);
+        if (! $actor || ! $actor->is_active) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('login')->withErrors([
+                'login' => 'Không khôi phục được tài khoản quản trị. Vui lòng đăng nhập lại.',
+            ]);
+        }
+
+        Auth::login($actor);
+        $request->session()->regenerate();
+
+        return redirect()
+            ->route('admin.users.index')
+            ->with('success', 'Đã trở lại tài khoản '.$actor->name.'.');
     }
 }

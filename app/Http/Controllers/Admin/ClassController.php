@@ -428,6 +428,18 @@ class ClassController extends Controller
                 ->with('success', 'Đã thêm buổi hoàn thành. Nhật ký đã tạo sẵn — giáo viên sẽ cập nhật nội dung.');
         }
 
+        if ($session->status === 'scheduled'
+            && $session->session_date
+            && $session->session_date->isToday()) {
+            try {
+                \Illuminate\Support\Facades\Artisan::call('tasks:create-today-sessions', [
+                    '--date' => $session->session_date->toDateString(),
+                ]);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
         return back()->with('success', 'Đã thêm buổi học.');
     }
 
@@ -515,8 +527,14 @@ class ClassController extends Controller
 
         if (in_array($data['status'], ['completed', 'cancelled'], true)) {
             try {
-                app(\App\Services\Tasks\AutoTaskService::class)->completeBySource(
+                $auto = app(\App\Services\Tasks\AutoTaskService::class);
+                $auto->completeBySource(
                     \App\Services\Tasks\AutoTaskService::SOURCE_SESSION_STATUS,
+                    (int) $session->id,
+                    auth()->id()
+                );
+                $auto->completeBySource(
+                    \App\Services\Tasks\AutoTaskService::SOURCE_SESSION_TODAY,
                     (int) $session->id,
                     auth()->id()
                 );
@@ -653,6 +671,28 @@ class ClassController extends Controller
     public function destroySession(CourseClass $class, ClassSession $session)
     {
         abort_unless($session->class_id === $class->id, 404);
+
+        try {
+            $auto = app(\App\Services\Tasks\AutoTaskService::class);
+            $auto->completeBySource(
+                \App\Services\Tasks\AutoTaskService::SOURCE_SESSION_TODAY,
+                (int) $session->id,
+                auth()->id()
+            );
+            $auto->completeBySource(
+                \App\Services\Tasks\AutoTaskService::SOURCE_SESSION_STATUS,
+                (int) $session->id,
+                auth()->id()
+            );
+            $auto->completeBySource(
+                \App\Services\Tasks\AutoTaskService::SOURCE_SESSION_JOURNAL,
+                (int) $session->id,
+                auth()->id()
+            );
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
         $session->delete();
 
         return back()->with('success', 'Đã xóa buổi học.');

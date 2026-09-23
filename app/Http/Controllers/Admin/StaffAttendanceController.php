@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\StaffAttendance;
 use App\Models\User;
+use App\Services\Tasks\AutoTaskService;
 use App\Support\CurrentBranch;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -100,6 +101,8 @@ class StaffAttendanceController extends Controller
             }
         });
 
+        $this->completeAttendanceTasksIfReady($dates->all(), $request->user()?->id);
+
         return redirect()
             ->route('admin.staff-attendances.index', [
                 'user_id' => $user->id,
@@ -130,5 +133,39 @@ class StaffAttendanceController extends Controller
                 'month' => $data['month'] ?? now()->format('Y-m'),
             ])
             ->with('success', "Đã xóa {$deleted} dòng chấm công.");
+    }
+
+    /**
+     * Khi đã chấm đủ mọi NV active trong ngày → đóng việc auto trên board.
+     *
+     * @param  list<string>  $dates  Y-m-d
+     */
+    protected function completeAttendanceTasksIfReady(array $dates, ?int $actorId = null): void
+    {
+        $activeCount = (int) User::query()->where('is_active', true)->count();
+        if ($activeCount === 0) {
+            return;
+        }
+
+        $auto = app(AutoTaskService::class);
+
+        foreach (array_unique($dates) as $date) {
+            $marked = StaffAttendance::query()
+                ->whereDate('work_date', $date)
+                ->pluck('user_id')
+                ->unique()
+                ->count();
+
+            if ($marked < $activeCount) {
+                continue;
+            }
+
+            try {
+                $sourceId = (int) Carbon::parse($date)->format('Ymd');
+                $auto->completeBySource(AutoTaskService::SOURCE_STAFF_ATTENDANCE, $sourceId, $actorId);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
     }
 }

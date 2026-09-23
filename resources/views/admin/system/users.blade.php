@@ -26,6 +26,10 @@
                 .'</ul>',
         ],
         [
+            'title' => 'Đăng nhập với tài khoản khác',
+            'body' => '<p class="mb-0">Admin có thể chọn <strong>Đăng nhập với TK này</strong> trong menu Thao tác để xem hệ thống đúng quyền của user đó. Thanh vàng phía trên dùng để trở lại tài khoản Admin.</p>',
+        ],
+        [
             'title' => 'Phân quyền chi tiết',
             'body' => '<p class="mb-0">Ma trận quyền theo từng role tại menu <strong>Phân quyền</strong>.</p>',
         ],
@@ -128,14 +132,18 @@
                 <thead>
                 <tr>
                     <th>Người dùng</th>
+                    <th>Số điện thoại</th>
                     <th>Vai trò</th>
                     <th>Chi nhánh</th>
-                    <th>Lương ngày</th>
                     <th style="width:110px">Trạng thái</th>
-                    <th class="text-right" style="width:140px">Thao tác</th>
+                    <th class="text-right" style="width:120px">Thao tác</th>
                 </tr>
                 </thead>
                 <tbody>
+                @php
+                    $canImpersonate = auth()->user()->isSuperAdmin() || auth()->user()->hasAnyRole('admin');
+                    $isImpersonating = session()->has('impersonator_id');
+                @endphp
                 @forelse($users as $user)
                     <tr>
                         <td>
@@ -147,19 +155,16 @@
                                 <div>
                                     <div class="font-weight-bold">{{ $user->name }}</div>
                                     <div class="small text-muted">{{ $user->email }}</div>
-                                    @if($user->phone)
-                                        <div class="small text-muted"><i class="bi bi-telephone"></i> {{ $user->phone }}</div>
-                                    @endif
                                 </div>
                             </div>
                         </td>
+                        <td class="text-nowrap">{{ $user->phone ?: '—' }}</td>
                         <td>
                             @foreach($user->roleKeys() as $rk)
                                 <span class="badge badge-role badge-role-{{ $rk }} mr-1 mb-1">{{ config('permissions.roles.'.$rk, $rk) }}</span>
                             @endforeach
                         </td>
                         <td>{{ $user->branch?->name ?? '—' }}</td>
-                        <td>{{ number_format((float) $user->daily_rate, 0, ',', '.') }} đ</td>
                         <td>
                             @if($user->is_active)
                                 <span class="badge badge-success">Active</span>
@@ -167,19 +172,41 @@
                                 <span class="badge badge-secondary">Khóa</span>
                             @endif
                         </td>
-                        <td class="text-right text-nowrap">
-                            <a href="{{ route('admin.users.show', $user) }}" class="btn btn-sm btn-outline-secondary" title="Chi tiết">
-                                <i class="bi bi-eye"></i>
-                            </a>
-                            <button class="btn btn-sm btn-outline-primary" data-toggle="modal" data-target="#edit{{ $user->id }}" title="Sửa">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            @if($user->id !== auth()->id())
-                                <form action="{{ route('admin.users.destroy', $user) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa người dùng {{ $user->name }}?')">
-                                    @csrf @method('DELETE')
-                                    <button class="btn btn-sm btn-outline-danger" title="Xóa"><i class="bi bi-trash"></i></button>
-                                </form>
-                            @endif
+                        <td class="text-right">
+                            <div class="dropdown d-inline-block">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                                        data-toggle="dropdown" data-display="static" aria-haspopup="true" aria-expanded="false">
+                                    Thao tác
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-right shadow">
+                                    <a class="dropdown-item" href="{{ route('admin.users.show', $user) }}">
+                                        <i class="bi bi-eye mr-1"></i> Chi tiết
+                                    </a>
+                                    <button type="button" class="dropdown-item" data-toggle="modal" data-target="#edit{{ $user->id }}">
+                                        <i class="bi bi-pencil mr-1"></i> Sửa
+                                    </button>
+                                    @if($canImpersonate && ! $isImpersonating && $user->id !== auth()->id() && $user->is_active && (! $user->isSuperAdmin() || auth()->user()->isSuperAdmin()))
+                                        <div class="dropdown-divider"></div>
+                                        <form method="POST" action="{{ route('admin.users.impersonate', $user) }}"
+                                              onsubmit="return confirm('Đăng nhập với tư cách {{ $user->name }}?')">
+                                            @csrf
+                                            <button type="submit" class="dropdown-item">
+                                                <i class="bi bi-box-arrow-in-right mr-1"></i> Đăng nhập với TK này
+                                            </button>
+                                        </form>
+                                    @endif
+                                    @if($user->id !== auth()->id())
+                                        <div class="dropdown-divider"></div>
+                                        <form action="{{ route('admin.users.destroy', $user) }}" method="POST"
+                                              onsubmit="return confirm('Xóa người dùng {{ $user->name }}?')">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="dropdown-item text-danger">
+                                                <i class="bi bi-trash mr-1"></i> Xóa
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
+                            </div>
                         </td>
                     </tr>
                 @empty
