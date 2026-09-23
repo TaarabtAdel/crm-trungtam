@@ -88,4 +88,47 @@ class Permissions
 
         return in_array($permission, self::forRole($role), true);
     }
+
+    /**
+     * Bổ sung quyền mặc định còn thiếu (không xóa quyền đã gán tay).
+     * Dùng khi schema update thêm module mới (vd. tasks.*).
+     */
+    public static function ensureDefaults(): void
+    {
+        if (! \Illuminate\Support\Facades\Schema::hasTable('role_permissions')) {
+            return;
+        }
+
+        $defaults = config('permissions.defaults', []);
+        $valid = array_flip(self::allKeys());
+        $now = now();
+
+        foreach ($defaults as $role => $permissions) {
+            if ($role === 'super_admin' || ! is_array($permissions)) {
+                continue;
+            }
+
+            foreach ($permissions as $permission) {
+                if (! is_string($permission) || ! isset($valid[$permission])) {
+                    continue;
+                }
+
+                $exists = DB::table('role_permissions')
+                    ->where('role', $role)
+                    ->where('permission', $permission)
+                    ->exists();
+
+                if (! $exists) {
+                    DB::table('role_permissions')->insert([
+                        'role' => $role,
+                        'permission' => $permission,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ]);
+                }
+            }
+
+            self::forgetCache($role);
+        }
+    }
 }

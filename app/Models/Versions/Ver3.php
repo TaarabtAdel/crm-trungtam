@@ -115,36 +115,8 @@ class Ver3
 
     protected static function seedPermissions(): void
     {
-        if (! \Illuminate\Support\Facades\Schema::hasTable('role_permissions')) {
-            return;
-        }
-
-        $map = [
-            'admin' => ['tasks.view', 'tasks.manage', 'tasks.assign', 'tasks.view_all'],
-            'accountant' => ['tasks.view', 'tasks.manage'],
-            'sales' => ['tasks.view', 'tasks.manage'],
-            'training' => ['tasks.view', 'tasks.manage'],
-            'teacher' => ['tasks.view', 'tasks.manage'],
-        ];
-        $now = now();
-        foreach ($map as $role => $permissions) {
-            foreach ($permissions as $permission) {
-                $exists = \Illuminate\Support\Facades\DB::table('role_permissions')
-                    ->where('role', $role)
-                    ->where('permission', $permission)
-                    ->exists();
-                if (! $exists) {
-                    \Illuminate\Support\Facades\DB::table('role_permissions')->insert([
-                        'role' => $role,
-                        'permission' => $permission,
-                        'created_at' => $now,
-                        'updated_at' => $now,
-                    ]);
-                }
-            }
-        }
         if (class_exists(\App\Support\Permissions::class)) {
-            \App\Support\Permissions::forgetCache();
+            \App\Support\Permissions::ensureDefaults();
         }
     }
 
