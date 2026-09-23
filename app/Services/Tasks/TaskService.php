@@ -10,6 +10,7 @@ use App\Models\TaskComment;
 use App\Models\TaskSubtask;
 use App\Models\User;
 use App\Notifications\TaskEventNotification;
+use App\Support\CurrentBranch;
 use App\Support\SmartCache;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
@@ -705,7 +706,7 @@ class TaskService
      */
     public function assignableUsers(?User $actor = null): Collection
     {
-        return \App\Support\CurrentBranch::apply(
+        return CurrentBranch::apply(
             User::query()->where('is_active', true)
         )
             ->orderBy('name')
