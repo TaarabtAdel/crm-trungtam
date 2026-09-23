@@ -185,8 +185,11 @@ class DebtReminderService
         if ($invoice->sales && $invoice->sales->is_active) {
             $assignees->push($invoice->sales);
         } else {
+            $branchId = $invoice->branch_id
+                ? (int) $invoice->branch_id
+                : ($invoice->courseClass?->branch_id ? (int) $invoice->courseClass->branch_id : null);
             $assignees = $assignees->merge(
-                \App\Support\Notifier::recipientsForPermission('finance.invoices.manage')
+                \App\Support\Notifier::recipientsForPermission('finance.invoices.manage', [], $branchId)
                     ->filter(fn ($u) => $u->hasAnyRole('sales', 'accountant', 'admin', 'super_admin'))
                     ->take(5)
             );

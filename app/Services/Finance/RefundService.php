@@ -89,8 +89,11 @@ class RefundService
             $student = $invoice?->student;
             $amount = number_format((float) $refund->amount, 0, ',', '.');
 
-            $approvers = Notifier::recipientsForPermission('finance.refunds.manage')
-                ->values();
+            $approvers = Notifier::recipientsForPermission(
+                'finance.refunds.manage',
+                [],
+                $invoice?->branch_id ? (int) $invoice->branch_id : null
+            )->values();
 
             if ($approvers->isEmpty()) {
                 return;

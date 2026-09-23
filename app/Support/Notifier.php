@@ -26,16 +26,24 @@ class Notifier
 
     /**
      * @param  array<int, int>  $exceptUserIds
+     * @param  ?int  $forBranchId  null = không lọc CN (vd. backup toàn hệ thống); có ID = chỉ HQ + user thuộc CN đó
      * @return Collection<int, User>
      */
-    public static function recipientsForPermission(string $permission, array $exceptUserIds = []): Collection
-    {
+    public static function recipientsForPermission(
+        string $permission,
+        array $exceptUserIds = [],
+        ?int $forBranchId = null
+    ): Collection {
         return User::query()
             ->with('roleAssignments')
             ->where('is_active', true)
             ->when($exceptUserIds !== [], fn ($q) => $q->whereNotIn('id', $exceptUserIds))
             ->get()
             ->filter(fn (User $user) => $user->hasPermission($permission))
+            ->filter(fn (User $user) => CurrentBranch::userBelongsToBranchContext(
+                $user->branch_id !== null ? (int) $user->branch_id : null,
+                $forBranchId
+            ))
             ->values();
     }
 
@@ -68,9 +76,12 @@ class Notifier
             );
         }
 
-        // Nếu chưa map được user theo email GV: nhắc Đào tạo / Admin
+        // Nếu chưa map được user theo email GV: nhắc Đào tạo / Admin thuộc CN của lớp
         if ($recipients->isEmpty()) {
-            $recipients = self::recipientsForPermission('training.journals.manage', $except)
+            $branchId = $session->courseClass?->branch_id
+                ? (int) $session->courseClass->branch_id
+                : null;
+            $recipients = self::recipientsForPermission('training.journals.manage', $except, $branchId)
                 ->filter(fn (User $u) => $u->hasAnyRole('training', 'admin', 'super_admin', 'teacher'));
         }
 

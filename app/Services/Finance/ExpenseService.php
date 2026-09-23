@@ -50,18 +50,20 @@ class ExpenseService
     {
         $expense->loadMissing(['teacher', 'creator']);
 
-        $approvers = Notifier::recipientsForPermission('finance.expenses.approve')
+        $branchId = $expense->branch_id ? (int) $expense->branch_id : null;
+
+        $approvers = Notifier::recipientsForPermission('finance.expenses.approve', [], $branchId)
             ->filter(fn (User $u) => (int) $u->id !== (int) $proposer->id)
             ->values();
 
         // Nếu không còn ai khác: vẫn tạo việc cho người có quyền duyệt (kể cả người đề xuất)
         // để đề xuất không bị “mất” trên board Công việc.
         if ($approvers->isEmpty()) {
-            $approvers = Notifier::recipientsForPermission('finance.expenses.approve')->values();
+            $approvers = Notifier::recipientsForPermission('finance.expenses.approve', [], $branchId)->values();
         }
 
         // Bổ sung kế toán / người quản lý chi (xem được đề xuất) làm người liên quan trên việc
-        $related = Notifier::recipientsForPermission('finance.expenses.manage')
+        $related = Notifier::recipientsForPermission('finance.expenses.manage', [], $branchId)
             ->filter(fn (User $u) => (int) $u->id !== (int) $proposer->id)
             ->merge($approvers)
             ->unique('id')
@@ -260,8 +262,10 @@ class ExpenseService
                 return;
             }
 
+            $branchId = $expense->branch_id ? (int) $expense->branch_id : null;
+
             // Người liên quan: kế toán khác + người duyệt (theo dõi), không giao việc chính
-            $watcherIds = Notifier::recipientsForPermission('finance.expenses.manage')
+            $watcherIds = Notifier::recipientsForPermission('finance.expenses.manage', [], $branchId)
                 ->filter(fn (User $u) => $u->hasAnyRole('accountant', 'admin', 'super_admin'))
                 ->pluck('id')
                 ->map(fn ($id) => (int) $id)
@@ -303,7 +307,8 @@ class ExpenseService
      */
     protected function resolvePayAssignee(Expense $expense, User $approver): ?User
     {
-        $managers = Notifier::recipientsForPermission('finance.expenses.manage');
+        $branchId = $expense->branch_id ? (int) $expense->branch_id : null;
+        $managers = Notifier::recipientsForPermission('finance.expenses.manage', [], $branchId);
         $accountants = $managers
             ->filter(fn (User $u) => $u->is_active && $u->hasAnyRole('accountant'))
             ->values();

@@ -37,18 +37,21 @@ class RemindStaleClassSessionsCommand extends Command
             return self::SUCCESS;
         }
 
-        $recipients = Notifier::recipientsForPermission('training.classes.manage');
-        if ($recipients->isEmpty()) {
-            $this->warn('Không có user nào có quyền training.classes.manage.');
-
-            return self::SUCCESS;
-        }
-
         $sent = 0;
         $tasks = 0;
         $auto = app(AutoTaskService::class);
+        $anyRecipients = false;
 
         foreach ($sessions as $session) {
+            $branchId = $session->courseClass?->branch_id
+                ? (int) $session->courseClass->branch_id
+                : null;
+            $recipients = Notifier::recipientsForPermission('training.classes.manage', [], $branchId);
+            if ($recipients->isEmpty()) {
+                continue;
+            }
+            $anyRecipients = true;
+
             foreach ($recipients as $user) {
                 if ($this->alreadyNotifiedToday($user, $session->id)) {
                     continue;
@@ -82,6 +85,10 @@ class RemindStaleClassSessionsCommand extends Command
             } catch (\Throwable $e) {
                 report($e);
             }
+        }
+
+        if (! $anyRecipients) {
+            $this->warn('Không có user nào có quyền training.classes.manage.');
         }
 
         $this->info("Đã gửi {$sent} nhắc trạng thái buổi học ({$sessions->count()} buổi), {$tasks} việc trên board.");

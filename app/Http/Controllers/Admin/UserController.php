@@ -177,6 +177,13 @@ class UserController extends Controller
         $user->syncRoles($roles);
 
         if ($request->boolean('from_detail')) {
+            // Bỏ gắn CN + đang lọc theo CN → không mở lại show (binding sẽ 404)
+            if ($data['branch_id'] === null && CurrentBranch::id()) {
+                return redirect()
+                    ->route('admin.users.index')
+                    ->with('success', 'Đã cập nhật người dùng (đã bỏ gắn chi nhánh).');
+            }
+
             return redirect()
                 ->route('admin.users.show', ['user' => $user, 'tab' => 'info'])
                 ->with('success', 'Đã cập nhật người dùng.');

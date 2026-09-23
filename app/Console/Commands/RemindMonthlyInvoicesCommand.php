@@ -32,7 +32,8 @@ class RemindMonthlyInvoicesCommand extends Command
             ->having('students_count', '>', 0)
             ->get();
 
-        $missing = [];
+        /** @var array<int, list<array{class: CourseClass, need: int, total: int}>> $byBranch */
+        $byBranch = [];
         foreach ($classes as $class) {
             $studentIds = $class->students()->pluck('students.id');
             if ($studentIds->isEmpty()) {
@@ -48,7 +49,8 @@ class RemindMonthlyInvoicesCommand extends Command
 
             $need = $studentIds->diff($invoiced)->count();
             if ($need > 0) {
-                $missing[] = [
+                $branchKey = $class->branch_id ? (int) $class->branch_id : 0;
+                $byBranch[$branchKey][] = [
                     'class' => $class,
                     'need' => $need,
                     'total' => $studentIds->count(),
@@ -56,44 +58,51 @@ class RemindMonthlyInvoicesCommand extends Command
             }
         }
 
-        if ($missing === []) {
+        if ($byBranch === []) {
             $this->info("Tháng {$month}: mọi lớp monthly đã có HĐ đủ.");
 
             return self::SUCCESS;
         }
 
-        $recipients = Notifier::recipientsForPermission('finance.invoices.manage');
-        if ($recipients->isEmpty()) {
-            $this->warn('Không có user finance.invoices.manage.');
+        $label = Carbon::parse($month.'-01')->format('m/Y');
+        $monthNum = (int) str_replace('-', '', $month); // YYYYMM
+        $createdBranches = 0;
 
-            return self::SUCCESS;
+        foreach ($byBranch as $branchId => $missing) {
+            $forBranch = $branchId > 0 ? $branchId : null;
+            $recipients = Notifier::recipientsForPermission('finance.invoices.manage', [], $forBranch);
+            if ($recipients->isEmpty()) {
+                continue;
+            }
+
+            $lines = collect($missing)->map(function ($row) {
+                /** @var CourseClass $class */
+                $class = $row['class'];
+
+                return '- '.$class->name.': còn '.$row['need'].'/'.$row['total'].' HV chưa có HĐ';
+            })->implode("\n");
+
+            // source_id = YYYYMM * 10000 + branch (HQ/null = 0)
+            $sourceId = ($monthNum * 10000) + (int) $branchId;
+
+            $auto->ensureForUsers(
+                $recipients,
+                AutoTaskService::SOURCE_MONTHLY_INVOICE,
+                $sourceId,
+                [
+                    'title' => 'Tạo HĐ học phí tháng '.$label,
+                    'description' => "Các lớp còn thiếu hóa đơn tháng {$label}:\n{$lines}\n"
+                        .'Mở: '.route('admin.invoices.index', absolute: false),
+                    'priority' => 'high',
+                    'due_date' => Carbon::parse($month.'-01')->endOfMonth()->setTime(18, 0),
+                    'branch_id' => $forBranch,
+                    'status' => 'todo',
+                ]
+            );
+            $createdBranches++;
         }
 
-        $lines = collect($missing)->map(function ($row) {
-            /** @var CourseClass $class */
-            $class = $row['class'];
-
-            return '- '.$class->name.': còn '.$row['need'].'/'.$row['total'].' HV chưa có HĐ';
-        })->implode("\n");
-
-        $sourceId = (int) str_replace('-', '', $month); // YYYYMM
-        $label = Carbon::parse($month.'-01')->format('m/Y');
-
-        $auto->ensureForUsers(
-            $recipients,
-            AutoTaskService::SOURCE_MONTHLY_INVOICE,
-            $sourceId,
-            [
-                'title' => 'Tạo HĐ học phí tháng '.$label,
-                'description' => "Các lớp còn thiếu hóa đơn tháng {$label}:\n{$lines}\n"
-                    .'Mở: '.route('admin.invoices.index', absolute: false),
-                'priority' => 'high',
-                'due_date' => Carbon::parse($month.'-01')->endOfMonth()->setTime(18, 0),
-                'status' => 'todo',
-            ]
-        );
-
-        $this->info('Đã tạo việc nhắc HĐ tháng '.$label.' ('.count($missing).' lớp thiếu).');
+        $this->info('Đã tạo việc nhắc HĐ tháng '.$label.' ('.$createdBranches.' chi nhánh).');
 
         return self::SUCCESS;
     }

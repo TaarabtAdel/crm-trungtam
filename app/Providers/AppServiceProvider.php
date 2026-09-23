@@ -111,12 +111,11 @@ class AppServiceProvider extends ServiceProvider
             });
         }
 
-        // User: chỉ khóa theo branch bắt buộc trên hồ sơ (forced).
-        // Không áp filter session — để bỏ gắn chi nhánh vẫn mở được hồ sơ.
+        // User: khóa theo chi nhánh đang hiệu lực (forced hoặc header).
         Route::bind('user', function (string $value) {
             $q = User::query()->whereKey($value);
-            if ($forced = CurrentBranch::forcedId()) {
-                $q->where('branch_id', $forced);
+            if ($id = CurrentBranch::id()) {
+                $q->where('branch_id', $id);
             }
 
             return $q->firstOrFail();
@@ -124,8 +123,8 @@ class AppServiceProvider extends ServiceProvider
 
         Route::bind('branch', function (string $value) {
             $q = \App\Models\Branch::query()->whereKey($value);
-            if ($forced = CurrentBranch::forcedId()) {
-                $q->whereKey($forced);
+            if ($id = CurrentBranch::id()) {
+                $q->whereKey($id);
             }
 
             return $q->firstOrFail();

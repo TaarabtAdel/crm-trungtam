@@ -24,7 +24,9 @@ class BranchController extends Controller
             ->withQueryString();
 
         $banks = VietQr::banks();
-        $canManageAllBranches = CurrentBranch::canSwitch();
+        // Thêm / xóa chi nhánh chỉ khi không bị khóa theo hồ sơ
+        $canManageAllBranches = CurrentBranch::canSwitch()
+            && ($request->user()?->hasPermission('system.branches.manage') ?? false);
 
         return view('admin.system.branches', compact('branches', 'q', 'banks', 'canManageAllBranches'));
     }

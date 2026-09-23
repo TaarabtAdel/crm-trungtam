@@ -145,6 +145,7 @@ class StaffAttendanceController extends Controller
         ]);
 
         $user = User::findOrFail($data['user_id']);
+        CurrentBranch::authorize($user->branch_id !== null ? (int) $user->branch_id : null);
         $dates = collect($data['dates'])->map(fn ($d) => Carbon::parse($d)->toDateString())->unique()->values();
 
         DB::transaction(function () use ($dates, $data, $user, $request) {
@@ -232,6 +233,9 @@ class StaffAttendanceController extends Controller
 
         $dates = collect($data['dates'])->map(fn ($d) => Carbon::parse($d)->toDateString())->unique()->values();
 
+        $user = User::findOrFail($data['user_id']);
+        CurrentBranch::authorize($user->branch_id !== null ? (int) $user->branch_id : null);
+
         $deleted = StaffAttendance::query()
             ->where('user_id', $data['user_id'])
             ->whereIn('work_date', $dates)
@@ -257,9 +261,13 @@ class StaffAttendanceController extends Controller
         $workDate = Carbon::parse($data['work_date'])->toDateString();
         $userIds = collect($data['user_ids'])->map(fn ($id) => (int) $id)->unique()->values();
 
+        $allowedIds = CurrentBranch::apply(User::query())
+            ->whereIn('id', $userIds)
+            ->pluck('id');
+
         $deleted = StaffAttendance::query()
             ->whereDate('work_date', $workDate)
-            ->whereIn('user_id', $userIds)
+            ->whereIn('user_id', $allowedIds)
             ->delete();
 
         return redirect()
@@ -300,7 +308,13 @@ class StaffAttendanceController extends Controller
             }
 
             try {
-                $sourceId = (int) Carbon::parse($date)->format('Ymd');
+                $branchId = CurrentBranch::id();
+                if (! $branchId) {
+                    // HQ đang xem "Tất cả" — không complete việc theo CN (tránh đụng sai)
+                    continue;
+                }
+                // Khớp CreateStaffAttendanceTasksCommand: Ymd + 4 chữ số branch_id
+                $sourceId = (int) (Carbon::parse($date)->format('Ymd').sprintf('%04d', $branchId));
                 $auto->completeBySource(AutoTaskService::SOURCE_STAFF_ATTENDANCE, $sourceId, $actorId);
             } catch (\Throwable $e) {
                 report($e);

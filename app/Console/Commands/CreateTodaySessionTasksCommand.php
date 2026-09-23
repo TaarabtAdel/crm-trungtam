@@ -35,10 +35,13 @@ class CreateTodaySessionTasksCommand extends Command
             return self::SUCCESS;
         }
 
-        $managers = Notifier::recipientsForPermission('training.classes.manage');
         $tasks = 0;
 
         foreach ($sessions as $session) {
+            $branchId = $session->courseClass?->branch_id
+                ? (int) $session->courseClass->branch_id
+                : null;
+            $managers = Notifier::recipientsForPermission('training.classes.manage', [], $branchId);
             $recipients = $this->recipientsForSession($session, $managers);
             if ($recipients->isEmpty()) {
                 continue;

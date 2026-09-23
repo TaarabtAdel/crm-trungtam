@@ -44,10 +44,6 @@ class RemindEmptyJournalsCommand extends Command
             return self::SUCCESS;
         }
 
-        $fallback = Notifier::recipientsForPermission('training.journals.manage')
-            ->filter(fn ($u) => $u->hasAnyRole('training', 'admin', 'super_admin', 'teacher'))
-            ->values();
-
         $tasks = 0;
         foreach ($sessions as $session) {
             $recipients = collect();
@@ -59,7 +55,12 @@ class RemindEmptyJournalsCommand extends Command
                     ->get();
             }
             if ($recipients->isEmpty()) {
-                $recipients = $fallback;
+                $branchId = $session->courseClass?->branch_id
+                    ? (int) $session->courseClass->branch_id
+                    : null;
+                $recipients = Notifier::recipientsForPermission('training.journals.manage', [], $branchId)
+                    ->filter(fn ($u) => $u->hasAnyRole('training', 'admin', 'super_admin', 'teacher'))
+                    ->values();
             }
             if ($recipients->isEmpty()) {
                 continue;

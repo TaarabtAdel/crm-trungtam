@@ -7,15 +7,20 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Collection;
 
+/**
+ * Phân tách dữ liệu theo chi nhánh.
+ *
+ * Quy tắc (mọi role, kể cả Super Admin — có thể nhiều SA theo từng CN):
+ * - User có users.branch_id → chỉ xem/sửa dữ liệu chi nhánh đó (header khóa).
+ * - User không gắn chi nhánh (HQ) → chọn "Tất cả" hoặc một CN trên header.
+ * - Dữ liệu thuộc chi nhánh nào thì chỉ user của CN đó (hoặc HQ) được thấy.
+ */
 class CurrentBranch
 {
     public const SESSION_KEY = 'current_branch_id';
 
     /**
-     * Chi nhánh bắt buộc theo hồ sơ user.
-     * null = được xem tất cả / đổi chi nhánh.
-     *
-     * Không khóa: Super Admin, role Admin, hoặc quyền system.branches.manage.
+     * Chi nhánh bắt buộc theo hồ sơ (mọi role).
      */
     public static function forcedId(): ?int
     {
@@ -24,23 +29,20 @@ class CurrentBranch
             return null;
         }
 
-        if ($user->isSuperAdmin()
-            || $user->hasAnyRole('admin')
-            || $user->hasPermission('system.branches.manage')) {
-            return null;
-        }
-
         return (int) $user->branch_id;
     }
 
     /**
-     * User không gắn chi nhánh mới được chọn "Tất cả" / chuyển chi nhánh.
+     * true = HQ (chưa gắn CN) → được đổi chi nhánh / xem tất cả.
      */
     public static function canSwitch(): bool
     {
         return self::forcedId() === null;
     }
 
+    /**
+     * Chi nhánh đang hiệu lực khi query.
+     */
     public static function id(): ?int
     {
         if ($forced = self::forcedId()) {
@@ -69,9 +71,6 @@ class CurrentBranch
         session([self::SESSION_KEY => (int) $id]);
     }
 
-    /**
-     * Đồng bộ session với branch bắt buộc (gọi mỗi request đã đăng nhập).
-     */
     public static function syncFromUser(): void
     {
         if ($forced = self::forcedId()) {
@@ -117,21 +116,26 @@ class CurrentBranch
      */
     public static function allowedIds(): array
     {
-        if ($forced = self::forcedId()) {
-            return [$forced];
+        if ($id = self::id()) {
+            return [$id];
         }
 
         return Branch::query()->where('is_active', true)->pluck('id')->map(fn ($id) => (int) $id)->all();
     }
 
+    /**
+     * Record có được thao tác với ngữ cảnh chi nhánh hiện tại không.
+     * - HQ + "Tất cả" (id null) → mọi record
+     * - Đang lọc/khóa CN X → chỉ record branch_id = X
+     */
     public static function allows(?int $branchId): bool
     {
-        $forced = self::forcedId();
-        if ($forced === null) {
+        $id = self::id();
+        if ($id === null) {
             return true;
         }
 
-        return $branchId !== null && (int) $branchId === $forced;
+        return $branchId !== null && (int) $branchId === $id;
     }
 
     public static function authorize(?int $branchId): void
@@ -142,12 +146,38 @@ class CurrentBranch
     }
 
     /**
-     * Ép branch_id khi tạo/sửa: user gắn chi nhánh thì luôn dùng chi nhánh đó.
+     * User có được nhận thông báo/việc của chi nhánh $forBranchId không.
+     * - HQ (không gắn CN) → nhận mọi CN
+     * - Có gắn CN → chỉ đúng CN đó
+     */
+    public static function userBelongsToBranchContext(?int $userBranchId, ?int $forBranchId): bool
+    {
+        if ($forBranchId === null) {
+            return true;
+        }
+
+        if ($userBranchId === null) {
+            return true;
+        }
+
+        return $userBranchId === (int) $forBranchId;
+    }
+
+    /**
+     * Ép branch khi tạo/sửa:
+     * - User bị khóa CN → luôn ghi CN đó
+     * - HQ đang chọn một CN trên header + field trống → điền CN đang chọn
      */
     public static function constrainPayload(array $data, string $key = 'branch_id'): array
     {
         if ($forced = self::forcedId()) {
             $data[$key] = $forced;
+
+            return $data;
+        }
+
+        if (! filled($data[$key] ?? null) && ($id = self::id())) {
+            $data[$key] = $id;
         }
 
         return $data;

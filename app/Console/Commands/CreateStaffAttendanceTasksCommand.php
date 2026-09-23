@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Branch;
 use App\Services\Tasks\AutoTaskService;
 use App\Support\Notifier;
 use Carbon\Carbon;
@@ -27,35 +28,50 @@ class CreateStaffAttendanceTasksCommand extends Command
             return self::SUCCESS;
         }
 
-        $recipients = Notifier::recipientsForPermission('system.staff_attendances.manage');
-        if ($recipients->isEmpty()) {
-            $this->warn('Không có user nào có quyền system.staff_attendances.manage.');
+        $label = $date->format('d/m/Y');
+        $branches = Branch::query()->where('is_active', true)->orderBy('name')->get();
+        if ($branches->isEmpty()) {
+            $this->warn('Không có chi nhánh active.');
 
             return self::SUCCESS;
         }
 
-        $sourceId = (int) $date->format('Ymd');
-        $label = $date->format('d/m/Y');
-        $url = route('admin.staff-attendances.index', [
-            'mode' => 'day',
-            'date' => $date->toDateString(),
-        ], absolute: false);
+        $created = 0;
+        foreach ($branches as $branch) {
+            $recipients = Notifier::recipientsForPermission(
+                'system.staff_attendances.manage',
+                [],
+                (int) $branch->id
+            );
+            if ($recipients->isEmpty()) {
+                continue;
+            }
 
-        $auto->ensureForUsers(
-            $recipients,
-            AutoTaskService::SOURCE_STAFF_ATTENDANCE,
-            $sourceId,
-            [
-                'title' => 'Chấm công nhân viên · '.$label,
-                'description' => "Chấm công ngày {$label} cho nhân viên (có thể chấm nhiều người cùng lúc).\n"
-                    ."Mở: {$url}",
-                'priority' => 'high',
-                'due_date' => $date->copy()->setTime(18, 0),
-                'status' => 'todo',
-            ]
-        );
+            // source_id = YYYYMMDD + branch (tránh đụng giữa các CN)
+            $sourceId = (int) ($date->format('Ymd').sprintf('%04d', $branch->id));
+            $url = route('admin.staff-attendances.index', [
+                'mode' => 'day',
+                'date' => $date->toDateString(),
+            ], absolute: false);
 
-        $this->info('Đã tạo/cập nhật '.$recipients->count().' việc chấm công cho ngày '.$label.'.');
+            $auto->ensureForUsers(
+                $recipients,
+                AutoTaskService::SOURCE_STAFF_ATTENDANCE,
+                $sourceId,
+                [
+                    'title' => 'Chấm công NV · '.$branch->name.' · '.$label,
+                    'description' => "Chấm công ngày {$label} — chi nhánh {$branch->name}.\n"
+                        ."Mở: {$url}",
+                    'priority' => 'high',
+                    'due_date' => $date->copy()->setTime(18, 0),
+                    'branch_id' => $branch->id,
+                    'status' => 'todo',
+                ]
+            );
+            $created += $recipients->count();
+        }
+
+        $this->info("Đã tạo/cập nhật {$created} việc chấm công cho ngày {$label}.");
 
         return self::SUCCESS;
     }

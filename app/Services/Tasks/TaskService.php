@@ -58,6 +58,10 @@ class TaskService
 
     public function canView(User $user, Task $task): bool
     {
+        if (! CurrentBranch::allows($task->branch_id !== null ? (int) $task->branch_id : null)) {
+            return false;
+        }
+
         if ($this->isTaskAdmin($user) || $user->hasPermission('tasks.view_all')) {
             return true;
         }
@@ -80,6 +84,10 @@ class TaskService
      */
     public function canEdit(User $user, Task $task): bool
     {
+        if (! CurrentBranch::allows($task->branch_id !== null ? (int) $task->branch_id : null)) {
+            return false;
+        }
+
         if ($this->isTaskAdmin($user)) {
             return true;
         }
@@ -97,6 +105,10 @@ class TaskService
      */
     public function canWork(User $user, Task $task): bool
     {
+        if (! CurrentBranch::allows($task->branch_id !== null ? (int) $task->branch_id : null)) {
+            return false;
+        }
+
         if ($this->isTaskAdmin($user)) {
             return true;
         }
@@ -119,6 +131,10 @@ class TaskService
 
     public function canDelete(User $user, Task $task): bool
     {
+        if (! CurrentBranch::allows($task->branch_id !== null ? (int) $task->branch_id : null)) {
+            return false;
+        }
+
         if ($this->isTaskAdmin($user)) {
             return true;
         }
@@ -188,12 +204,16 @@ class TaskService
             $status = $data['status'] ?? 'todo';
             $maxPos = (int) Task::query()->where('status', $status)->max('position');
 
+            $branchData = CurrentBranch::constrainPayload([
+                'branch_id' => $data['branch_id'] ?? $actor->branch_id ?? CurrentBranch::id(),
+            ]);
+
             $task = Task::query()->create([
                 'title' => $data['title'],
                 'description' => $data['description'] ?? null,
                 'creator_id' => $actor->id,
                 'assignee_id' => $assigneeId,
-                'branch_id' => $data['branch_id'] ?? $actor->branch_id,
+                'branch_id' => $branchData['branch_id'] ?? null,
                 'status' => $status,
                 'priority' => $data['priority'] ?? 'medium',
                 'start_date' => $data['start_date'] ?? null,
@@ -260,7 +280,9 @@ class TaskService
                 'description' => $source->description,
                 'creator_id' => $actor->id,
                 'assignee_id' => $this->canAssign($actor) ? $source->assignee_id : $actor->id,
-                'branch_id' => $source->branch_id ?? $actor->branch_id,
+                'branch_id' => CurrentBranch::constrainPayload([
+                    'branch_id' => $source->branch_id ?? $actor->branch_id ?? CurrentBranch::id(),
+                ])['branch_id'] ?? null,
                 'status' => $status,
                 'priority' => $source->priority,
                 'start_date' => $source->start_date,
@@ -320,6 +342,10 @@ class TaskService
                 $data['completed_at'] = now();
             } elseif (isset($data['status']) && $data['status'] !== 'done') {
                 $data['completed_at'] = null;
+            }
+
+            if (array_key_exists('branch_id', $data) || CurrentBranch::forcedId()) {
+                $data = CurrentBranch::constrainPayload($data);
             }
 
             $task->fill(collect($data)->only([
