@@ -1,43 +1,55 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Đăng nhập — CRM Trung Tâm</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="{{ asset('css/admin.css') }}">
-</head>
-<body>
-<div class="login-page">
-    <div class="login-card">
-        <h4 class="mb-1 text-center font-weight-bold">{{ \App\Models\Setting::get('center_name', 'CRM Trung Tâm') }}</h4>
-        <p class="text-muted text-center mb-4">Đăng nhập quản trị</p>
+@extends('layouts.workbench')
+
+@php
+    $brand = $brand ?? (string) \App\Models\Setting::get('center_name', \App\Models\Setting::get('logo_text', config('app.name')));
+    $logoText = $logoText ?? (string) \App\Models\Setting::get('logo_text', 'CRM');
+@endphp
+
+@section('title', 'Đăng nhập — '.$brand)
+
+@section('content')
+<div class="wb-auth">
+    <div class="wb-auth-hero">
+        <div class="wb-auth-brand" aria-label="{{ $brand }}">
+            <span class="wb-brand-mark wb-auth-mark">{{ mb_strtoupper(mb_substr($logoText, 0, 2)) }}</span>
+            <h1 class="wb-auth-title">{{ $brand }}</h1>
+            <p class="wb-auth-sub">Đăng nhập để vào bàn làm việc</p>
+        </div>
+    </div>
+
+    <form method="POST" action="{{ route('login') }}" class="wb-auth-panel">
+        @csrf
+        <h2 class="wb-auth-panel-title">Đăng nhập</h2>
+
         @if(session('status'))
-            <div class="alert alert-success">{{ session('status') }}</div>
+            <div class="wb-auth-alert is-ok">{{ session('status') }}</div>
         @endif
         @if($errors->any())
-            <div class="alert alert-danger">{{ $errors->first() }}</div>
+            <div class="wb-auth-alert is-err">{{ $errors->first() }}</div>
         @endif
-        <form method="POST" action="{{ route('login') }}">
-            @csrf
-            <div class="form-group">
-                <label>Email</label>
-                <input type="email" name="email" class="form-control" value="{{ old('email', 'admin@crm.local') }}" required autofocus>
-            </div>
-            <div class="form-group">
-                <div class="d-flex justify-content-between align-items-center">
-                    <label class="mb-0">Mật khẩu</label>
-                    <a href="{{ route('password.request') }}" class="small">Quên mật khẩu?</a>
-                </div>
-                <input type="password" name="password" class="form-control mt-1" value="password" required>
-            </div>
-            <div class="form-group form-check">
-                <input type="checkbox" class="form-check-input" name="remember" id="remember">
-                <label class="form-check-label" for="remember">Ghi nhớ đăng nhập</label>
-            </div>
-            <button type="submit" class="btn btn-primary btn-block">Đăng nhập</button>
-        </form>
-    </div>
+
+        <label class="wb-auth-field">
+            <span>Email</span>
+            <input type="email" name="email" value="{{ old('email') }}" required autofocus autocomplete="username" placeholder="ban@trungtam.vn">
+        </label>
+
+        <label class="wb-auth-field">
+            <span class="wb-auth-field-row">
+                <span>Mật khẩu</span>
+                <a href="{{ route('password.request') }}" class="wb-auth-link">Quên mật khẩu?</a>
+            </span>
+            <input type="password" name="password" required autocomplete="current-password" placeholder="••••••••">
+        </label>
+
+        <label class="wb-auth-check">
+            <input type="checkbox" name="remember" id="remember" value="1">
+            <span>Ghi nhớ đăng nhập</span>
+        </label>
+
+        <button type="submit" class="wb-auth-submit">
+            <i class="bi bi-box-arrow-in-right"></i>
+            Đăng nhập
+        </button>
+    </form>
 </div>
-</body>
-</html>
+@endsection

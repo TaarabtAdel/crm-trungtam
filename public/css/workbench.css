@@ -767,12 +767,49 @@ body.workbench-body {
 .wb-empty {
     grid-column: 1 / -1;
     text-align: center;
-    padding: 3rem 1rem;
+    padding: 2.5rem 1.5rem;
     color: var(--wb-muted);
     background: var(--wb-glass);
     border: 1px solid var(--wb-border);
     border-radius: var(--wb-radius);
     backdrop-filter: blur(12px);
+}
+
+.wb-empty-icon {
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    margin: 0 auto 0.85rem;
+    border-radius: 0.85rem;
+    background: rgba(240, 195, 106, 0.16);
+    border: 1px solid rgba(240, 195, 106, 0.28);
+    color: var(--wb-accent);
+    font-size: 1.25rem;
+}
+
+.wb-empty-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--wb-text);
+    letter-spacing: -0.02em;
+}
+
+.wb-empty-hint {
+    margin: 0.65rem auto 0;
+    max-width: 28rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--wb-muted);
+}
+
+.wb-empty-hint strong {
+    color: var(--wb-accent);
+    font-weight: 600;
+}
+
+.wb-empty-hint[hidden] {
+    display: none !important;
 }
 
 .wb-menu {
@@ -943,13 +980,260 @@ body.workbench-body {
     display: none !important;
 }
 
+/* ── Auth (/login, quên MK) — cùng “máy tính” với /home ── */
+.wb-auth {
+    --wb-auth-w: 640px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    gap: 2.25rem;
+    padding: 2rem 1.25rem 3rem;
+    width: min(var(--wb-auth-w), 100%);
+    max-width: var(--wb-auth-w);
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+.wb-auth-hero {
+    text-align: center;
+    animation: wb-rise 0.55s ease both;
+}
+
+.wb-auth-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.wb-auth-mark {
+    width: 4.25rem;
+    height: 4.25rem;
+    border-radius: 1.15rem;
+    font-size: 1.35rem;
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35);
+}
+
+.wb-auth-title {
+    margin: 0;
+    font-family: var(--wb-font-display);
+    font-size: clamp(2.1rem, 5vw, 2.75rem);
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 1.15;
+    color: var(--wb-text);
+    text-shadow: 0 2px 24px rgba(0, 0, 0, 0.35);
+}
+
+.wb-auth-sub {
+    margin: 0;
+    font-size: 1.08rem;
+    font-weight: 500;
+    color: var(--wb-muted);
+    letter-spacing: 0.02em;
+}
+
+.wb-auth-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    width: 100%;
+    min-width: 0; /* cho phép co; bề rộng lấy từ .wb-auth */
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 2rem 2rem 1.75rem;
+    border-radius: calc(var(--wb-radius) + 0.25rem);
+    border: 1px solid var(--wb-border);
+    background: var(--wb-glass-strong);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+    animation: wb-rise 0.65s ease 0.08s both;
+}
+
+.wb-auth-panel-title {
+    margin: 0 0 0.15rem;
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--wb-text);
+}
+
+.wb-auth-hint {
+    margin: -0.25rem 0 0.15rem;
+    font-size: 0.88rem;
+    line-height: 1.45;
+    color: var(--wb-muted);
+    /* Không đẩy rộng form: chiếm 100% bề rộng cha, chữ tự xuống dòng */
+    width: 0;
+    min-width: 100%;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.wb-auth-hint strong {
+    color: var(--wb-accent);
+    font-weight: 600;
+}
+
+.wb-auth-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    margin: 0;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--wb-muted);
+}
+
+.wb-auth-field-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.wb-auth-field input {
+    width: 100%;
+    height: 3.25rem;
+    border: 1px solid var(--wb-border);
+    border-radius: 0.95rem;
+    background: rgba(8, 20, 32, 0.45);
+    color: var(--wb-text);
+    padding: 0 1.15rem;
+    font-family: inherit;
+    font-size: 1.05rem;
+    font-weight: 500;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.wb-auth-field input::placeholder {
+    color: rgba(247, 250, 252, 0.4);
+    font-weight: 400;
+}
+
+.wb-auth-field input:focus {
+    border-color: rgba(240, 195, 106, 0.55);
+    background: rgba(8, 20, 32, 0.62);
+    box-shadow: 0 0 0 3px rgba(240, 195, 106, 0.18);
+}
+
+.wb-auth-link {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--wb-accent);
+    text-decoration: none;
+}
+
+.wb-auth-link:hover {
+    text-decoration: underline;
+}
+
+.wb-auth-check {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin: 0.15rem 0 0;
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--wb-muted);
+    cursor: pointer;
+    user-select: none;
+}
+
+.wb-auth-check input {
+    width: 1.05rem;
+    height: 1.05rem;
+    accent-color: #d97706;
+    cursor: pointer;
+}
+
+.wb-auth-submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    width: 100%;
+    height: 3.35rem;
+    margin-top: 0.4rem;
+    border: 0;
+    border-radius: 1rem;
+    background: linear-gradient(145deg, #f0c36a, #d97706 55%, #b45309);
+    color: #111827;
+    font-family: inherit;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    cursor: pointer;
+    box-shadow: 0 12px 28px rgba(217, 119, 6, 0.35);
+    transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+}
+
+.wb-auth-submit:hover:not(:disabled) {
+    filter: brightness(1.05);
+    transform: translateY(-1px);
+    box-shadow: 0 14px 32px rgba(217, 119, 6, 0.42);
+}
+
+.wb-auth-submit:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.wb-auth-submit:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.wb-auth-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    margin-top: 0.35rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--wb-muted);
+    text-decoration: none;
+}
+
+.wb-auth-back:hover {
+    color: var(--wb-text);
+}
+
+.wb-auth-alert {
+    padding: 0.7rem 0.85rem;
+    border-radius: 0.75rem;
+    font-size: 0.86rem;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.wb-auth-alert.is-ok {
+    background: rgba(16, 185, 129, 0.18);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    color: #a7f3d0;
+}
+
+.wb-auth-alert.is-err {
+    background: rgba(239, 68, 68, 0.16);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #fecaca;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .wb-bg,
     .wb-topbar,
     .wb-filters,
     .wb-grid,
     .wb-app,
-    .wb-datetime {
+    .wb-datetime,
+    .wb-auth-hero,
+    .wb-auth-panel {
         animation: none !important;
         transition: none !important;
     }

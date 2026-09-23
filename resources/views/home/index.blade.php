@@ -128,7 +128,9 @@
                     </div>
                 @endforelse
                 <div class="wb-empty is-hidden" id="wbEmptyFilter" hidden>
-                    Không tìm thấy ứng dụng phù hợp.
+                    <div class="wb-empty-icon" aria-hidden="true"><i class="bi bi-star"></i></div>
+                    <div class="wb-empty-title" id="wbEmptyTitle">Không tìm thấy ứng dụng phù hợp.</div>
+                    <p class="wb-empty-hint" id="wbEmptyHint" hidden></p>
                 </div>
             </div>
         </div>
@@ -242,8 +244,40 @@
 
         var empty = document.getElementById('wbEmptyFilter');
         if (empty) {
-            empty.hidden = visible > 0 || document.querySelectorAll('.wb-app').length === 0;
-            empty.classList.toggle('is-hidden', empty.hidden);
+            var show = visible === 0 && document.querySelectorAll('.wb-app').length > 0;
+            empty.hidden = !show;
+            empty.classList.toggle('is-hidden', !show);
+
+            var titleEl = document.getElementById('wbEmptyTitle');
+            var hintEl = document.getElementById('wbEmptyHint');
+            var iconEl = empty.querySelector('.wb-empty-icon i');
+
+            if (show && titleEl) {
+                if (filter === 'favorites' && fav.length === 0 && !q) {
+                    if (iconEl) iconEl.className = 'bi bi-star';
+                    titleEl.textContent = 'Chưa có ứng dụng yêu thích';
+                    if (hintEl) {
+                        hintEl.hidden = false;
+                        hintEl.innerHTML =
+                            'Mở tab <strong>Tất cả</strong>, rồi <strong>chuột phải</strong> (hoặc nhấn giữ trên điện thoại) vào biểu tượng ứng dụng để thêm vào Yêu thích.';
+                    }
+                } else if (filter === 'recent' && rec.length === 0 && !q) {
+                    if (iconEl) iconEl.className = 'bi bi-clock-history';
+                    titleEl.textContent = 'Chưa có ứng dụng gần đây';
+                    if (hintEl) {
+                        hintEl.hidden = false;
+                        hintEl.innerHTML =
+                            'Mở bất kỳ ứng dụng nào từ tab <strong>Tất cả</strong> — lần sau chúng sẽ hiện ở đây.';
+                    }
+                } else {
+                    if (iconEl) iconEl.className = 'bi bi-search';
+                    titleEl.textContent = 'Không tìm thấy ứng dụng phù hợp.';
+                    if (hintEl) {
+                        hintEl.hidden = true;
+                        hintEl.textContent = '';
+                    }
+                }
+            }
         }
     }
 

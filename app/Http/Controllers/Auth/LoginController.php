@@ -14,7 +14,10 @@ class LoginController extends Controller
             return redirect()->route('home');
         }
 
-        return view('auth.login');
+        $brand = (string) \App\Models\Setting::get('center_name', \App\Models\Setting::get('logo_text', config('app.name')));
+        $logoText = (string) \App\Models\Setting::get('logo_text', 'CRM');
+
+        return view('auth.login', compact('brand', 'logoText'));
     }
 
     public function login(Request $request)
