@@ -67,10 +67,15 @@
                         <textarea name="content" class="form-control" rows="4"
                                   placeholder="Nội dung giảng dạy trong buổi...">{{ old('content', $journal->content) }}</textarea>
                     </div>
-                    <div class="form-group mb-0">
+                    <div class="form-group">
                         <label>Nhận xét</label>
                         <textarea name="remarks" class="form-control" rows="3"
                                   placeholder="Nhận xét lớp / học viên...">{{ old('remarks', $journal->remarks) }}</textarea>
+                    </div>
+                    <div class="form-group mb-0">
+                        <label>Bài tập về nhà</label>
+                        <textarea name="homework" class="form-control" rows="3"
+                                  placeholder="Bài tập giao về nhà cho học viên / phụ huynh...">{{ old('homework', $journal->homework) }}</textarea>
                     </div>
                     @if($journal->filled_at)
                         <p class="small text-muted mt-2 mb-0">
@@ -89,17 +94,28 @@
                         <label class="text-muted">Nội dung</label>
                         <div style="white-space:pre-wrap">{{ $journal->content ?: '—' }}</div>
                     </div>
-                    <div class="form-group mb-0">
+                    <div class="form-group">
                         <label class="text-muted">Nhận xét</label>
                         <div style="white-space:pre-wrap">{{ $journal->remarks ?: '—' }}</div>
                     </div>
+                    <div class="form-group mb-0">
+                        <label class="text-muted">Bài tập về nhà</label>
+                        <div style="white-space:pre-wrap">{{ $journal->homework ?: '—' }}</div>
+                    </div>
                 @endcanPerm
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-light" data-dismiss="modal">Đóng</button>
-                @canPerm('training.journals.manage')
-                    <button class="btn btn-primary">Lưu nhật ký</button>
-                @endcanPerm
+            <div class="modal-footer justify-content-between">
+                <a href="{{ route('admin.classes.timetable.sessions.journal.pdf', [$class, $session]) }}"
+                   class="btn btn-outline-secondary"
+                   target="_blank">
+                    <i class="bi bi-file-earmark-pdf"></i> Xuất PDF gửi PH
+                </a>
+                <div>
+                    <button type="button" class="btn btn-light" data-dismiss="modal">Đóng</button>
+                    @canPerm('training.journals.manage')
+                        <button class="btn btn-primary">Lưu nhật ký</button>
+                    @endcanPerm
+                </div>
             </div>
         </form>
     </div>

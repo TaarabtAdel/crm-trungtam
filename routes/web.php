@@ -36,13 +36,16 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ResetPasswordController;
+use App\Http\Controllers\HomeController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return auth()->check()
-        ? redirect()->route('admin.dashboard')
+        ? redirect()->route('home')
         : redirect()->route('login');
 });
+
+Route::middleware('auth')->get('/home', [HomeController::class, 'index'])->name('home');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
@@ -168,6 +171,9 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::put('classes/{class}/timetable/sessions/{session}/journal', [ClassController::class, 'updateJournal'])
         ->middleware('permission:training.journals.manage,training.classes.manage')
         ->name('classes.timetable.sessions.journal.update');
+    Route::get('classes/{class}/timetable/sessions/{session}/journal/pdf', [ClassController::class, 'exportJournalPdf'])
+        ->middleware('permission:training.journals.manage,training.classes.manage,training.classes.view')
+        ->name('classes.timetable.sessions.journal.pdf');
 
     Route::middleware('permission:students.view')->group(function () {
         Route::get('students', [StudentController::class, 'index'])->name('students.index');

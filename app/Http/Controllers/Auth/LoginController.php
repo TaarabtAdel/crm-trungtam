@@ -11,7 +11,7 @@ class LoginController extends Controller
     public function showLoginForm()
     {
         if (Auth::check()) {
-            return redirect()->route('admin.dashboard');
+            return redirect()->route('home');
         }
 
         return view('auth.login');
@@ -34,7 +34,7 @@ class LoginController extends Controller
 
             $request->session()->regenerate();
 
-            return redirect()->intended(route('admin.dashboard'));
+            return redirect()->intended(route('home'));
         }
 
         return back()->withErrors(['email' => 'Email hoặc mật khẩu không đúng.'])->onlyInput('email');

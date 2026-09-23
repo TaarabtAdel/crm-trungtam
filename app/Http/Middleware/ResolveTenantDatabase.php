@@ -91,9 +91,30 @@ class ResolveTenantDatabase
         }
 
         try {
+            $this->ensureSchemaUpToDate();
+        } catch (\Throwable) {
+            //
+        }
+
+        try {
             AppSettings::applyMailConfig();
         } catch (\Throwable) {
             //
         }
+    }
+
+    protected function ensureSchemaUpToDate(): void
+    {
+        if (! InstallState::schemaReady()) {
+            return;
+        }
+
+        $target = (string) config('app.schema_version', '1.0');
+        $current = (string) \App\Models\Setting::get('app_schema_version', '0');
+        if (version_compare($current, $target, '>=')) {
+            return;
+        }
+
+        app(\App\Services\Install\SchemaUpdateService::class)->run();
     }
 }

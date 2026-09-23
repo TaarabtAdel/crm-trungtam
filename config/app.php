@@ -137,6 +137,6 @@ return [
     | Schema version (cPanel installer / Versions)
     |--------------------------------------------------------------------------
     */
-    'schema_version' => '1.0',
+    'schema_version' => '1.1',
 
 ];

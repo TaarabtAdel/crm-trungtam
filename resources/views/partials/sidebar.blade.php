@@ -1,5 +1,5 @@
 <aside class="admin-sidebar">
-    <div class="brand">{{ \App\Models\Setting::get('logo_text', 'TPT2') }}</div>
+    <div class="brand"><a href="{{ route('home') }}" class="text-white text-decoration-none">{{ \App\Models\Setting::get('logo_text', 'TPT2') }}</a></div>
 
     @php $u = auth()->user(); @endphp
 
@@ -42,7 +42,7 @@
     @endif
     @endif
 
-    @if($u->hasAnyPermission('training.classes.view','training.subjects.view','training.teachers.view'))
+    @if($u->hasAnyPermission('training.classes.view','training.subjects.view','training.teachers.view','students.view','attendances.view'))
     <div class="nav-section">Quản trị đào tạo</div>
     @if($u->hasPermission('training.classes.view'))
     <a href="{{ route('admin.classes.index') }}" class="nav-link {{ request()->routeIs('admin.classes.*') ? 'active' : '' }}">
@@ -59,10 +59,6 @@
         <i class="bi bi-person-badge mr-2"></i> Giáo viên
     </a>
     @endif
-    @endif
-
-    @if($u->hasAnyPermission('students.view','attendances.view'))
-    <div class="nav-section">Quản trị học viên</div>
     @if($u->hasPermission('students.view'))
     <a href="{{ route('admin.students.index') }}" class="nav-link {{ request()->routeIs('admin.students.*') ? 'active' : '' }}">
         <i class="bi bi-mortarboard mr-2"></i> Học sinh

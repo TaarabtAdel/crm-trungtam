@@ -20,6 +20,7 @@ class ClassSessionJournal extends Model
         'lesson_title',
         'content',
         'remarks',
+        'homework',
         'filled_by',
         'filled_at',
     ];
@@ -49,6 +50,9 @@ class ClassSessionJournal extends Model
 
     public function isFilled(): bool
     {
-        return filled($this->lesson_title) || filled($this->content) || filled($this->remarks);
+        return filled($this->lesson_title)
+            || filled($this->content)
+            || filled($this->remarks)
+            || filled($this->homework);
     }
 }

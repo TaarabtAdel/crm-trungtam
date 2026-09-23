@@ -5,7 +5,8 @@
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap" style="gap:.5rem">
     <p class="small text-muted mb-0">
         Nhật ký tự tạo khi buổi được đánh dấu <strong>Hoàn thành</strong>.
-        Số liệu sĩ số / vắng / muộn lấy từ điểm danh; giáo viên điền thêm tên bài, nội dung, nhận xét.
+        Số liệu sĩ số / vắng / muộn lấy từ điểm danh; giáo viên điền thêm tên bài, nội dung, nhận xét, bài tập về nhà.
+        Có thể xuất PDF gửi phụ huynh.
     </p>
     <form method="GET" action="{{ route('admin.classes.show', $class) }}" class="d-flex align-items-center" style="gap:.5rem">
         <input type="hidden" name="tab" value="journal">
@@ -67,6 +68,12 @@
                             <i class="bi bi-journal-text"></i>
                             {{ $journal->isFilled() ? 'Xem / Sửa' : 'Điền nhật ký' }}
                         </button>
+                        <a href="{{ route('admin.classes.timetable.sessions.journal.pdf', [$class, $session]) }}"
+                           class="btn btn-sm btn-outline-secondary"
+                           target="_blank"
+                           title="Xuất PDF gửi phụ huynh">
+                            <i class="bi bi-file-earmark-pdf"></i>
+                        </a>
                     @endif
                 </td>
             </tr>

@@ -39,11 +39,6 @@ return [
                 'training.teachers.manage' => 'Thêm / sửa / xóa giáo viên',
                 'training.teachers.payroll' => 'Xem / xuất bảng lương GV',
                 'training.journals.manage' => 'Cập nhật nhật ký lớp học',
-            ],
-        ],
-        'students' => [
-            'label' => 'Quản trị học viên',
-            'permissions' => [
                 'students.view' => 'Xem học sinh',
                 'students.manage' => 'Thêm / sửa / xóa học sinh',
                 'students.import' => 'Nhập học viên từ Excel',

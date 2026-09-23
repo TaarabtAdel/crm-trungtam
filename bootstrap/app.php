@@ -25,7 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Tránh vòng lặp: guest (/login) ↔ / khi đã đăng nhập
         $middleware->redirectGuestsTo('/login');
-        $middleware->redirectUsersTo('/admin');
+        $middleware->redirectUsersTo('/home');
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

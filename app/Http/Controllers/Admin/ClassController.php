@@ -576,6 +576,7 @@ class ClassController extends Controller
             'lesson_title' => 'nullable|string|max:255',
             'content' => 'nullable|string|max:5000',
             'remarks' => 'nullable|string|max:5000',
+            'homework' => 'nullable|string|max:5000',
         ]);
 
         $journal = $journals->ensureForSession($session, true);
@@ -587,11 +588,44 @@ class ClassController extends Controller
             'lesson_title' => $data['lesson_title'] ?? null,
             'content' => $data['content'] ?? null,
             'remarks' => $data['remarks'] ?? null,
+            'homework' => $data['homework'] ?? null,
             'filled_by' => auth()->id(),
             'filled_at' => now(),
         ]);
 
         return back()->with('success', 'Đã lưu nhật ký buổi học.');
+    }
+
+    public function exportJournalPdf(
+        Request $request,
+        CourseClass $class,
+        ClassSession $session,
+        ClassSessionJournalService $journals
+    ) {
+        abort_unless($session->class_id === $class->id, 404);
+        $this->authorizeTeacherSessionJournal($request->user(), $session);
+
+        $class->load(['branch', 'subject', 'teacher']);
+        $session->load('teacher');
+
+        $journal = $journals->ensureForSession($session, true);
+        if (! $journal) {
+            return back()->with('error', 'Chưa có nhật ký cho buổi này.');
+        }
+
+        $journal->load('filledByUser');
+
+        $pdf = Pdf::loadView('pdf.journal', [
+            'class' => $class,
+            'session' => $session,
+            'journal' => $journal,
+            'branch' => $class->branch,
+        ])->setPaper('a4', 'portrait');
+
+        $date = $session->session_date->format('Ymd');
+        $safeName = preg_replace('/[^\pL\pN\-]+/u', '-', $class->name) ?: 'lop';
+
+        return $pdf->download("nhat-ky-{$safeName}-{$date}.pdf");
     }
 
     public function destroySession(CourseClass $class, ClassSession $session)

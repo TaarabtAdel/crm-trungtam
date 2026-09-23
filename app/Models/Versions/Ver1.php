@@ -314,6 +314,7 @@ class Ver1
             $table->string('lesson_title')->nullable();
             $table->text('content')->nullable();
             $table->text('remarks')->nullable();
+            $table->text('homework')->nullable();
             $table->foreignId('filled_by')->nullable()->index();
             $table->timestamp('filled_at')->nullable();
             $table->timestamps();
