@@ -99,7 +99,6 @@ class AppServiceProvider extends ServiceProvider
             'expense' => Expense::class,
             'interaction' => Interaction::class,
             'task' => Task::class,
-            'user' => User::class,
         ];
 
         foreach ($bindings as $param => $model) {
@@ -111,6 +110,17 @@ class AppServiceProvider extends ServiceProvider
                 return $q->firstOrFail();
             });
         }
+
+        // User: chỉ khóa theo branch bắt buộc trên hồ sơ (forced).
+        // Không áp filter session — để bỏ gắn chi nhánh vẫn mở được hồ sơ.
+        Route::bind('user', function (string $value) {
+            $q = User::query()->whereKey($value);
+            if ($forced = CurrentBranch::forcedId()) {
+                $q->where('branch_id', $forced);
+            }
+
+            return $q->firstOrFail();
+        });
 
         Route::bind('branch', function (string $value) {
             $q = \App\Models\Branch::query()->whereKey($value);

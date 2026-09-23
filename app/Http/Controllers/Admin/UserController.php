@@ -79,6 +79,7 @@ class UserController extends Controller
         $data['daily_rate'] = $data['daily_rate'] ?? 0;
         $data['password'] = Hash::make($data['password']);
         $data['role'] = in_array('super_admin', $roles, true) ? 'super_admin' : $roles[0];
+        $data['branch_id'] = filled($data['branch_id'] ?? null) ? (int) $data['branch_id'] : null;
         $data = CurrentBranch::constrainPayload($data);
 
         $user = User::create($data);
@@ -165,6 +166,7 @@ class UserController extends Controller
             unset($data['password']);
         }
         $data['role'] = in_array('super_admin', $roles, true) ? 'super_admin' : $roles[0];
+        $data['branch_id'] = filled($data['branch_id'] ?? null) ? (int) $data['branch_id'] : null;
         $data = CurrentBranch::constrainPayload($data);
 
         $user->update($data);

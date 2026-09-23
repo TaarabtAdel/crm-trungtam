@@ -48,10 +48,18 @@
     </div>
     <div class="form-group col-md-6">
         <label>Chi nhánh</label>
+        @php
+            // Edit: chỉ lấy branch của user (null = không gắn). Không fallback header.
+            // Create: mặc định chi nhánh đang chọn trên header (nếu có).
+            $selectedBranchId = old('branch_id', $user ? $user->branch_id : ($currentBranchId ?? null));
+            if ($selectedBranchId === '' || $selectedBranchId === false) {
+                $selectedBranchId = null;
+            }
+        @endphp
         <select name="branch_id" class="form-control">
-            <option value="">— Không gắn / toàn hệ thống —</option>
+            <option value="" @selected($selectedBranchId === null)>— Không gắn / toàn hệ thống —</option>
             @foreach($branches as $b)
-                <option value="{{ $b->id }}" @selected(old('branch_id', $user->branch_id ?? $currentBranchId ?? '')==$b->id)>{{ $b->name }}</option>
+                <option value="{{ $b->id }}" @selected((string) $selectedBranchId === (string) $b->id)>{{ $b->name }}</option>
             @endforeach
         </select>
     </div>
