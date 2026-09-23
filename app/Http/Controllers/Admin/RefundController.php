@@ -37,6 +37,7 @@ class RefundController extends Controller
         ]);
 
         $payment = Payment::with('invoice')->findOrFail($data['payment_id']);
+        CurrentBranch::authorize($payment->invoice?->branch_id);
         $this->refunds->request($payment, $data, $request->user());
 
         return back()->with('success', 'Đã gửi yêu cầu hoàn tiền.');
@@ -44,6 +45,7 @@ class RefundController extends Controller
 
     public function approve(Request $request, Refund $refund)
     {
+        CurrentBranch::authorize($refund->payment?->invoice?->branch_id);
         $this->refunds->approve($refund, $request->user());
 
         return back()->with('success', 'Đã duyệt hoàn tiền.');
@@ -51,6 +53,7 @@ class RefundController extends Controller
 
     public function reject(Request $request, Refund $refund)
     {
+        CurrentBranch::authorize($refund->payment?->invoice?->branch_id);
         $this->refunds->reject($refund, $request->user());
 
         return back()->with('success', 'Đã từ chối hoàn tiền.');

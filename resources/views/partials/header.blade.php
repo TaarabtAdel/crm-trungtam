@@ -17,12 +17,18 @@
                 <div class="input-group-prepend">
                     <span class="input-group-text bg-white"><i class="bi bi-building"></i></span>
                 </div>
+                @if($canSwitchBranch ?? true)
                 <select name="branch_id" class="form-control" onchange="this.form.submit()" title="Chọn chi nhánh">
                     <option value="all" @selected(!$currentBranchId)>Tất cả</option>
                     @foreach($headerBranches as $branch)
                         <option value="{{ $branch->id }}" @selected($currentBranchId == $branch->id)>{{ $branch->name }}</option>
                     @endforeach
                 </select>
+                @else
+                <input type="text" class="form-control bg-white" readonly
+                       value="{{ $headerBranches->firstWhere('id', $currentBranchId)?->name ?? 'Chi nhánh đã gán' }}"
+                       title="Tài khoản gắn chi nhánh — chỉ xem dữ liệu chi nhánh này">
+                @endif
             </div>
         </form>
 

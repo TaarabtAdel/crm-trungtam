@@ -13,6 +13,7 @@ use App\Models\Teacher;
 use App\Models\User;
 use App\Services\ClassTimetableGenerator;
 use App\Support\AppSettings;
+use App\Support\CurrentBranch;
 use App\Support\GuideSetupChecklist;
 use App\Support\VietQr;
 use Illuminate\Http\Request;
@@ -43,11 +44,11 @@ class QuickSetupController extends Controller
         $prevKey = $stepIndex > 0 ? $keys[$stepIndex - 1] : null;
         $nextKey = $stepIndex < count($keys) - 1 ? $keys[$stepIndex + 1] : null;
 
-        $branches = Branch::query()->where('is_active', true)->orderBy('name')->get();
+        $branches = CurrentBranch::activeBranches();
         $banks = VietQr::banks();
-        $subjects = Subject::query()->where('status', 'active')->orderBy('name')->get();
-        $teachers = Teacher::query()->where('status', 'active')->orderBy('name')->get();
-        $classes = CourseClass::query()->where('status', 'active')->orderBy('name')->get();
+        $subjects = CurrentBranch::apply(Subject::query())->where('status', 'active')->orderBy('name')->get();
+        $teachers = CurrentBranch::apply(Teacher::query())->where('status', 'active')->orderBy('name')->get();
+        $classes = CurrentBranch::apply(CourseClass::query())->where('status', 'active')->orderBy('name')->get();
         $roleOptions = config('permissions.roles', []);
         $days = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
         $paymentTemplate = NotificationTemplate::findByCode('payment_success');
@@ -130,6 +131,9 @@ class QuickSetupController extends Controller
 
     protected function saveBranch(Request $request)
     {
+        if (! CurrentBranch::canSwitch()) {
+            abort(403, 'Bạn chỉ được thao tác dữ liệu thuộc chi nhánh của mình.');
+        }
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'code' => 'nullable|string|max:50',
@@ -177,7 +181,7 @@ class QuickSetupController extends Controller
         ]);
 
         $roles = array_values(array_unique($data['roles']));
-        $user = User::create([
+        $payload = CurrentBranch::constrainPayload([
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
@@ -186,6 +190,7 @@ class QuickSetupController extends Controller
             'role' => in_array('super_admin', $roles, true) ? 'super_admin' : $roles[0],
             'is_active' => true,
         ]);
+        $user = User::create($payload);
         $user->syncRoles($roles);
 
         return $this->goNext('user', 'Đã tạo người dùng '.$user->name.'.');
@@ -205,6 +210,7 @@ class QuickSetupController extends Controller
             'branch_id' => 'required|exists:branches,id',
             'description' => 'nullable|string',
         ]);
+        $data = CurrentBranch::constrainPayload($data);
         Subject::create([
             'name' => $data['name'],
             'branch_id' => $data['branch_id'],
@@ -226,6 +232,8 @@ class QuickSetupController extends Controller
             'create_login' => 'nullable|boolean',
             'password' => 'nullable|string|min:6',
         ]);
+
+        $data = CurrentBranch::constrainPayload($data);
 
         $teacher = Teacher::create([
             'branch_id' => $data['branch_id'],
@@ -276,6 +284,8 @@ class QuickSetupController extends Controller
             'tt_to' => 'nullable|date|after_or_equal:tt_from',
         ]);
 
+        $data = CurrentBranch::constrainPayload($data);
+
         $class = CourseClass::create([
             'branch_id' => $data['branch_id'],
             'name' => $data['name'],
@@ -317,6 +327,8 @@ class QuickSetupController extends Controller
             'parent_phone' => 'nullable|string|max:30',
             'class_id' => 'nullable|exists:classes,id',
         ]);
+
+        $data = CurrentBranch::constrainPayload($data);
 
         $student = Student::create([
             'branch_id' => $data['branch_id'],

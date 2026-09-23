@@ -17,7 +17,15 @@ class AttendanceController extends Controller
     {
         $classes = CurrentBranch::apply(CourseClass::query())->where('status', 'active')->orderBy('name')->get();
         $classId = $request->get('class_id', $classes->first()?->id);
-        $courseClass = $classId ? CourseClass::with('students')->find($classId) : null;
+        $courseClass = null;
+        if ($classId) {
+            $courseClass = CurrentBranch::apply(CourseClass::query()->with('students'))
+                ->whereKey($classId)
+                ->first();
+            if (! $courseClass) {
+                abort(403, 'Bạn chỉ được thao tác dữ liệu thuộc chi nhánh của mình.');
+            }
+        }
 
         $sessionOptions = collect();
         $date = $request->get('session_date');
@@ -112,7 +120,12 @@ class AttendanceController extends Controller
             ]);
         }
 
-        $class = CourseClass::with('students')->findOrFail($data['class_id']);
+        $class = CurrentBranch::apply(CourseClass::query()->with('students'))
+            ->whereKey($data['class_id'])
+            ->first();
+        if (! $class) {
+            abort(403, 'Bạn chỉ được thao tác dữ liệu thuộc chi nhánh của mình.');
+        }
         $statuses = $data['statuses'] ?? [];
         $notes = $data['notes'] ?? [];
         $resolvedStatuses = [];

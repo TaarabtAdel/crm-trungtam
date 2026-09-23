@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
+use App\Support\CurrentBranch;
 use App\Support\SmartCache;
 use App\Support\VietQr;
 use Illuminate\Http\Request;
@@ -14,18 +15,26 @@ class BranchController extends Controller
     {
         $q = $request->get('q');
         $branches = Branch::query()
-            ->when($q, fn ($query) => $query->where('name', 'like', "%{$q}%")->orWhere('code', 'like', "%{$q}%"))
+            ->when(CurrentBranch::forcedId(), fn ($query) => $query->whereKey(CurrentBranch::forcedId()))
+            ->when($q, fn ($query) => $query->where(function ($inner) use ($q) {
+                $inner->where('name', 'like', "%{$q}%")->orWhere('code', 'like', "%{$q}%");
+            }))
             ->latest()
             ->paginate(15)
             ->withQueryString();
 
         $banks = VietQr::banks();
+        $canManageAllBranches = CurrentBranch::canSwitch();
 
-        return view('admin.system.branches', compact('branches', 'q', 'banks'));
+        return view('admin.system.branches', compact('branches', 'q', 'banks', 'canManageAllBranches'));
     }
 
     public function store(Request $request)
     {
+        if (! CurrentBranch::canSwitch()) {
+            abort(403, 'Bạn chỉ được thao tác dữ liệu thuộc chi nhánh của mình.');
+        }
+
         Branch::create($this->validated($request, true));
         SmartCache::forgetActiveBranches();
 
@@ -34,6 +43,7 @@ class BranchController extends Controller
 
     public function update(Request $request, Branch $branch)
     {
+        CurrentBranch::authorize($branch->id);
         $branch->update($this->validated($request, false));
         SmartCache::forgetActiveBranches();
 
@@ -42,6 +52,10 @@ class BranchController extends Controller
 
     public function destroy(Branch $branch)
     {
+        if (! CurrentBranch::canSwitch()) {
+            abort(403, 'Bạn chỉ được thao tác dữ liệu thuộc chi nhánh của mình.');
+        }
+
         $branch->delete();
         SmartCache::forgetActiveBranches();
 

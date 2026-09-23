@@ -40,7 +40,7 @@ class UserController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        $branches = Branch::where('is_active', true)->orderBy('name')->get();
+        $branches = CurrentBranch::activeBranches();
         $roleOptions = config('permissions.roles', []);
 
         $base = User::query()->tap(fn ($query) => CurrentBranch::apply($query));
@@ -79,6 +79,7 @@ class UserController extends Controller
         $data['daily_rate'] = $data['daily_rate'] ?? 0;
         $data['password'] = Hash::make($data['password']);
         $data['role'] = in_array('super_admin', $roles, true) ? 'super_admin' : $roles[0];
+        $data = CurrentBranch::constrainPayload($data);
 
         $user = User::create($data);
         $user->syncRoles($roles);
@@ -88,13 +89,15 @@ class UserController extends Controller
 
     public function show(Request $request, User $user)
     {
+        CurrentBranch::authorize($user->branch_id);
+
         $tab = $request->get('tab', 'info');
         if (! in_array($tab, ['info', 'attendance', 'payroll'], true)) {
             $tab = 'info';
         }
 
         $user->load(['branch', 'roleAssignments']);
-        $branches = Branch::where('is_active', true)->orderBy('name')->get();
+        $branches = CurrentBranch::activeBranches();
 
         $month = (int) $request->get('month', now()->month);
         $year = (int) $request->get('year', now()->year);
@@ -138,6 +141,8 @@ class UserController extends Controller
 
     public function update(Request $request, User $user)
     {
+        CurrentBranch::authorize($user->branch_id);
+
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'email' => ['required', 'email', Rule::unique('users')->ignore($user->id)],
@@ -160,6 +165,7 @@ class UserController extends Controller
             unset($data['password']);
         }
         $data['role'] = in_array('super_admin', $roles, true) ? 'super_admin' : $roles[0];
+        $data = CurrentBranch::constrainPayload($data);
 
         $user->update($data);
         $user->syncRoles($roles);
@@ -175,6 +181,8 @@ class UserController extends Controller
 
     public function destroy(User $user)
     {
+        CurrentBranch::authorize($user->branch_id);
+
         if ($user->id === auth()->id()) {
             return back()->with('error', 'Không thể xóa tài khoản đang đăng nhập.');
         }
@@ -190,6 +198,7 @@ class UserController extends Controller
     {
         $actor = $request->user();
         abort_unless($actor->isSuperAdmin() || $actor->hasAnyRole('admin'), 403);
+        CurrentBranch::authorize($user->branch_id);
 
         if ($request->session()->has('impersonator_id')) {
             return back()->with('error', 'Đang giả lập tài khoản khác. Hãy thoát trước.');

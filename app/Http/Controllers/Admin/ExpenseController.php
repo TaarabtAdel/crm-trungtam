@@ -30,7 +30,7 @@ class ExpenseController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        $branches = Branch::where('is_active', true)->orderBy('name')->get();
+        $branches = CurrentBranch::activeBranches();
         $teachers = CurrentBranch::apply(Teacher::query())
             ->where('status', 'active')
             ->orderBy('name')
@@ -83,6 +83,17 @@ class ExpenseController extends Controller
             $data['billing_month'] = null;
         }
 
+        $data = CurrentBranch::constrainPayload($data);
+
+        if (! empty($data['teacher_id'])) {
+            $teacher = \App\Models\Teacher::query()->find($data['teacher_id']);
+            CurrentBranch::authorize($teacher?->branch_id);
+        }
+        if (! empty($data['user_id'])) {
+            $staff = \App\Models\User::query()->find($data['user_id']);
+            CurrentBranch::authorize($staff?->branch_id);
+        }
+
         $this->expenses->create($data, $request->user(), $request->file('attachment'));
 
         return back()->with('success', 'Đã tạo đề xuất chi.');
@@ -90,6 +101,7 @@ class ExpenseController extends Controller
 
     public function approve(Request $request, Expense $expense)
     {
+        CurrentBranch::authorize($expense->branch_id);
         $this->expenses->approve($expense, $request->user());
 
         return back()->with('success', 'Đã duyệt khoản chi.');
@@ -97,6 +109,7 @@ class ExpenseController extends Controller
 
     public function reject(Request $request, Expense $expense)
     {
+        CurrentBranch::authorize($expense->branch_id);
         $this->expenses->reject($expense, $request->user());
 
         return back()->with('success', 'Đã từ chối khoản chi.');
@@ -104,6 +117,7 @@ class ExpenseController extends Controller
 
     public function markPaid(Expense $expense)
     {
+        CurrentBranch::authorize($expense->branch_id);
         $this->expenses->markPaid($expense);
 
         return back()->with('success', 'Đã đánh dấu đã chi.');
@@ -111,6 +125,7 @@ class ExpenseController extends Controller
 
     public function destroy(Expense $expense)
     {
+        CurrentBranch::authorize($expense->branch_id);
         $this->expenses->delete($expense);
 
         return back()->with('success', 'Đã xóa khoản chi.');

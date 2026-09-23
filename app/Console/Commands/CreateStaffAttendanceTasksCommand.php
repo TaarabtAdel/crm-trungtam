@@ -2,7 +2,6 @@
 
 namespace App\Console\Commands;
 
-use App\Models\User;
 use App\Services\Tasks\AutoTaskService;
 use App\Support\Notifier;
 use Carbon\Carbon;
@@ -37,31 +36,26 @@ class CreateStaffAttendanceTasksCommand extends Command
 
         $sourceId = (int) $date->format('Ymd');
         $label = $date->format('d/m/Y');
-        $month = $date->format('Y-m');
-        $url = route('admin.staff-attendances.index', ['month' => $month], absolute: false);
+        $url = route('admin.staff-attendances.index', [
+            'mode' => 'day',
+            'date' => $date->toDateString(),
+        ], absolute: false);
 
-        $created = 0;
-        foreach ($recipients as $user) {
-            /** @var User $user */
-            $auto->ensureForUser(
-                $user,
-                AutoTaskService::SOURCE_STAFF_ATTENDANCE,
-                $sourceId,
-                [
-                    'title' => 'Chấm công nhân viên · '.$label,
-                    'description' => "Chấm công ngày {$label} cho nhân viên.\n"
-                        ."Mở: {$url}",
-                    'priority' => 'high',
-                    'due_date' => $date->copy()->setTime(18, 0),
-                    'branch_id' => $user->branch_id,
-                    'creator_id' => $user->id,
-                    'status' => 'todo',
-                ]
-            );
-            $created++;
-        }
+        $auto->ensureForUsers(
+            $recipients,
+            AutoTaskService::SOURCE_STAFF_ATTENDANCE,
+            $sourceId,
+            [
+                'title' => 'Chấm công nhân viên · '.$label,
+                'description' => "Chấm công ngày {$label} cho nhân viên (có thể chấm nhiều người cùng lúc).\n"
+                    ."Mở: {$url}",
+                'priority' => 'high',
+                'due_date' => $date->copy()->setTime(18, 0),
+                'status' => 'todo',
+            ]
+        );
 
-        $this->info("Đã tạo/cập nhật {$created} việc chấm công cho ngày {$label}.");
+        $this->info('Đã tạo/cập nhật '.$recipients->count().' việc chấm công cho ngày '.$label.'.');
 
         return self::SUCCESS;
     }

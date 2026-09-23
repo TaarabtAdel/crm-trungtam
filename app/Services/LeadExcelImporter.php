@@ -89,9 +89,10 @@ class LeadExcelImporter
             ];
         }
 
-        $branches = Branch::where('is_active', true)->get();
+        $branches = CurrentBranch::activeBranches();
         $salesUsers = User::whereIn('role', ['sales', 'admin', 'super_admin'])
             ->where('is_active', true)
+            ->when(CurrentBranch::id(), fn ($q) => $q->where('branch_id', CurrentBranch::id()))
             ->get();
         $defaultBranchId = CurrentBranch::id()
             ?? $branches->first()?->id;

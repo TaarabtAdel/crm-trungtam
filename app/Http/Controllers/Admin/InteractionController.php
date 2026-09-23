@@ -44,7 +44,7 @@ class InteractionController extends Controller
             $prefillIds = $prefillIds->push((int) old('lead_id'))->unique()->values();
         }
         if ($prefillIds->isNotEmpty()) {
-            $leads = Lead::query()->whereIn('id', $prefillIds)->get()->keyBy('id');
+            $leads = CurrentBranch::apply(Lead::query()->whereIn('id', $prefillIds))->get()->keyBy('id');
         }
 
         $salesUsers = User::whereIn('role', ['sales', 'admin', 'super_admin'])

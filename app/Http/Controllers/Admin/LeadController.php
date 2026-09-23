@@ -46,7 +46,7 @@ class LeadController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        $branches = Branch::where('is_active', true)->orderBy('name')->get();
+        $branches = CurrentBranch::activeBranches();
         $subjects = CurrentBranch::apply(Subject::query())->where('status', 'active')->orderBy('name')->get();
         $salesUsers = User::whereIn('role', ['sales', 'admin', 'super_admin'])
             ->where('is_active', true)
@@ -60,6 +60,7 @@ class LeadController extends Controller
 
     public function show(Request $request, Lead $lead)
     {
+        CurrentBranch::authorize($lead->branch_id);
         $this->ensureSalesOwnsLead($request, $lead);
 
         $tab = $request->get('tab', 'info');
@@ -70,7 +71,7 @@ class LeadController extends Controller
         $lead->load(['branch', 'assignedSales', 'student', 'interestSubject']);
         $lead->loadCount(['interactions', 'placementTests']);
 
-        $branches = Branch::where('is_active', true)->orderBy('name')->get();
+        $branches = CurrentBranch::activeBranches();
         $subjects = CurrentBranch::apply(Subject::query())->where('status', 'active')->orderBy('name')->get();
         $salesUsers = User::whereIn('role', ['sales', 'admin', 'super_admin'])
             ->where('is_active', true)
@@ -154,6 +155,7 @@ class LeadController extends Controller
 
     public function update(Request $request, Lead $lead, LeadAssignmentNotifier $assignmentNotifier)
     {
+        CurrentBranch::authorize($lead->branch_id);
         $this->ensureSalesOwnsLead($request, $lead);
         $oldSalesId = $lead->assigned_sales_id;
         $wasNew = $lead->status === 'new';
@@ -183,6 +185,7 @@ class LeadController extends Controller
 
     public function destroy(Request $request, Lead $lead)
     {
+        CurrentBranch::authorize($lead->branch_id);
         $this->ensureSalesOwnsLead($request, $lead);
         $lead->delete();
 
@@ -389,6 +392,6 @@ class LeadController extends Controller
             $data['assigned_sales_id'] = $data['assigned_sales_id'] ?: null;
         }
 
-        return $data;
+        return CurrentBranch::constrainPayload($data);
     }
 }

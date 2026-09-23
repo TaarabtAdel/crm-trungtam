@@ -94,8 +94,8 @@ class StudentExcelImporter
             ];
         }
 
-        $branches = Branch::where('is_active', true)->get();
-        $classes = CourseClass::query()->orderBy('name')->get();
+        $branches = CurrentBranch::activeBranches();
+        $classes = CurrentBranch::apply(CourseClass::query())->orderBy('name')->get();
         $defaultBranchId = CurrentBranch::id() ?? $branches->first()?->id;
 
         $imported = 0;

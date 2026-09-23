@@ -29,7 +29,7 @@ class SubjectController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        $branches = Branch::where('is_active', true)->orderBy('name')->get();
+        $branches = CurrentBranch::activeBranches();
 
         return view('admin.training.subjects', compact('subjects', 'branches', 'q', 'status'));
     }
@@ -43,26 +43,28 @@ class SubjectController extends Controller
             'status' => 'nullable|in:active,inactive',
         ]);
         $data['status'] = $data['status'] ?? 'active';
-        Subject::create($data);
+        Subject::create(CurrentBranch::constrainPayload($data));
 
         return back()->with('success', 'Đã thêm môn học.');
     }
 
     public function update(Request $request, Subject $subject)
     {
+        CurrentBranch::authorize($subject->branch_id);
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'branch_id' => 'required|exists:branches,id',
             'description' => 'nullable|string',
             'status' => 'required|in:active,inactive',
         ]);
-        $subject->update($data);
+        $subject->update(CurrentBranch::constrainPayload($data));
 
         return back()->with('success', 'Đã cập nhật môn học.');
     }
 
     public function destroy(Subject $subject)
     {
+        CurrentBranch::authorize($subject->branch_id);
         $subject->delete();
 
         return back()->with('success', 'Đã xóa môn học.');

@@ -4,10 +4,19 @@ namespace App\Providers;
 
 use App\Listeners\ForgetUserNotificationCache;
 use App\Models\CourseClass;
+use App\Models\Expense;
+use App\Models\Interaction;
+use App\Models\Invoice;
+use App\Models\Lead;
+use App\Models\Student;
+use App\Models\Subject;
 use App\Models\Task;
+use App\Models\Teacher;
+use App\Models\User;
 use App\Observers\TaskObserver;
 use App\Support\CurrentBranch;
 use App\Support\SmartCache;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Notifications\Events\NotificationSent;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Blade;
@@ -31,7 +40,7 @@ class AppServiceProvider extends ServiceProvider
 
         Paginator::useBootstrap();
 
-        Route::bind('class', fn (string $value) => CourseClass::query()->findOrFail($value));
+        $this->bindBranchScopedRoutes();
 
         Task::observe(TaskObserver::class);
 
@@ -62,8 +71,9 @@ class AppServiceProvider extends ServiceProvider
             }
 
             $view->with([
-                'headerBranches' => SmartCache::activeBranches(),
+                'headerBranches' => CurrentBranch::activeBranches(),
                 'currentBranchId' => CurrentBranch::id(),
+                'canSwitchBranch' => CurrentBranch::canSwitch(),
                 'headerNotifications' => $headerNotifications,
                 'headerUnreadNotifications' => $headerUnreadNotifications,
             ]);
@@ -71,6 +81,44 @@ class AppServiceProvider extends ServiceProvider
 
         View::composer('*', function ($view) {
             $view->with('currentBranchId', CurrentBranch::id());
+        });
+    }
+
+    /**
+     * Route model binding: record ngoài chi nhánh hiện tại → 404.
+     */
+    protected function bindBranchScopedRoutes(): void
+    {
+        $bindings = [
+            'class' => CourseClass::class,
+            'lead' => Lead::class,
+            'student' => Student::class,
+            'teacher' => Teacher::class,
+            'subject' => Subject::class,
+            'invoice' => Invoice::class,
+            'expense' => Expense::class,
+            'interaction' => Interaction::class,
+            'task' => Task::class,
+            'user' => User::class,
+        ];
+
+        foreach ($bindings as $param => $model) {
+            Route::bind($param, function (string $value) use ($model) {
+                /** @var Builder $q */
+                $q = $model::query()->whereKey($value);
+                CurrentBranch::apply($q);
+
+                return $q->firstOrFail();
+            });
+        }
+
+        Route::bind('branch', function (string $value) {
+            $q = \App\Models\Branch::query()->whereKey($value);
+            if ($forced = CurrentBranch::forcedId()) {
+                $q->whereKey($forced);
+            }
+
+            return $q->firstOrFail();
         });
     }
 }

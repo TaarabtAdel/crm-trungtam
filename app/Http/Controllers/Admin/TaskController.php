@@ -26,8 +26,7 @@ class TaskController extends Controller
         $dueFrom = $request->get('due_from');
         $dueTo = $request->get('due_to');
         $dueFilter = $request->get('due_filter'); // open|done|due_soon|overdue
-        // Dùng ?task= thay ?open= — LiteSpeed/ModSecurity hay chặn query "open"
-        $openId = (int) $request->get('task', $request->get('open', 0));
+        $openId = (int) $request->get('task', 0);
 
         $canFilterAssignees = $tasks->canFilterAssignees($user);
         $assigneeId = $canFilterAssignees ? $request->get('assignee_id') : null;

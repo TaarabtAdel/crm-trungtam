@@ -11,6 +11,7 @@ use App\Models\Student;
 use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\User;
+use App\Support\CurrentBranch;
 use Illuminate\Support\Facades\Schema;
 
 class GuideSetupChecklist
@@ -25,13 +26,11 @@ class GuideSetupChecklist
         // Đủ khi đã có cả 2 field (kể cả giá trị seed — user có thể giữ nguyên tên).
         $brandDone = $centerName !== '' && $logoText !== '';
 
-        $branchCount = Branch::query()->where('is_active', true)->count();
-        $branchWithBank = Branch::query()
-            ->where('is_active', true)
-            ->get()
+        $branchCount = CurrentBranch::activeBranches()->count();
+        $branchWithBank = CurrentBranch::activeBranches()
             ->contains(fn (Branch $b) => $b->hasPaymentAccount());
 
-        $userCount = User::query()->where('is_active', true)->count();
+        $userCount = CurrentBranch::apply(User::query())->where('is_active', true)->count();
         $hasSales = self::hasUserRole('sales');
         $hasTraining = self::hasUserRole('training');
         $hasAccountant = self::hasUserRole('accountant');
@@ -39,11 +38,11 @@ class GuideSetupChecklist
 
         $permissionsReviewed = AppSettings::bool('setup_permissions_reviewed') || $staffDone;
 
-        $subjects = Subject::query()->count();
-        $teachers = Teacher::query()->count();
-        $classes = CourseClass::query()->count();
-        $sessions = ClassSession::query()->count();
-        $students = Student::query()->count();
+        $subjects = CurrentBranch::apply(Subject::query())->count();
+        $teachers = CurrentBranch::apply(Teacher::query())->count();
+        $classes = CurrentBranch::apply(CourseClass::query())->count();
+        $sessions = CurrentBranch::applyThrough(ClassSession::query(), 'courseClass')->count();
+        $students = CurrentBranch::apply(Student::query())->count();
 
         $smtpDone = AppSettings::bool('smtp_enabled')
             && filled(Setting::get('smtp_host'))
@@ -245,7 +244,7 @@ class GuideSetupChecklist
 
     protected static function hasUserRole(string $role): bool
     {
-        return User::query()
+        return CurrentBranch::apply(User::query())
             ->where('is_active', true)
             ->where(function ($q) use ($role) {
                 $q->where('role', $role)

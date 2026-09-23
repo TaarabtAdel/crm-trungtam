@@ -11,6 +11,12 @@ class CurrentBranchController extends Controller
 {
     public function update(Request $request)
     {
+        if (! CurrentBranch::canSwitch()) {
+            CurrentBranch::syncFromUser();
+
+            return back()->with('error', 'Tài khoản của bạn chỉ được thao tác trong chi nhánh đã gán.');
+        }
+
         $data = $request->validate([
             'branch_id' => 'nullable|string',
         ]);

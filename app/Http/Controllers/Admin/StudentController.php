@@ -40,7 +40,7 @@ class StudentController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        $branches = Branch::where('is_active', true)->orderBy('name')->get();
+        $branches = CurrentBranch::activeBranches();
         $classes = CurrentBranch::apply(CourseClass::query())->where('status', 'active')->orderBy('name')->get();
 
         return view('admin.students.students', compact(
@@ -50,6 +50,8 @@ class StudentController extends Controller
 
     public function show(Request $request, Student $student)
     {
+        CurrentBranch::authorize($student->branch_id);
+
         $tab = $request->get('tab', 'info');
         if (! in_array($tab, ['info', 'classes', 'tuition', 'attendance'], true)) {
             $tab = 'info';
@@ -58,7 +60,7 @@ class StudentController extends Controller
         $student->load(['branch']);
         $student->loadCount(['classes', 'invoices', 'attendances']);
 
-        $branches = Branch::where('is_active', true)->orderBy('name')->get();
+        $branches = CurrentBranch::activeBranches();
         $classes = CurrentBranch::apply(CourseClass::query())->where('status', 'active')->orderBy('name')->get();
 
         $studentClasses = collect();
@@ -148,6 +150,7 @@ class StudentController extends Controller
 
     public function update(Request $request, Student $student)
     {
+        CurrentBranch::authorize($student->branch_id);
         $data = $this->validated($request, $request->boolean('from_detail'));
         $classIds = $data['class_ids'] ?? null;
         unset($data['class_ids']);
@@ -168,6 +171,7 @@ class StudentController extends Controller
 
     public function destroy(Student $student)
     {
+        CurrentBranch::authorize($student->branch_id);
         $student->delete();
 
         return redirect()->route('admin.students.index')->with('success', 'Đã xóa học viên.');
@@ -266,6 +270,6 @@ class StudentController extends Controller
         $data = $request->validate($rules);
         $data['status'] = $data['status'] ?? 'studying';
 
-        return $data;
+        return CurrentBranch::constrainPayload($data);
     }
 }

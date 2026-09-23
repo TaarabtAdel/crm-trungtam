@@ -46,7 +46,7 @@ Route::get('/', function () {
         : redirect()->route('login');
 });
 
-Route::middleware('auth')->get('/home', [HomeController::class, 'index'])->name('home');
+Route::middleware(['auth', 'user.branch'])->get('/home', [HomeController::class, 'index'])->name('home');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
@@ -67,7 +67,7 @@ Route::get('/scheduler/tick', SchedulerTickController::class)
     ->middleware('throttle:60,1')
     ->name('scheduler.tick');
 
-Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'user.branch'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->middleware('permission:dashboard.view')->name('dashboard');
     Route::post('current-branch', [CurrentBranchController::class, 'update'])->name('current-branch.update');
     Route::post('scheduler/tick', SchedulerTickController::class)->name('scheduler.tick');
@@ -322,7 +322,9 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     });
     Route::middleware('permission:system.staff_attendances.manage')->group(function () {
         Route::post('staff-attendances', [StaffAttendanceController::class, 'store'])->name('staff-attendances.store');
+        Route::post('staff-attendances/day', [StaffAttendanceController::class, 'storeDay'])->name('staff-attendances.store-day');
         Route::delete('staff-attendances', [StaffAttendanceController::class, 'destroy'])->name('staff-attendances.destroy');
+        Route::delete('staff-attendances/day', [StaffAttendanceController::class, 'destroyDay'])->name('staff-attendances.destroy-day');
     });
 
     Route::get('permissions', [PermissionController::class, 'edit'])->middleware('permission:system.permissions.manage')->name('permissions.edit');

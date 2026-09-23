@@ -57,7 +57,7 @@ class ClassController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        $branches = Branch::where('is_active', true)->orderBy('name')->get();
+        $branches = CurrentBranch::activeBranches();
         $subjects = CurrentBranch::apply(Subject::query())->where('status', 'active')->orderBy('name')->get();
         $teachers = CurrentBranch::apply(Teacher::query())->where('status', 'active')->orderBy('name')->get();
 
@@ -83,10 +83,10 @@ class ClassController extends Controller
         $class->load(['branch', 'subject', 'teacher']);
         $class->loadCount(['students', 'sessions']);
 
-        $branches = Branch::where('is_active', true)->orderBy('name')->get();
+        $branches = CurrentBranch::activeBranches();
         $subjects = CurrentBranch::apply(Subject::query())->where('status', 'active')->orderBy('name')->get();
         $teachers = CurrentBranch::apply(Teacher::query())->where('status', 'active')->orderBy('name')->get();
-        $sessionTeachers = Teacher::query()->where('status', 'active')->orderBy('name')->get();
+        $sessionTeachers = CurrentBranch::apply(Teacher::query())->where('status', 'active')->orderBy('name')->get();
         $days = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 
         $availableStudents = collect();
@@ -934,7 +934,7 @@ class ClassController extends Controller
             ? $data['teacher_hourly_rate']
             : null;
 
-        return $data;
+        return CurrentBranch::constrainPayload($data);
     }
 
     protected function authorizeTeacherClassAccess(?\App\Models\User $user, CourseClass $class): void

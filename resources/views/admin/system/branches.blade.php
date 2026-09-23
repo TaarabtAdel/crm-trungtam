@@ -34,7 +34,9 @@
             <small class="text-muted">Cơ sở / chi nhánh và tài khoản nhận học phí</small>
         </div>
         <div class="d-flex align-items-center" style="gap:.5rem">
+            @if($canManageAllBranches ?? true)
             <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalCreate"><i class="bi bi-plus"></i> Thêm chi nhánh</button>
+            @endif
             <button class="btn btn-sm btn-outline-info" type="button" data-toggle="modal" data-target="#modalBranchesHelp">
                 <i class="bi bi-question-circle"></i> Hướng dẫn
             </button>
@@ -77,10 +79,12 @@
                         </td>
                         <td>
                             <button class="btn btn-sm btn-outline-primary" data-toggle="modal" data-target="#edit{{ $branch->id }}"><i class="bi bi-pencil"></i></button>
+                            @if($canManageAllBranches ?? true)
                             <form action="{{ route('admin.branches.destroy', $branch) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa chi nhánh?')">
                                 @csrf @method('DELETE')
                                 <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
                             </form>
+                            @endif
                         </td>
                     </tr>
                 @empty

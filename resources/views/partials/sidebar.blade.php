@@ -3,6 +3,11 @@
 
     @php $u = auth()->user(); @endphp
 
+    <div class="nav-section">Bàn làm việc</div>
+    <a href="{{ route('home') }}" class="nav-link {{ request()->routeIs('home') ? 'active' : '' }}">
+        <i class="bi bi-grid-1x2 mr-2"></i> Bàn làm việc
+    </a>
+
     @if($u->hasPermission('dashboard.view'))
     <div class="nav-section">Tổng quan</div>
     <a href="{{ route('admin.dashboard') }}" class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">

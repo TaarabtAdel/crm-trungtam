@@ -22,6 +22,7 @@ class TaskService
     public function visibleQuery(User $user)
     {
         $q = Task::query();
+        CurrentBranch::apply($q);
 
         if ($user->hasPermission('tasks.view_all') || $user->isSuperAdmin()) {
             return $q;
@@ -704,8 +705,9 @@ class TaskService
      */
     public function assignableUsers(?User $actor = null): Collection
     {
-        return User::query()
-            ->where('is_active', true)
+        return \App\Support\CurrentBranch::apply(
+            User::query()->where('is_active', true)
+        )
             ->orderBy('name')
             ->get(['id', 'name', 'email', 'branch_id']);
     }

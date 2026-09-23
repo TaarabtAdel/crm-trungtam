@@ -37,7 +37,7 @@ class TeacherController extends Controller
             ->latest()
             ->paginate(15)
             ->withQueryString();
-        $branches = Branch::where('is_active', true)->orderBy('name')->get();
+        $branches = CurrentBranch::activeBranches();
 
         $month = (int) $request->get('payroll_month', now()->month);
         $year = (int) $request->get('payroll_year', now()->year);
@@ -49,6 +49,7 @@ class TeacherController extends Controller
     public function show(Request $request, Teacher $teacher)
     {
         abort_if($request->user()?->isRestrictedTeacher(), 403);
+        CurrentBranch::authorize($teacher->branch_id);
 
         $tab = $request->get('tab', 'info');
         if (! in_array($tab, ['info', 'classes', 'payroll', 'schedule'], true)) {
@@ -58,7 +59,7 @@ class TeacherController extends Controller
         $teacher->load('branch');
         $teacher->loadCount(['classes', 'sessions']);
 
-        $branches = Branch::where('is_active', true)->orderBy('name')->get();
+        $branches = CurrentBranch::activeBranches();
         $teachingClasses = collect();
         $sessions = collect();
         $availableMonths = [];
@@ -181,6 +182,7 @@ class TeacherController extends Controller
 
     public function update(Request $request, Teacher $teacher)
     {
+        CurrentBranch::authorize($teacher->branch_id);
         $data = $this->validated($request, $teacher->id);
         $teacher->update($data);
         $this->syncTeacherLogin($request, $teacher);
@@ -196,6 +198,7 @@ class TeacherController extends Controller
 
     public function destroy(Teacher $teacher)
     {
+        CurrentBranch::authorize($teacher->branch_id);
         $teacher->delete();
 
         return redirect()->route('admin.teachers.index')->with('success', 'Đã xóa giáo viên.');
@@ -237,7 +240,7 @@ class TeacherController extends Controller
         $data['hourly_rate'] = $data['hourly_rate'] ?? 0;
         $data['status'] = $data['status'] ?? 'active';
 
-        return $data;
+        return CurrentBranch::constrainPayload($data);
     }
 
     protected function syncTeacherLogin(Request $request, Teacher $teacher): void

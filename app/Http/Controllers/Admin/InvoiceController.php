@@ -357,6 +357,8 @@ class InvoiceController extends Controller
 
     protected function authorizeInvoice(Invoice $invoice): void
     {
+        CurrentBranch::authorize($invoice->branch_id);
+
         $user = request()->user();
         if ($user->isSales() && (int) $invoice->sales_id !== (int) $user->id) {
             abort(403);
