@@ -161,7 +161,55 @@ class AutoTaskService
             ->where('status', '!=', 'done')
             ->get();
 
+        return $this->markTasksDone($tasks, $actorId, $sourceType, $sourceId);
+    }
+
+    /**
+     * Đóng việc auto của đúng người được giao (assignee).
+     */
+    public function completeBySourceForAssignee(
+        string $sourceType,
+        int $sourceId,
+        int $assigneeId,
+        ?int $actorId = null
+    ): int {
+        $tasks = Task::query()
+            ->where('source_type', $sourceType)
+            ->where('source_id', $sourceId)
+            ->where('assignee_id', $assigneeId)
+            ->where('status', '!=', 'done')
+            ->get();
+
+        return $this->markTasksDone($tasks, $actorId ?? $assigneeId, $sourceType, $sourceId);
+    }
+
+    /**
+     * Đóng mọi việc chấm công ngày Ymd của một user (mọi chi nhánh).
+     * source_id = Ymd + 4 số branch_id.
+     */
+    public function completeStaffAttendanceForActorOnDate(string $ymd, int $assigneeId): int
+    {
+        $min = (int) ($ymd.'0000');
+        $max = (int) ($ymd.'9999');
+
+        $tasks = Task::query()
+            ->where('source_type', self::SOURCE_STAFF_ATTENDANCE)
+            ->where('assignee_id', $assigneeId)
+            ->whereBetween('source_id', [$min, $max])
+            ->where('status', '!=', 'done')
+            ->get();
+
+        return $this->markTasksDone($tasks, $assigneeId, self::SOURCE_STAFF_ATTENDANCE, null);
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, Task>|iterable<int, Task>  $tasks
+     */
+    protected function markTasksDone(iterable $tasks, ?int $actorId, string $sourceType, ?int $sourceId): int
+    {
+        $count = 0;
         foreach ($tasks as $task) {
+            $from = $task->status;
             $task->status = 'done';
             $task->completed_at = now();
             $task->save();
@@ -171,15 +219,20 @@ class AutoTaskService
                 'user_id' => $actorId,
                 'action' => 'status_changed',
                 'meta' => [
-                    'from' => 'todo',
+                    'from' => $from,
                     'to' => 'done',
                     'auto' => true,
                     'source_type' => $sourceType,
-                    'source_id' => $sourceId,
+                    'source_id' => $sourceId ?? $task->source_id,
                 ],
             ]);
+            $count++;
         }
 
-        return $tasks->count();
+        if ($count > 0) {
+            SmartCache::bumpTasksHome();
+        }
+
+        return $count;
     }
 }

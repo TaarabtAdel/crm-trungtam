@@ -279,43 +279,43 @@ class StaffAttendanceController extends Controller
     }
 
     /**
-     * Khi đã chấm đủ mọi NV active trong ngày → đóng việc auto trên board.
+     * Option A: sau khi lưu chấm công → đóng việc auto “Chấm công NV” của người đang thao tác
+     * (khớp ngày + chi nhánh), không đợi chấm đủ cả CN.
      *
      * @param  list<string>  $dates  Y-m-d
      */
     protected function completeAttendanceTasksIfReady(array $dates, ?int $actorId = null): void
     {
-        $activeIds = CurrentBranch::apply(User::query())
-            ->where('is_active', true)
-            ->pluck('id');
-        $activeCount = $activeIds->count();
-        if ($activeCount === 0) {
+        if (! $actorId) {
             return;
         }
 
         $auto = app(AutoTaskService::class);
+        $branchId = CurrentBranch::id();
 
         foreach (array_unique($dates) as $date) {
-            $marked = StaffAttendance::query()
-                ->whereDate('work_date', $date)
-                ->whereIn('user_id', $activeIds)
-                ->pluck('user_id')
-                ->unique()
-                ->count();
-
-            if ($marked < $activeCount) {
-                continue;
-            }
-
             try {
-                $branchId = CurrentBranch::id();
-                if (! $branchId) {
-                    // HQ đang xem "Tất cả" — không complete việc theo CN (tránh đụng sai)
+                $ymd = Carbon::parse($date)->format('Ymd');
+
+                if ($branchId) {
+                    $sourceId = (int) ($ymd.sprintf('%04d', $branchId));
+                    $auto->completeBySourceForAssignee(
+                        AutoTaskService::SOURCE_STAFF_ATTENDANCE,
+                        $sourceId,
+                        $actorId
+                    );
+                    // Tương thích việc cũ (source_id = chỉ Ymd, trước khi tách theo CN)
+                    $auto->completeBySourceForAssignee(
+                        AutoTaskService::SOURCE_STAFF_ATTENDANCE,
+                        (int) $ymd,
+                        $actorId
+                    );
+
                     continue;
                 }
-                // Khớp CreateStaffAttendanceTasksCommand: Ymd + 4 chữ số branch_id
-                $sourceId = (int) (Carbon::parse($date)->format('Ymd').sprintf('%04d', $branchId));
-                $auto->completeBySource(AutoTaskService::SOURCE_STAFF_ATTENDANCE, $sourceId, $actorId);
+
+                // HQ đang xem "Tất cả": đóng mọi việc chấm công ngày đó của actor (mọi CN)
+                $auto->completeStaffAttendanceForActorOnDate($ymd, $actorId);
             } catch (\Throwable $e) {
                 report($e);
             }
