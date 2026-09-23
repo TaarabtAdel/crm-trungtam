@@ -12,12 +12,21 @@ class CurrentBranch
     public const SESSION_KEY = 'current_branch_id';
 
     /**
-     * Chi nhánh bắt buộc theo hồ sơ user (null = được xem tất cả / đổi chi nhánh).
+     * Chi nhánh bắt buộc theo hồ sơ user.
+     * null = được xem tất cả / đổi chi nhánh.
+     *
+     * Không khóa: Super Admin, role Admin, hoặc quyền system.branches.manage.
      */
     public static function forcedId(): ?int
     {
         $user = auth()->user();
         if (! $user || ! $user->branch_id) {
+            return null;
+        }
+
+        if ($user->isSuperAdmin()
+            || $user->hasAnyRole('admin')
+            || $user->hasPermission('system.branches.manage')) {
             return null;
         }
 

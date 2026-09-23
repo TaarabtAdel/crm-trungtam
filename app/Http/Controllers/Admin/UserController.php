@@ -61,6 +61,8 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
+        $this->normalizeBranchIdInput($request);
+
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
@@ -69,7 +71,7 @@ class UserController extends Controller
             'roles.*' => ['string', Rule::in(array_keys(config('permissions.roles', [])))],
             'phone' => 'nullable|string|max:30',
             'daily_rate' => 'nullable|numeric|min:0',
-            'branch_id' => 'nullable|exists:branches,id',
+            'branch_id' => 'nullable|integer|exists:branches,id',
             'is_active' => 'nullable|boolean',
         ]);
 
@@ -79,8 +81,7 @@ class UserController extends Controller
         $data['daily_rate'] = $data['daily_rate'] ?? 0;
         $data['password'] = Hash::make($data['password']);
         $data['role'] = in_array('super_admin', $roles, true) ? 'super_admin' : $roles[0];
-        $data['branch_id'] = filled($data['branch_id'] ?? null) ? (int) $data['branch_id'] : null;
-        $data = CurrentBranch::constrainPayload($data);
+        $data['branch_id'] = $this->resolvedBranchId($data['branch_id'] ?? null);
 
         $user = User::create($data);
         $user->syncRoles($roles);
@@ -143,6 +144,7 @@ class UserController extends Controller
     public function update(Request $request, User $user)
     {
         CurrentBranch::authorize($user->branch_id);
+        $this->normalizeBranchIdInput($request);
 
         $data = $request->validate([
             'name' => 'required|string|max:255',
@@ -152,7 +154,7 @@ class UserController extends Controller
             'roles.*' => ['string', Rule::in(array_keys(config('permissions.roles', [])))],
             'phone' => 'nullable|string|max:30',
             'daily_rate' => 'nullable|numeric|min:0',
-            'branch_id' => 'nullable|exists:branches,id',
+            'branch_id' => 'nullable|integer|exists:branches,id',
             'is_active' => 'nullable|boolean',
         ]);
 
@@ -166,10 +168,12 @@ class UserController extends Controller
             unset($data['password']);
         }
         $data['role'] = in_array('super_admin', $roles, true) ? 'super_admin' : $roles[0];
-        $data['branch_id'] = filled($data['branch_id'] ?? null) ? (int) $data['branch_id'] : null;
-        $data = CurrentBranch::constrainPayload($data);
+        $data['branch_id'] = $this->resolvedBranchId($data['branch_id'] ?? null);
 
-        $user->update($data);
+        $user->fill($data);
+        // Gán tường minh để chắc chắn ghi null khi bỏ chọn chi nhánh
+        $user->branch_id = $data['branch_id'];
+        $user->save();
         $user->syncRoles($roles);
 
         if ($request->boolean('from_detail')) {
@@ -251,5 +255,29 @@ class UserController extends Controller
         return redirect()
             ->route('admin.users.index')
             ->with('success', 'Đã trở lại tài khoản '.$actor->name.'.');
+    }
+
+    /**
+     * Chuẩn hoá input rỗng → null trước validate (tránh exists fail với "").
+     */
+    protected function normalizeBranchIdInput(Request $request): void
+    {
+        $raw = $request->input('branch_id');
+        $request->merge([
+            'branch_id' => ($raw === null || $raw === '') ? null : $raw,
+        ]);
+    }
+
+    /**
+     * User bị khóa chi nhánh → luôn ghi branch của họ.
+     * Ngược lại → tôn trọng form (null = bỏ gắn).
+     */
+    protected function resolvedBranchId(mixed $branchId): ?int
+    {
+        if ($forced = CurrentBranch::forcedId()) {
+            return $forced;
+        }
+
+        return $branchId !== null && $branchId !== '' ? (int) $branchId : null;
     }
 }
