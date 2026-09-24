@@ -46,7 +46,10 @@ Route::get('/', function () {
         : redirect()->route('login');
 });
 
-Route::middleware(['auth', 'user.branch'])->get('/home', [HomeController::class, 'index'])->name('home');
+Route::middleware(['auth', 'user.branch'])->group(function () {
+    Route::get('/home', [HomeController::class, 'index'])->name('home');
+    Route::get('/home/feed', [HomeController::class, 'feed'])->name('home.feed');
+});
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');

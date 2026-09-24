@@ -21,42 +21,18 @@
         <div class="wb-notify-wrap" id="wbNotifyWrap">
             <button type="button" class="wb-icon-btn wb-notify-btn" id="wbNotifyBtn" title="Thông báo" aria-haspopup="true" aria-expanded="false">
                 <i class="bi bi-bell"></i>
-                @if(($headerUnreadNotifications ?? 0) > 0)
-                    <span class="wb-notify-badge">{{ $headerUnreadNotifications > 99 ? '99+' : $headerUnreadNotifications }}</span>
-                @endif
+                <span class="wb-notify-badge" id="wbNotifyBadge" hidden>0</span>
             </button>
             <div class="wb-notify-panel" role="menu">
                 <div class="wb-notify-panel-head">
                     <strong>Thông báo</strong>
-                    @if(($headerUnreadNotifications ?? 0) > 0)
-                        <form method="POST" action="{{ route('admin.notifications.read-all') }}">
-                            @csrf
-                            <button type="submit" class="wb-notify-link-btn">Đánh dấu đã đọc</button>
-                        </form>
-                    @endif
+                    <form method="POST" action="{{ route('admin.notifications.read-all') }}" id="wbNotifyReadAllForm" hidden>
+                        @csrf
+                        <button type="submit" class="wb-notify-link-btn">Đánh dấu đã đọc</button>
+                    </form>
                 </div>
-                <div class="wb-notify-panel-body">
-                    @forelse($headerNotifications ?? [] as $n)
-                        @php
-                            $data = $n->data ?? [];
-                            $title = $data['title'] ?? 'Thông báo';
-                            $body = $data['body'] ?? '';
-                            $icon = $data['icon'] ?? 'bi-bell';
-                            $unread = $n->read_at === null;
-                        @endphp
-                        <div class="wb-notify-item {{ $unread ? 'is-unread' : '' }}">
-                            <a href="{{ route('admin.notifications.read', $n->id) }}" class="wb-notify-item-main">
-                                <span class="wb-notify-item-icon"><i class="bi {{ $icon }}"></i></span>
-                                <span class="wb-notify-item-content">
-                                    <span class="wb-notify-item-title">{{ $title }}</span>
-                                    @if($body)<span class="wb-notify-item-body">{{ $body }}</span>@endif
-                                    <span class="wb-notify-item-time">{{ $n->created_at?->diffForHumans() }}</span>
-                                </span>
-                            </a>
-                        </div>
-                    @empty
-                        <div class="wb-notify-empty">Chưa có thông báo.</div>
-                    @endforelse
+                <div class="wb-notify-panel-body" id="wbNotifyBody">
+                    <div class="wb-notify-empty">Đang tải…</div>
                 </div>
                 <div class="wb-notify-panel-foot">
                     <a href="{{ route('admin.notifications.index') }}">Xem tất cả</a>
@@ -157,8 +133,8 @@
             <div class="wb-cal-grid" id="wbCalGrid"></div>
         </div>
 
-        @if($user->hasPermission('tasks.view') || $user->isSuperAdmin())
-            <div class="wb-tasks-card">
+        @if($canViewTasks ?? false)
+            <div class="wb-tasks-card" id="wbTasksCard">
                 <div class="wb-tasks-head">
                     <div class="wb-tasks-title">
                         <i class="bi bi-check2-square"></i>
@@ -166,25 +142,8 @@
                     </div>
                     <a href="{{ route('admin.tasks.index') }}" class="wb-tasks-all" title="Xem tất cả">Tất cả</a>
                 </div>
-                <div class="wb-tasks-list">
-                    @forelse($tasksToday ?? [] as $task)
-                        <a href="{{ route('admin.tasks.index', ['task' => $task->id]) }}"
-                           class="wb-tasks-item {{ $task->isOverdue() ? 'is-overdue' : '' }}"
-                           title="{{ $task->title }}">
-                            <span class="wb-tasks-priority task-priority-{{ $task->priority }}"></span>
-                            <span class="wb-tasks-item-main">
-                                <span class="wb-tasks-item-title">{{ $task->title }}</span>
-                                <span class="wb-tasks-item-meta">
-                                    {{ $task->due_date?->format('H:i') ?? '—' }}
-                                    @if($task->assignee)
-                                        · {{ $task->assignee->name }}
-                                    @endif
-                                </span>
-                            </span>
-                        </a>
-                    @empty
-                        <div class="wb-tasks-empty">Không có việc đến hạn hôm nay.</div>
-                    @endforelse
+                <div class="wb-tasks-list" id="wbTasksList">
+                    <div class="wb-tasks-empty">Đang tải…</div>
                 </div>
             </div>
         @endif
@@ -376,9 +335,8 @@
         }
     }
 
-    var taskDueDates = @json($taskDueDates ?? []);
+    var taskDueDates = [];
     var taskDueSet = {};
-    taskDueDates.forEach(function (d) { taskDueSet[d] = true; });
 
     function renderCalendar() {
         if (!calGridEl || !calTitleEl) return;
@@ -439,6 +397,105 @@
             renderCalendar();
         });
     }
+
+    // —— AJAX feed: thông báo + việc hôm nay (30s) ——
+    var feedUrl = @json(route('home.feed'));
+    var notifyBody = document.getElementById('wbNotifyBody');
+    var notifyBadge = document.getElementById('wbNotifyBadge');
+    var notifyReadAll = document.getElementById('wbNotifyReadAllForm');
+    var tasksList = document.getElementById('wbTasksList');
+    var feedBusy = false;
+
+    function esc(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function renderNotifications(items, unread) {
+        if (notifyBadge) {
+            if (unread > 0) {
+                notifyBadge.hidden = false;
+                notifyBadge.textContent = unread > 99 ? '99+' : String(unread);
+            } else {
+                notifyBadge.hidden = true;
+                notifyBadge.textContent = '0';
+            }
+        }
+        if (notifyReadAll) {
+            notifyReadAll.hidden = unread <= 0;
+        }
+        if (!notifyBody) return;
+        if (!items || !items.length) {
+            notifyBody.innerHTML = '<div class="wb-notify-empty">Chưa có thông báo.</div>';
+            return;
+        }
+        notifyBody.innerHTML = items.map(function (n) {
+            return '<div class="wb-notify-item' + (n.unread ? ' is-unread' : '') + '">'
+                + '<a href="' + esc(n.url) + '" class="wb-notify-item-main">'
+                + '<span class="wb-notify-item-icon"><i class="bi ' + esc(n.icon || 'bi-bell') + '"></i></span>'
+                + '<span class="wb-notify-item-content">'
+                + '<span class="wb-notify-item-title">' + esc(n.title) + '</span>'
+                + (n.body ? '<span class="wb-notify-item-body">' + esc(n.body) + '</span>' : '')
+                + '<span class="wb-notify-item-time">' + esc(n.time) + '</span>'
+                + '</span></a></div>';
+        }).join('');
+    }
+
+    function renderTasks(items) {
+        if (!tasksList) return;
+        if (!items || !items.length) {
+            tasksList.innerHTML = '<div class="wb-tasks-empty">Không có việc đến hạn hôm nay.</div>';
+            return;
+        }
+        tasksList.innerHTML = items.map(function (t) {
+            return '<a href="' + esc(t.url) + '"'
+                + ' class="wb-tasks-item' + (t.is_overdue ? ' is-overdue' : '') + '"'
+                + ' title="' + esc(t.title) + '">'
+                + '<span class="wb-tasks-priority task-priority-' + esc(t.priority) + '"></span>'
+                + '<span class="wb-tasks-item-main">'
+                + '<span class="wb-tasks-item-title">' + esc(t.title) + '</span>'
+                + '<span class="wb-tasks-item-meta">' + esc(t.due_time)
+                + (t.assignee ? ' · ' + esc(t.assignee) : '')
+                + '</span></span></a>';
+        }).join('');
+    }
+
+    function applyDueDates(dates) {
+        taskDueDates = Array.isArray(dates) ? dates : [];
+        taskDueSet = {};
+        taskDueDates.forEach(function (d) { taskDueSet[d] = true; });
+        renderCalendar();
+    }
+
+    function loadFeed() {
+        if (feedBusy || document.hidden) return;
+        feedBusy = true;
+        fetch(feedUrl, {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin'
+        })
+            .then(function (r) {
+                if (!r.ok) throw new Error('feed ' + r.status);
+                return r.json();
+            })
+            .then(function (data) {
+                renderNotifications(data.notifications || [], data.unread || 0);
+                renderTasks(data.tasks || []);
+                applyDueDates(data.due_dates || []);
+            })
+            .catch(function () { /* giữ UI cũ khi lỗi mạng */ })
+            .finally(function () { feedBusy = false; });
+    }
+
+    loadFeed();
+    setInterval(loadFeed, 30000);
+    document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) loadFeed();
+    });
 })();
 </script>
 @endpush
