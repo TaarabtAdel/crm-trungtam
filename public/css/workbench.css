@@ -1021,7 +1021,7 @@ body.workbench-body {
 
 /* ── Auth (/login, quên MK) — cùng “máy tính” với /home ── */
 .wb-auth {
-    --wb-auth-w: 640px;
+    --wb-auth-w: 500px;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
