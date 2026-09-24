@@ -59,7 +59,7 @@ class LookupController extends Controller
 
         $query = CurrentBranch::apply(Lead::query())
             ->when(! $request->boolean('include_closed'), fn ($q) => $q->whereNotIn('status', ['won', 'lost']))
-            ->when($user->isSales(), fn ($q) => $q->where('assigned_sales_id', $user->id))
+            ->tap(fn ($q) => $q->visibleTo($user))
             ->when($term !== '', function ($query) use ($term) {
                 $query->where(function ($inner) use ($term) {
                     $inner->where('name', 'like', "%{$term}%")

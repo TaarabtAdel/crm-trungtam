@@ -350,8 +350,8 @@ class LeadController extends Controller
     protected function ensureSalesOwnsLead(Request $request, Lead $lead): void
     {
         $user = $request->user();
-        if ($user->isSales() && (int) $lead->assigned_sales_id !== (int) $user->id) {
-            abort(403, 'Bạn chỉ được thao tác lead được gán cho mình.');
+        if (! $lead->isAccessibleBySales($user)) {
+            abort(403, 'Lead này đã được phân bổ cho Sales khác.');
         }
     }
 

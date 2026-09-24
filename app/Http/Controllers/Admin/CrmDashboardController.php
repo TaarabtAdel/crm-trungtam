@@ -22,7 +22,7 @@ class CrmDashboardController extends Controller
         }
 
         $leadsBase = CurrentBranch::apply(Lead::query())
-            ->when($user->isSales(), fn ($q) => $q->where('assigned_sales_id', $user->id));
+            ->tap(fn ($q) => $q->visibleTo($user));
 
         $interactionsBase = CurrentBranch::apply(Interaction::query())
             ->when($user->isSales(), fn ($q) => $q->where('sales_id', $user->id));

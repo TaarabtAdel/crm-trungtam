@@ -137,8 +137,8 @@ class InteractionController extends Controller
 
     protected function authorizeLeadAccess(Request $request, Lead $lead): void
     {
-        if ($request->user()->isSales() && (int) $lead->assigned_sales_id !== (int) $request->user()->id) {
-            abort(403);
+        if (! $lead->isAccessibleBySales($request->user())) {
+            abort(403, 'Lead này đã được phân bổ cho Sales khác.');
         }
     }
 

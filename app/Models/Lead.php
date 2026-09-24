@@ -81,12 +81,35 @@ class Lead extends Model
         };
     }
 
+    /**
+     * Sales: thấy pool chưa phân bổ + lead được gán cho mình.
+     * Admin / role khác: không giới hạn theo phân bổ (vẫn lọc chi nhánh ở controller).
+     */
     public function scopeVisibleTo($query, User $user)
     {
         if ($user->isSales()) {
-            $query->where('assigned_sales_id', $user->id);
+            $query->where(function ($q) use ($user) {
+                $q->whereNull('assigned_sales_id')
+                    ->orWhere('assigned_sales_id', $user->id);
+            });
         }
 
         return $query;
+    }
+
+    /**
+     * Sales được xem/thao tác lead chưa gán hoặc lead của chính mình.
+     */
+    public function isAccessibleBySales(User $user): bool
+    {
+        if (! $user->isSales()) {
+            return true;
+        }
+
+        if ($this->assigned_sales_id === null) {
+            return true;
+        }
+
+        return (int) $this->assigned_sales_id === (int) $user->id;
     }
 }

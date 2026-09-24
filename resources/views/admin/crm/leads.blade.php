@@ -22,7 +22,7 @@
         ],
         [
             'title' => 'Phạm vi hiển thị',
-            'body' => '<p class="mb-0">Tài khoản Sales chỉ thấy lead được gán cho mình. Quản lý / Admin xem toàn bộ theo chi nhánh đang chọn trên header.</p>',
+            'body' => '<p class="mb-0">Sales thấy lead <strong>chưa phân bổ</strong> (pool chung) và lead đã gán cho mình. Lead đã gán Sales khác thì không thấy. Admin xem toàn bộ theo chi nhánh trên header.</p>',
         ],
     ];
 @endphp
@@ -32,7 +32,7 @@
             <h5 class="mb-0 font-weight-bold">Danh sách Leads</h5>
             <small class="text-muted">
                 @if(auth()->user()->isSales())
-                    Chỉ hiển thị lead được gán cho bạn.
+                    Lead chưa phân bổ (chung) + lead đã gán cho bạn.
                 @else
                     Quản lý toàn bộ khách hàng tiềm năng và thông tin liên hệ tuyển sinh.
                 @endif
