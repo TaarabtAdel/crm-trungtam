@@ -8,13 +8,13 @@
     $helpItems = [
         [
             'title' => 'KPI trên dashboard',
-            'body' => '<p class="mb-0">Các ô chỉ số (khách mới, tương tác, đã chốt, tỷ lệ chuyển đổi, doanh thu pipeline) phản ánh hoạt động tuyển sinh theo phạm vi của bạn / chi nhánh đang chọn.</p>',
+            'body' => '<p class="mb-0">Admin: KPI theo chi nhánh đang chọn. Sales: chỉ lead đã gán cho bạn và tương tác bạn phụ trách.</p>',
         ],
         [
             'title' => 'Bảng hiệu suất Sales',
             'body' => '<ul class="mb-0 pl-3">'
                 .'<li>Xếp hạng theo doanh thu chốt — chọn <em>Tháng này</em> hoặc <em>Tất cả thời gian</em>.</li>'
-                .'<li>Cột Được phân / Tương tác / Đã chốt / Tỷ lệ giúp so sánh năng suất từng nhân viên.</li>'
+                .'<li>Admin so sánh từng nhân viên; Sales chỉ thấy một dòng hiệu suất của mình.</li>'
                 .'</ul>',
         ],
         [
@@ -75,7 +75,7 @@
         <div class="page-card h-100">
             <div class="card-header-custom">
                 <div>
-                    <strong>Hiệu suất nhân viên Sales</strong>
+                    <strong>@if(auth()->user()->isSales()) Hiệu suất của bạn @else Hiệu suất nhân viên Sales @endif</strong>
                     <div class="small text-muted">Xếp theo doanh thu chốt {{ $period === 'month' ? 'trong tháng này' : 'toàn bộ' }}</div>
                 </div>
                 <form method="GET" class="mb-0">

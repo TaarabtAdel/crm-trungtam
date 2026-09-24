@@ -18,7 +18,7 @@
         ],
         [
             'title' => 'Phạm vi Sales',
-            'body' => '<p class="mb-0">Tài khoản Sales chỉ thấy lịch hẹn do mình phụ trách. Admin / quản lý xem theo chi nhánh đang chọn. Bấm tên khách để mở hồ sơ lead (tab lịch sử).</p>',
+            'body' => '<p class="mb-0">Sales thấy tương tác của lead <strong>chưa phân bổ</strong> (pool chung) và lead đã gán cho mình. Admin xem toàn bộ theo chi nhánh trên header. Bấm tên khách để mở hồ sơ lead (tab lịch sử).</p>',
         ],
     ];
 @endphp
@@ -28,7 +28,7 @@
             <h5 class="mb-0 font-weight-bold">Lịch hẹn / Tương tác</h5>
             <small class="text-muted">
                 @if(auth()->user()->isSales())
-                    Chỉ hiển thị lịch hẹn / tương tác do bạn phụ trách.
+                    Lead chưa phân bổ (chung) + lead đã gán cho bạn.
                 @else
                     Quản lý lịch gọi, nhắn tin, gặp mặt và lịch hẹn test năng lực.
                 @endif

@@ -31,6 +31,18 @@ class Interaction extends Model
         return $this->belongsTo(Branch::class);
     }
 
+    /**
+     * Sales: tương tác của lead pool chưa phân bổ + lead đã gán cho mình.
+     */
+    public function scopeVisibleTo($query, User $user)
+    {
+        if ($user->isSales()) {
+            $query->whereHas('lead', fn ($lead) => $lead->visibleTo($user));
+        }
+
+        return $query;
+    }
+
     public static function typeOptions(): array
     {
         return [

@@ -21,7 +21,7 @@ class InteractionController extends Controller
 
         $interactions = Interaction::with(['lead', 'sales', 'branch'])
             ->tap(fn ($query) => CurrentBranch::apply($query))
-            ->when($user->isSales(), fn ($query) => $query->where('sales_id', $user->id))
+            ->tap(fn ($query) => $query->visibleTo($user))
             ->when($q, function ($query) use ($q) {
                 $query->where(function ($inner) use ($q) {
                     $inner->where('notes', 'like', "%{$q}%")
@@ -44,7 +44,10 @@ class InteractionController extends Controller
             $prefillIds = $prefillIds->push((int) old('lead_id'))->unique()->values();
         }
         if ($prefillIds->isNotEmpty()) {
-            $leads = CurrentBranch::apply(Lead::query()->whereIn('id', $prefillIds))->get()->keyBy('id');
+            $leads = CurrentBranch::apply(Lead::query()->whereIn('id', $prefillIds))
+                ->tap(fn ($query) => $query->visibleTo($user))
+                ->get()
+                ->keyBy('id');
         }
 
         $salesUsers = User::whereIn('role', ['sales', 'admin', 'super_admin'])
@@ -144,8 +147,9 @@ class InteractionController extends Controller
 
     protected function authorizeInteractionAccess(Request $request, Interaction $interaction): void
     {
-        if ($request->user()->isSales() && (int) $interaction->sales_id !== (int) $request->user()->id) {
-            abort(403);
+        $interaction->loadMissing('lead');
+        if ($interaction->lead) {
+            $this->authorizeLeadAccess($request, $interaction->lead);
         }
     }
 }

@@ -21,11 +21,16 @@ class CrmDashboardController extends Controller
             $period = 'all';
         }
 
-        $leadsBase = CurrentBranch::apply(Lead::query())
-            ->tap(fn ($q) => $q->visibleTo($user));
-
-        $interactionsBase = CurrentBranch::apply(Interaction::query())
-            ->when($user->isSales(), fn ($q) => $q->where('sales_id', $user->id));
+        // Admin: toàn chi nhánh. Sales: chỉ lead đã gán cho mình + tương tác do mình phụ trách.
+        if ($user->isSales()) {
+            $leadsBase = CurrentBranch::apply(Lead::query())
+                ->where('assigned_sales_id', $user->id);
+            $interactionsBase = CurrentBranch::apply(Interaction::query())
+                ->where('sales_id', $user->id);
+        } else {
+            $leadsBase = CurrentBranch::apply(Lead::query());
+            $interactionsBase = CurrentBranch::apply(Interaction::query());
+        }
 
         $leadsToday = (clone $leadsBase)->whereDate('created_at', $today);
         $interactionsToday = (clone $interactionsBase)->whereDate('scheduled_at', $today);
