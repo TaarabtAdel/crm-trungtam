@@ -1,6 +1,8 @@
 (function () {
     var cfg = window.TaskBoard || {};
     var csrf = cfg.csrf || '';
+    var lastDetailPayload = null;
+    var detailEditMode = false;
 
     var ACTION_LABELS = {
         created: 'đã tạo công việc',
@@ -29,6 +31,44 @@
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;');
+    }
+
+    function formatTextWithLinks(text, emptyLabel) {
+        var raw = String(text == null ? '' : text).trim();
+        if (!raw) {
+            return '<span class="text-muted">' + esc(emptyLabel || '—') + '</span>';
+        }
+        var linked = esc(raw).replace(
+            /(https?:\/\/[^\s<]+|www\.[^\s<]+)/gi,
+            function (url) {
+                var href = url;
+                if (/^www\./i.test(href)) {
+                    href = 'https://' + href;
+                }
+                return '<a href="' + esc(href) + '" target="_blank" rel="noopener noreferrer">' + url + '</a>';
+            }
+        );
+        return linked.replace(/\n/g, '<br>');
+    }
+
+    function renderDetailEditButton(canEdit) {
+        var wrap = document.getElementById('taskDetailEditBtnWrap');
+        if (!wrap) {
+            return;
+        }
+        if (!canEdit) {
+            wrap.innerHTML = '';
+            return;
+        }
+        if (detailEditMode) {
+            wrap.innerHTML =
+                '<button type="button" class="btn btn-sm btn-light task-detail-edit-btn" id="btnCancelDetailEdit" title="Thoát chế độ sửa">' +
+                '<i class="bi bi-x-lg"></i></button>';
+        } else {
+            wrap.innerHTML =
+                '<button type="button" class="btn btn-sm btn-light task-detail-edit-btn" id="btnDetailEdit" title="Sửa thông tin công việc">' +
+                '<i class="bi bi-pencil"></i></button>';
+        }
     }
 
     function pad(n) {
@@ -136,6 +176,8 @@
         if (badges) badges.innerHTML = '';
         var titleEl = document.getElementById('taskDetailTitle');
         if (titleEl) titleEl.textContent = 'Đang tải...';
+        detailEditMode = false;
+        renderDetailEditButton(false);
 
         window.jQuery('#taskDetailModal').modal('show');
 
@@ -152,7 +194,14 @@
             });
     }
 
-    function renderDetail(data) {
+    function renderDetail(data, editMode) {
+        if (editMode === undefined) {
+            editMode = detailEditMode;
+        } else {
+            detailEditMode = !!editMode;
+        }
+        lastDetailPayload = data;
+
         var task = data.task;
         var canEdit = !!data.can_edit;
         var canWork = !!data.can_work;
@@ -171,8 +220,10 @@
         var badges = document.getElementById('taskDetailBadges');
 
         if (titleEl) titleEl.textContent = task.title || 'Công việc';
+        renderDetailEditButton(canEdit);
 
         var dueLabel = task.due_date ? formatDateVi(task.due_date) : null;
+        var metaEditing = detailEditMode && canEdit;
         var isOverdue = !!(task.due_date && task.status !== 'done' && parseDate(task.due_date) && parseDate(task.due_date) < new Date());
 
         if (badges) {
@@ -268,36 +319,44 @@
                 '</div>';
         }).join('') || '<div class="task-empty">Chưa có hoạt động.</div>';
 
-        var assigneeBlock = canAssign
+        var assigneeBlock = metaEditing && canAssign
             ? '<select class="form-control js-field js-assignee-select" data-field="assignee_id" data-placeholder="Chọn người thực hiện...">' +
               assigneeOpts + '</select>'
             : (task.assignee ? personChip(task.assignee) : '<div class="task-field-static">—</div>');
 
-        var watchersBlock = canEdit
+        var dueBlock = metaEditing
+            ? '<input type="datetime-local" class="form-control form-control-sm js-field" data-field="due_date" value="' + esc(toLocalInput(task.due_date)) + '">'
+            : '<div class="task-field-static">' + esc(dueLabel || '—') + '</div>';
+
+        var watchersBlock = metaEditing
             ? '<select class="form-control js-watchers" multiple data-placeholder="Chọn người liên quan...">' +
               watcherOpts + '</select>'
             : ((task.watchers || []).map(personChip).join('') || '<div class="task-field-static">—</div>');
 
-        var titleBlock = canEdit
-            ? '<div class="form-group mb-3">' +
-              '<label class="task-field-label">Tên công việc</label>' +
-              '<input type="text" class="form-control task-title-input js-field" data-field="title" value="' + esc(task.title) + '">' +
-              '</div>'
-            : '<div class="task-field-static mb-2" style="font-size:1.05rem">' + esc(task.title) + '</div>';
+        var titleBlock = metaEditing
+            ? '<input type="text" class="form-control task-title-input js-field" data-field="title" value="' + esc(task.title) + '">'
+            : '<div class="task-view-title">' + formatTextWithLinks(task.title, 'Chưa có tên') + '</div>';
 
-        var descBlock = (canEdit || canWork)
-            ? '<div class="form-group mb-0">' +
-              '<label class="task-field-label">Mô tả</label>' +
-              '<textarea class="form-control js-field" data-field="description" rows="5" placeholder="Thêm mô tả...">' +
-              esc(task.description || '') + '</textarea></div>'
-            : '<div class="task-comment-text">' + esc(task.description || 'Không có mô tả.') + '</div>';
+        var descBlock = metaEditing
+            ? '<textarea class="form-control js-field" data-field="description" rows="6" placeholder="Thêm mô tả...">' +
+              esc(task.description || '') + '</textarea>'
+            : '<div class="task-rich-text">' + formatTextWithLinks(task.description, 'Không có mô tả.') + '</div>';
+
+        var mainPanel =
+            '<div class="task-panel">' +
+            '<div class="task-main-fields">' +
+            '<div><label class="task-field-label">Người thực hiện</label>' + assigneeBlock + '</div>' +
+            '<div><label class="task-field-label">Hạn hoàn thành</label>' + dueBlock + '</div>' +
+            '<div class="task-main-span-2"><label class="task-field-label">Tên công việc</label>' + titleBlock + '</div>' +
+            '<div class="task-main-span-2"><label class="task-field-label">Mô tả</label>' + descBlock + '</div>' +
+            '</div></div>';
 
         destroySelect2In(body);
 
         body.innerHTML =
             '<div class="task-detail-grid" data-task-id="' + task.id + '">' +
             '<div>' +
-            '<div class="task-panel">' + titleBlock + descBlock + '</div>' +
+            mainPanel +
             '<div class="task-panel">' +
             '<div class="task-panel-head"><h6 class="task-panel-title"><i class="bi bi-check2-square"></i> Checklist</h6>' +
             '<span class="task-panel-count">' + checklistItems.filter(function (i) { return i.is_done; }).length + '/' + checklistItems.length + '</span></div>' +
@@ -339,16 +398,10 @@
             '<div><label class="task-field-label">Trạng thái</label>' +
             '<select class="form-control form-control-sm js-field" data-field="status"' + (canWork ? '' : ' disabled') + '>' + statusOpts + '</select></div>' +
             '<div><label class="task-field-label">Ưu tiên</label>' +
-            (canEdit
+            (metaEditing
                 ? '<select class="form-control form-control-sm js-field" data-field="priority">' + priorityOpts + '</select>'
                 : '<div class="task-field-static">' + esc(priorities[task.priority] || task.priority || '—') + '</div>') +
             '</div>' +
-            '<div class="task-meta-full"><label class="task-field-label">Hạn hoàn thành</label>' +
-            (canEdit
-                ? '<input type="datetime-local" class="form-control form-control-sm js-field" data-field="due_date" value="' + esc(toLocalInput(task.due_date)) + '">'
-                : '<div class="task-field-static">' + esc(dueLabel || '—') + '</div>') +
-            '</div>' +
-            '<div class="task-meta-full"><label class="task-field-label">Người thực hiện</label>' + assigneeBlock + '</div>' +
             '<div class="task-meta-full"><label class="task-field-label">Người liên quan</label>' + watchersBlock + '</div>' +
             (task.creator
                 ? '<div class="task-meta-full"><label class="task-field-label">Người tạo</label>' +
@@ -395,7 +448,7 @@
                     '<i class="bi bi-trash mr-1"></i>Xóa</button>';
             }
             right += '<button type="button" class="btn btn-light" data-dismiss="modal">Đóng</button>';
-            if (canSave) {
+            if (metaEditing || canSave) {
                 right +=
                     '<button type="button" class="btn btn-primary" id="btnSaveTask">' +
                     '<i class="bi bi-check2 mr-1"></i>Lưu thay đổi</button>';
@@ -407,7 +460,7 @@
         }
 
         initDetailSelect2();
-        bindDetailEvents(task.id, { canEdit: canEdit, canWork: canWork, canComment: canComment });
+        bindDetailEvents(task.id, { canEdit: canEdit, canWork: canWork, canComment: canComment, metaEditing: metaEditing });
     }
 
     function bindDetailEvents(taskId, abilities) {
@@ -416,6 +469,23 @@
         var root = document.getElementById('taskDetailBody');
         var footer = document.getElementById('taskDetailFooter');
         if (!root) return;
+
+        var editBtn = document.getElementById('btnDetailEdit');
+        if (editBtn) {
+            editBtn.addEventListener('click', function () {
+                if (lastDetailPayload) {
+                    renderDetail(lastDetailPayload, true);
+                }
+            });
+        }
+        var cancelEditBtn = document.getElementById('btnCancelDetailEdit');
+        if (cancelEditBtn) {
+            cancelEditBtn.addEventListener('click', function () {
+                if (lastDetailPayload) {
+                    renderDetail(lastDetailPayload, false);
+                }
+            });
+        }
 
         function saveTask() {
             var payload = {};
@@ -452,6 +522,7 @@
                 if (!r.ok) throw new Error('save failed');
                 return r.json();
             }).then(function () {
+                detailEditMode = false;
                 openTask(taskId);
             }).catch(function () {
                 if (btn) {

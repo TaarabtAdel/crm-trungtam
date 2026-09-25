@@ -31,6 +31,7 @@
     @endif
     @yield('content')
 </div>
+@include('partials.scheduler_tick')
 @stack('scripts')
 </body>
 </html>

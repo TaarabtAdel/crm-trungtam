@@ -19,5 +19,5 @@ Schedule::command('crm:remind-empty-journals')->hourly();
 Schedule::command('crm:remind-upcoming-sessions', ['--minutes' => 120, '--window' => 12])->everyFifteenMinutes();
 Schedule::command('tasks:remind-deadlines')->hourly();
 Schedule::command('finance:remind-monthly-invoices')->monthlyOn(1, '07:00');
-Schedule::command('finance:remind-payroll')->monthlyOn(25, '07:00');
+Schedule::command('finance:remind-payroll')->monthlyOn(31, '07:00');
 Schedule::command('finance:remind-commissions')->monthlyOn(28, '07:00');

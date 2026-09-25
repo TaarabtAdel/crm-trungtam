@@ -130,7 +130,7 @@ class ReminderScheduler
                 'command' => 'finance:remind-payroll',
                 'after' => '07:00',
                 'interval' => 'monthly',
-                'day' => 25,
+                'day' => 31, // tháng ngắn hơn → chạy ngày cuối tháng (min với daysInMonth)
             ],
             [
                 'key' => 'finance_remind_commissions',

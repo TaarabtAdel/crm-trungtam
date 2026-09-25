@@ -186,7 +186,7 @@ window.TaskBoard = {
     canManage: @json(auth()->user()->hasPermission('tasks.manage') || auth()->user()->isSuperAdmin()),
 };
 </script>
-<script src="{{ asset('js/tasks.js') }}?v=7"></script>
+<script src="{{ asset('js/tasks.js') }}?v=8"></script>
 @if($canFilterAssignees ?? false)
 <script>
 (function () {

@@ -7,9 +7,12 @@
                     <h5 class="modal-title mb-0" id="taskDetailTitle">—</h5>
                     <div class="task-detail-badges" id="taskDetailBadges"></div>
                 </div>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Đóng">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                <div class="task-detail-header-actions">
+                    <div id="taskDetailEditBtnWrap"></div>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Đóng">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
             </div>
             <div class="modal-body task-detail-body" id="taskDetailBody">
                 <div class="task-detail-loading">

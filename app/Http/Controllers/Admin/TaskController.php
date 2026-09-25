@@ -191,9 +191,9 @@ class TaskController extends Controller
         $data = $this->validated($request, $canAssign, updating: true);
         $watchers = $request->has('watcher_ids') ? (array) $request->input('watcher_ids', []) : null;
 
-        // Người được giao: chỉ đổi trạng thái / mô tả tiến độ, không sửa meta giao việc
+        // Người được giao: chỉ đổi trạng thái, không sửa tiêu đề / mô tả / meta giao việc
         if (! $canEdit) {
-            $data = collect($data)->only(['status', 'description'])->all();
+            $data = collect($data)->only(['status'])->all();
             $watchers = null;
         }
 
