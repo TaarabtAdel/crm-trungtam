@@ -39,13 +39,18 @@
             return '<span class="text-muted">' + esc(emptyLabel || '—') + '</span>';
         }
         var linked = esc(raw).replace(
-            /(https?:\/\/[^\s<]+|www\.[^\s<]+)/gi,
+            /(https?:\/\/[^\s<]+|www\.[^\s<]+|\/admin\/[^\s<]+)/gi,
             function (url) {
                 var href = url;
+                var external = false;
                 if (/^www\./i.test(href)) {
                     href = 'https://' + href;
+                    external = true;
+                } else if (/^https?:\/\//i.test(href)) {
+                    external = true;
                 }
-                return '<a href="' + esc(href) + '" target="_blank" rel="noopener noreferrer">' + url + '</a>';
+                var extra = external ? ' target="_blank" rel="noopener noreferrer"' : '';
+                return '<a href="' + href + '"' + extra + '>' + url + '</a>';
             }
         );
         return linked.replace(/\n/g, '<br>');
