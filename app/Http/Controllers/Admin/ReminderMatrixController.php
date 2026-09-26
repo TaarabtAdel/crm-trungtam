@@ -14,14 +14,15 @@ class ReminderMatrixController extends Controller
 
         foreach ($schedulerGroups as $group => $jobs) {
             foreach ($jobs as $i => $job) {
-                $schedulerGroups[$group][$i]['ran_at'] = ReminderMatrix::schedulerRunHint($job);
-                $schedulerGroups[$group][$i]['output_label'] = ReminderMatrix::outputLabel((string) ($job['output'] ?? ''));
+                $ran = ReminderMatrix::schedulerRunHint($job);
+                $schedulerGroups[$group][$i]['ran_at'] = ReminderMatrix::formatRanAt($ran);
+                $schedulerGroups[$group][$i]['delivery'] = ReminderMatrix::deliverySummary($job);
             }
         }
 
         foreach ($eventGroups as $group => $entries) {
             foreach ($entries as $i => $entry) {
-                $eventGroups[$group][$i]['output_label'] = ReminderMatrix::outputLabel((string) ($entry['output'] ?? ''));
+                $eventGroups[$group][$i]['delivery'] = ReminderMatrix::deliverySummary($entry);
             }
         }
 

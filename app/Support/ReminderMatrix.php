@@ -56,14 +56,58 @@ class ReminderMatrix
         return $groups;
     }
 
-    public static function outputLabel(string $output): string
+    /**
+     * Mô tả hình thức nhắc (gộp board + thông báo) cho người dùng nghiệp vụ.
+     */
+    public static function deliverySummary(array $row): string
     {
-        return match ($output) {
-            'task' => 'Board công việc',
-            'notify' => 'Thông báo',
-            'both' => 'Task + thông báo',
-            default => $output,
-        };
+        $parts = [];
+        $out = (string) ($row['output'] ?? '');
+
+        if ($out === 'task' || $out === 'both') {
+            $parts[] = 'Tạo việc trên board Công việc';
+        }
+
+        $notify = trim((string) ($row['notifications'] ?? ''));
+        if ($notify !== '' && $notify !== '—') {
+            $parts[] = self::humanizeNotifyText($notify);
+        } elseif ($out === 'notify') {
+            $parts[] = 'Chuông thông báo trong app';
+        }
+
+        return $parts !== [] ? implode('. ', $parts) : '—';
+    }
+
+    public static function humanizeNotifyText(string $text): string
+    {
+        $map = [
+            'In-app' => 'Chuông thông báo trong app',
+            'in-app' => 'Chuông thông báo trong app',
+            'Email' => 'Email',
+            'Zalo PH' => 'Zalo phụ huynh',
+            'Zalo' => 'Zalo',
+        ];
+        $out = $text;
+        foreach ($map as $from => $to) {
+            $out = str_replace($from, $to, $out);
+        }
+        $out = preg_replace('/Mẫu session_reminder/', 'Theo mẫu tin nhắn trước buổi học', $out);
+        $out = preg_replace('/TaskEventNotification/', 'Thông báo công việc', $out);
+        $out = preg_replace('/ZNS/', 'Zalo', $out);
+
+        return trim(preg_replace('/\s+/', ' ', $out));
+    }
+
+    public static function formatRanAt(?string $ran): ?string
+    {
+        if ($ran === null || $ran === '') {
+            return null;
+        }
+        try {
+            return \Carbon\Carbon::parse($ran)->format('d/m/Y H:i');
+        } catch (\Throwable) {
+            return $ran;
+        }
     }
 
     /**
