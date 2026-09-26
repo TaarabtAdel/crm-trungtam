@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quản trị tài chính</title>
+  <link rel="stylesheet" href="_style.css">
+</head>
+<body>
+  <p><a href="index.html">← Mục lục</a></p>
+  <h1>Quản trị tài chính</h1>
+
+  <h2>Dashboard — <code>/admin/finance</code></h2>
+  <p>Thu / chi / lãi lỗ / công nợ theo chi nhánh; tóm tắt lương GV tháng.</p>
+
+  <h2>Hóa đơn học phí — <code>/admin/invoices</code></h2>
+  <ul>
+    <li>Tạo theo HV: theo tháng, theo buổi (tick buổi), theo khóa; giảm giá, hạn thanh toán.</li>
+    <li>Tạo hàng loạt từ lớp; tùy chọn bỏ qua HV đã có HĐ kỳ đó.</li>
+    <li>Ghi nhận thanh toán (một hoặc nhiều lần); in PDF; VietQR.</li>
+    <li>Thanh toán đủ → có thể gửi Email/Zalo xác nhận (<code>zalo_notify_payment</code>).</li>
+    <li>Gắn Sales trên HĐ → phát sinh hoa hồng khi thu đủ điều kiện.</li>
+  </ul>
+
+  <h2>Công nợ — <code>/admin/debts</code></h2>
+  <ul>
+    <li>Lọc quá hạn / sắp đến hạn.</li>
+    <li><code>finance:remind-debts</code> hàng ngày: in-app + email + Zalo PH; tạo việc <code>invoice_debt</code>.</li>
+    <li>Thu tiền → đóng việc nợ tương ứng.</li>
+  </ul>
+
+  <h2>Chi phí — <code>/admin/expenses</code></h2>
+  <ol>
+    <li>Tạo đề nghị chi (loại: vận hành, lương, ứng lương, marketing…).</li>
+    <li>Người duyệt (<code>finance.expenses.approve</code>) → việc auto duyệt.</li>
+    <li>Đánh dấu đã chi → việc auto chi; có quyền <em>chi ngay</em> bỏ qua chờ duyệt.</li>
+  </ol>
+
+  <h2>Lương giáo viên — <code>/admin/finance/teacher-payroll</code></h2>
+  <ul>
+    <li>Gốc = tổng giờ dạy buổi <em>completed</em> × đơn giá.</li>
+    <li>Thưởng / phạt / ứng (bắt buộc ghi chú); chi lương tạo dòng chi phí.</li>
+    <li>PDF cá nhân &amp; tổng hợp.</li>
+    <li>Cuối tháng: việc auto <em>Chốt lương giáo viên</em> — <a href="tu-dong-nhac-viec.html">chi tiết lịch</a>.</li>
+  </ul>
+
+  <h2>Lương nhân viên — <code>/admin/finance/staff-payroll</code></h2>
+  <ul>
+    <li>Gốc = ngày công đã chấm × lương/ngày trên user.</li>
+    <li>Phụ thuộc <a href="nhan-su.html">chấm công NV</a>.</li>
+    <li>Việc auto chốt lương NV cuối tháng.</li>
+  </ul>
+
+  <h2>Bảng lương của tôi — <code>/admin/my-payroll</code></h2>
+  <p>User tự xem: GV → tab lương GV; NV → lương NV; có cả hai role → chọn tab.</p>
+
+  <h2>Hoàn tiền — <code>/admin/refunds</code></h2>
+  <p>Tạo từ dòng thu trên HĐ → duyệt / từ chối → cập nhật số đã thu; việc auto <code>refund_approve</code>.</p>
+
+  <h2>Hoa hồng — <code>/admin/commissions</code></h2>
+  <ul>
+    <li>Quy tắc % / theo lớp (<code>/admin/commission-rules</code>).</li>
+    <li>Phát sinh khi HĐ thu đủ + có Sales + rule active.</li>
+    <li>Đánh dấu đã trả; việc nhắc chốt ngày 28.</li>
+  </ul>
+
+  <h2>Báo cáo — <code>/admin/finance/reports</code></h2>
+  <p>Thu, hoàn, thu ròng, chi, lãi/lỗ; xuất Excel / PDF.</p>
+</body>
+</html>

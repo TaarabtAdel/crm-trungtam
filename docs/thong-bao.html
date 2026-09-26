@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Thông báo &amp; mẫu tin</title>
+  <link rel="stylesheet" href="_style.css">
+</head>
+<body>
+  <p><a href="index.html">← Mục lục</a></p>
+  <h1>Thông báo &amp; mẫu tin</h1>
+
+  <h2>In-app (chuông)</h2>
+  <ul>
+    <li><code>/admin/notifications</code> — danh sách; đánh dấu đã đọc / đọc tất cả.</li>
+    <li><code>/home</code> — panel chuông tóm tắt, refresh định kỳ.</li>
+    <li>Ví dụ: phân lead, follow-up, nhật ký, công nợ, chi chờ duyệt, sự kiện task (công bố, bình luận…).</li>
+  </ul>
+
+  <h2>Cài đặt kênh — <code>/admin/settings</code></h2>
+  <h3>SMTP (Email)</h3>
+  <ul>
+    <li>Bật SMTP, host/port/TLS, user/pass, from.</li>
+    <li>Nút gửi email thử sau khi lưu.</li>
+  </ul>
+  <h3>Zalo OA / ZNS</h3>
+  <ul>
+    <li>App ID, Secret, Access / Refresh token.</li>
+    <li>Master switch <code>zalo_notify_enabled</code>.</li>
+    <li>Từng loại: nợ (<code>zalo_notify_debt</code>), lịch học (<code>zalo_notify_schedule</code>), điểm danh (<code>zalo_notify_attendance</code>), thanh toán (<code>zalo_notify_payment</code>).</li>
+  </ul>
+
+  <h2>Mẫu thông báo — <code>/admin/notification-templates</code></h2>
+  <p>Mỗi mã (<code>session_reminder</code>, thanh toán, nợ…) có nội dung Email / Zalo với biến động (<code>{center_name}</code>, tên HV…). Bật/tắt từng kênh trên mẫu.</p>
+
+  <h2>Luồng gửi tiêu biểu</h2>
+  <table>
+    <thead><tr><th>Sự kiện</th><th>Kênh</th><th>Điều kiện</th></tr></thead>
+    <tbody>
+      <tr><td>Thanh toán HĐ</td><td>Email + ZNS HV/PH</td><td>SMTP/Zalo bật + mẫu + <code>zalo_notify_payment</code></td></tr>
+      <tr><td>Nhắc nợ</td><td>In-app + Email + Zalo</td><td><code>finance:remind-debts</code></td></tr>
+      <tr><td>Trước buổi học ~2h</td><td>Email + Zalo</td><td><code>crm:remind-upcoming-sessions</code>, mẫu <code>session_reminder</code></td></tr>
+      <tr><td>Vắng / muộn</td><td>Email / Zalo</td><td>Khi ghi điểm danh + cấu hình</td></tr>
+      <tr><td>Task công bố</td><td>In-app</td><td>Chỉ task tạo tay, sau Công bố</td></tr>
+    </tbody>
+  </table>
+
+  <p>Lịch chạy nền: <a href="tu-dong-nhac-viec.html">Tự động &amp; nhắc việc</a>.</p>
+</body>
+</html>

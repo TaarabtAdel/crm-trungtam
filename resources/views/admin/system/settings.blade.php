@@ -29,6 +29,10 @@
             'title' => 'Thương hiệu / liên hệ',
             'body' => '<p class="mb-0">Tên &amp; logo text hiện sidebar/login. Email/SĐT/địa chỉ là thông tin liên hệ chính thức của trung tâm.</p>',
         ],
+        [
+            'title' => 'Ngày làm việc',
+            'body' => '<p class="mb-0">Chọn ngày trung tâm mở cửa. Việc <em>Chấm công NV</em> tự tạo lúc ~05:30 chỉ chạy vào các ngày đã tick (T7/CN nếu có làm). Chi tiết: <code>docs/tu-dong-nhac-viec.html</code>.</p>',
+        ],
     ];
     $s = fn (string $key) => old($key, $settings[$key] ?? '');
     $checked = fn (string $key) => old($key, $settings[$key] ?? '0') == '1';
@@ -77,6 +81,37 @@
                                 <label>Logo text (sidebar) <span class="text-danger">*</span></label>
                                 <input name="logo_text" class="form-control" value="{{ $s('logo_text') }}" maxlength="50" required>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                @php
+                    $workingActive = old('working_days', $settings['working_days_active'] ?? [1, 2, 3, 4, 5]);
+                    if (! is_array($workingActive)) {
+                        $workingActive = \App\Support\WorkingDays::parse((string) $workingActive);
+                    }
+                @endphp
+                <div class="page-card mb-3">
+                    <div class="card-header-custom">
+                        <div>
+                            <h6 class="mb-0 font-weight-bold"><i class="bi bi-calendar-week mr-1"></i> Ngày làm việc</h6>
+                            <small class="text-muted">Dùng cho việc tự tạo “Chấm công nhân viên” mỗi sáng</small>
+                        </div>
+                    </div>
+                    <div class="card-body-custom">
+                        <p class="small text-muted mb-2">
+                            Tick các ngày trung tâm mở cửa. Nếu làm cả thứ 7 / Chủ nhật, hãy bật thêm để hệ thống tạo việc chấm công đúng ngày.
+                            Xem thêm <code>docs/tu-dong-nhac-viec.html</code>.
+                        </p>
+                        <div class="d-flex flex-wrap" style="gap:.75rem 1.25rem">
+                            @foreach(\App\Support\WorkingDays::labels() as $iso => $dayLabel)
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input" id="working_day_{{ $iso }}"
+                                           name="working_days[]" value="{{ $iso }}"
+                                           @checked(in_array($iso, $workingActive, true))>
+                                    <label class="custom-control-label" for="working_day_{{ $iso }}">{{ $dayLabel }}</label>
+                                </div>
+                            @endforeach
                         </div>
                     </div>
                 </div>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hệ thống &amp; phân quyền</title>
+  <link rel="stylesheet" href="_style.css">
+</head>
+<body>
+  <p><a href="index.html">← Mục lục</a></p>
+  <h1>Hệ thống &amp; vận hành</h1>
+
+  <h2>Chi nhánh</h2>
+  <ul>
+    <li><code>/admin/branches</code> — thêm / sửa chi nhánh, mã, địa chỉ, active.</li>
+    <li>Header admin: chọn <strong>chi nhánh đang làm việc</strong> — mọi list/filter theo CN (trừ Super Admin tuỳ quyền).</li>
+    <li>User gắn <code>branch_id</code>; HQ có thể xem nhiều ngữ cảnh.</li>
+  </ul>
+
+  <h2>Người dùng — <code>/admin/users</code></h2>
+  <ul>
+    <li>Họ tên, email, mật khẩu, chi nhánh.</li>
+    <li>Gán <strong>một hoặc nhiều vai trò</strong> — quyền = hợp các role.</li>
+    <li>Lương/ngày (cho lương NV), impersonate (Admin).</li>
+  </ul>
+
+  <h2 id="phan-quyen">Phân quyền — <code>/admin/permissions</code></h2>
+  <ul>
+    <li>Ma trận role × quyền (tick từng ô).</li>
+    <li><strong>Super Admin</strong> bypass ma trận.</li>
+    <li>Sidebar và nút thao tác ẩn theo quyền (<code>@canPerm</code>).</li>
+  </ul>
+  <p>Danh sách quyền định nghĩa trong <code>config/permissions.php</code>.</p>
+
+  <h2 id="ngay-lam-viec">Cài đặt — <code>/admin/settings</code></h2>
+  <ul>
+    <li>Thương hiệu, logo text, liên hệ.</li>
+    <li><strong>Ngày làm việc</strong> (T2–CN) — ảnh hưởng việc chấm công auto. Chi tiết: <a href="nhan-su.html">Nhân sự</a>.</li>
+    <li>SMTP, Zalo — <a href="thong-bao.html">Thông báo</a>.</li>
+  </ul>
+
+  <h2>Cài đặt nhanh — <code>/admin/quick-setup</code></h2>
+  <p>Wizard lần đầu: chi nhánh, môn, user, Zalo… (theo quyền).</p>
+
+  <h2>Báo cáo vận hành — <code>/admin/reports</code></h2>
+  <p>Chuyên cần, giữ chân HV, aging công nợ…</p>
+
+  <h2>Backup — <code>/admin/backups</code></h2>
+  <ul>
+    <li>Tải / tạo backup SQL.</li>
+    <li>Việc nhắc backup thứ 2 hàng tuần (<code>system:remind-backup</code>).</li>
+  </ul>
+
+  <h2>Demo data — <code>/admin/demo-data</code></h2>
+  <p>Khởi tạo dữ liệu mẫu (chỉ môi trường cho phép).</p>
+
+  <h2>Multi-tenant</h2>
+  <p>Mỗi trung tâm: subdomain + database riêng; middleware <code>ResolveTenantDatabase</code>.</p>
+
+  <h2>Hướng dẫn trong app — <code>/admin/guide</code></h2>
+  <p>Tab theo vai trò (Setup, Sales, Đào tạo, Kế toán…). Bộ <code>docs/*.html</code> là bản mở rộng offline.</p>
+
+  <h2>Scheduler công khai</h2>
+  <p><code>GET /scheduler/tick?key=...</code> — token <code>SCHEDULER_TICK_TOKEN</code> trong <code>.env</code>. Xem <a href="tu-dong-nhac-viec.html#chay-nen">Chạy nền</a>.</p>
+</body>
+</html>

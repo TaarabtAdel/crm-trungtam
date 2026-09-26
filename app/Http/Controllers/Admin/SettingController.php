@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
 use App\Support\AppSettings;
+use App\Support\WorkingDays;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 
@@ -40,6 +41,7 @@ class SettingController extends Controller
             'smtp_username' => '',
             'smtp_from_address' => '',
             'smtp_from_name' => '',
+            'working_days' => implode(',', WorkingDays::DEFAULT),
         ];
     }
 
@@ -57,6 +59,7 @@ class SettingController extends Controller
         $settings['zalo_zns_secret_set'] = AppSettings::secret('zalo_zns_secret_key') !== '';
         $settings['zalo_notify_ready'] = AppSettings::zaloNotifyReady();
         $settings['zalo_zns_token_expires_at'] = Setting::get('zalo_zns_token_expires_at', '');
+        $settings['working_days_active'] = WorkingDays::activeIsoWeekdays();
 
         return view('admin.system.settings', compact('settings'));
     }
@@ -95,7 +98,12 @@ class SettingController extends Controller
             'smtp_password' => 'nullable|string|max:255',
             'smtp_from_address' => 'nullable|email|max:255',
             'smtp_from_name' => 'nullable|string|max:120',
+            'working_days' => 'nullable|array|min:1',
+            'working_days.*' => 'integer|between:1,7',
         ]);
+
+        WorkingDays::storeFromRequest($request->input('working_days'));
+        unset($data['working_days']);
 
         $booleans = [
             'zalo_notify_enabled',

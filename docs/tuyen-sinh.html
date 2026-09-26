@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tuyển sinh (CRM)</title>
+  <link rel="stylesheet" href="_style.css">
+</head>
+<body>
+  <p><a href="index.html">← Mục lục</a> · <a href="quy-trinh.html">Quy trình end-to-end</a></p>
+  <h1>Tuyển sinh (CRM)</h1>
+
+  <h2>Dashboard Sales — <code>/admin/crm/sales</code></h2>
+  <ul>
+    <li><strong>Admin:</strong> KPI và bảng hiệu suất toàn chi nhánh đang chọn.</li>
+    <li><strong>Sales:</strong> chỉ số liệu <em>cá nhân</em> — lead đã gán cho mình, tương tác do mình phụ trách (<code>sales_id</code>).</li>
+  </ul>
+
+  <h2>Danh sách Leads — <code>/admin/leads</code></h2>
+  <h3>Phạm vi Sales</h3>
+  <ul>
+    <li>Lead <strong>chưa phân bổ</strong> (pool chung trong chi nhánh).</li>
+    <li>Lead <strong>đã gán</strong> cho chính Sales đó.</li>
+    <li>Lead gán cho Sales khác → <strong>không thấy</strong>.</li>
+  </ul>
+  <h3>Thao tác thường dùng</h3>
+  <ul>
+    <li>Thêm / sửa lead; gán Sales; trạng thái pipeline (Mới → Đã liên hệ → Quan tâm → Chốt / Thất bại).</li>
+    <li>Nhập Excel + tải mẫu.</li>
+    <li>Tạo lịch hẹn nhanh từ modal trên danh sách.</li>
+    <li>Mở hồ sơ chi tiết: tab Thông tin, Lịch sử, Test đầu vào, Bàn giao.</li>
+  </ul>
+
+  <h2>Hồ sơ lead — tab</h2>
+  <table>
+    <thead><tr><th>Tab</th><th>Nội dung</th></tr></thead>
+    <tbody>
+      <tr><td>Thông tin</td><td>Liên hệ, nguồn, môn quan tâm, doanh thu kỳ vọng, follow-up</td></tr>
+      <tr><td>Lịch sử</td><td>Danh sách tương tác / lịch hẹn của lead</td></tr>
+      <tr><td>Placement</td><td>Test đầu vào, điểm, gợi ý lớp</td></tr>
+      <tr><td>Bàn giao</td><td>Checklist chuyển sang học viên / lớp; liên kết HV nếu đã tạo</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Lịch hẹn / Tương tác — <code>/admin/interactions</code></h2>
+  <h3>Phạm vi Sales (giống lead)</h3>
+  <ul>
+    <li>Thấy tương tác của lead trong pool + lead đã gán cho mình.</li>
+    <li>Không lọc chỉ theo cột Sales trên tương tác — quyền xem theo <em>lead</em>.</li>
+  </ul>
+  <ul>
+    <li>Loại: gọi điện, nhắn tin, gặp mặt, lịch test…</li>
+    <li>Trạng thái: sắp diễn ra, hoàn thành, hủy, không đến.</li>
+    <li>Tạo / sửa: Sales tự gán mình làm Sales phụ trách trên tương tác mới.</li>
+  </ul>
+  <p>Đồng bộ board Công việc: <a href="tu-dong-nhac-viec.html#auto-tasks">interaction</a> + cron hourly.</p>
+
+  <h2>Quyền tham khảo</h2>
+  <p><code>crm.leads.view/manage</code>, <code>crm.interactions.view/manage</code>, <code>crm.sales.view</code> — chi tiết ma trận: <a href="he-thong.html#phan-quyen">Phân quyền</a>.</p>
+</body>
+</html>

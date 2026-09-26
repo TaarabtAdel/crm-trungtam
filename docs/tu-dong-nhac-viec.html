@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CRM Trung Tâm — Tự động: công việc, nhắc lịch, thông báo</title>
+  <link rel="stylesheet" href="_style.css">
+  <style>
+    body { max-width: 52rem; }
+    body { font-family: system-ui, sans-serif; line-height: 1.55; max-width: 52rem; margin: 2rem auto; padding: 0 1rem; color: #111; }
+    h1 { font-size: 1.75rem; margin-bottom: .35rem; }
+    h2 { font-size: 1.25rem; margin-top: 2rem; border-bottom: 1px solid #ddd; padding-bottom: .25rem; }
+    h3 { font-size: 1.05rem; margin-top: 1.25rem; }
+    p, ul { margin: .5rem 0; }
+    ul { padding-left: 1.25rem; }
+    li { margin: .25rem 0; }
+    nav ul { list-style: none; padding-left: 0; }
+    nav li { display: inline; margin-right: .75rem; }
+    .muted { color: #555; }
+    code { font-size: .9em; background: #f4f4f5; padding: .1em .35em; border-radius: 4px; }
+    table { width: 100%; border-collapse: collapse; font-size: .92rem; margin: .75rem 0; }
+    th, td { border: 1px solid #ddd; padding: .45rem .55rem; text-align: left; vertical-align: top; }
+    th { background: #f8fafc; }
+    .note { background: #eff6ff; border-left: 4px solid #3b82f6; padding: .65rem .85rem; margin: 1rem 0; }
+  </style>
+</head>
+<body>
+
+  <h1>Tự động: công việc, nhắc lịch, thông báo</h1>
+  <p class="muted">Tài liệu mô tả cách hệ thống tạo việc trên board <strong>Công việc</strong>, gửi thông báo in-app / email / Zalo, và lịch chạy nền (cron hoặc tick khi có người đăng nhập).</p>
+
+  <nav aria-label="Mục lục">
+    <ul>
+      <li><a href="#chay-nen">Chạy nền</a></li>
+      <li><a href="#ngay-lam-viec">Ngày làm việc</a></li>
+      <li><a href="#lich-artisan">Lịch Artisan</a></li>
+      <li><a href="#auto-tasks">Việc tự tạo (AutoTask)</a></li>
+      <li><a href="#realtime-tasks">Việc tạo theo thao tác</a></li>
+      <li><a href="#dong-viec">Đóng việc tự động</a></li>
+      <li><a href="#nhac-cong-viec">Nhắc hạn công việc</a></li>
+      <li><a href="#thong-bao-khac">Thông báo nghiệp vụ khác</a></li>
+      <li><a href="#thu-cong">Chạy tay / xử lý sự cố</a></li>
+    </ul>
+  </nav>
+
+  <p><a href="index.html">← Mục lục tài liệu</a> · <a href="chuc-nang.html">Danh mục chức năng</a></p>
+
+  <h2 id="chay-nen">1. Cách hệ thống “chạy nền”</h2>
+  <ul>
+    <li><strong>Cron server</strong> (khuyến nghị): gọi <code>php artisan schedule:run</code> mỗi phút, hoặc <code>GET /scheduler/tick?key=…</code> với token trong <code>.env</code>.</li>
+    <li><strong>Tick trình duyệt</strong>: khi staff mở <code>/home</code> hoặc <code>/admin</code>, JS gọi <code>POST /admin/scheduler/tick</code> (tối đa ~60 giây/lần/trình duyệt). Dùng khi hosting không có cron.</li>
+    <li><strong>ReminderScheduler</strong> (<code>app/Services/ReminderScheduler.php</code>) chạy lần lượt các lệnh Artisan tương ứng lịch bên dưới; mỗi job có cache “đã chạy” để không lặp trong cùng ngày/giờ/tháng.</li>
+  </ul>
+
+  <h2 id="ngay-lam-viec">2. Cài đặt ngày làm việc</h2>
+  <p><strong>Vị trí:</strong> <code>/admin/settings</code> → mục <em>Ngày làm việc</em> (Thứ 2 … Chủ nhật, ISO 1–7).</p>
+  <ul>
+    <li>Mặc định: <strong>Thứ 2 – Thứ 6</strong>.</li>
+    <li>Trung tâm làm <strong>Thứ 7 / Chủ nhật</strong> → tick thêm các ngày đó rồi <em>Lưu</em>.</li>
+    <li>Ảnh hưởng chính: lệnh <code>tasks:create-staff-attendance</code> <strong>chỉ tạo việc “Chấm công NV”</strong> vào các ngày đã tick (trừ khi chạy tay với <code>--force</code>).</li>
+    <li>Việc <strong>buổi học hôm nay</strong> vẫn theo lịch TKB thực tế (có buổi scheduled thì tạo), không phụ thuộc ngày làm việc.</li>
+  </ul>
+  <div class="note">
+    <strong>Vì sao thứ 7 không thấy việc chấm công?</strong> Trước đây hệ thống bỏ qua cuối tuần cố định. Giờ theo cài đặt — nếu chưa tick T7/CN thì sáng đó sẽ không tạo việc. Bật ngày trong Cài đặt hoặc chạy: <code>php artisan tasks:create-staff-attendance --force</code>.
+  </div>
+
+  <h2 id="lich-artisan">3. Lịch Artisan (<code>routes/console.php</code>)</h2>
+  <table>
+    <thead>
+      <tr><th>Giờ / tần suất</th><th>Lệnh</th><th>Mục đích</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>05:30 hàng ngày</td><td><code>tasks:create-staff-attendance</code></td><td>Việc chấm công NV (theo ngày làm việc)</td></tr>
+      <tr><td>05:45 hàng ngày</td><td><code>tasks:create-today-sessions</code></td><td>Việc buổi học trong ngày</td></tr>
+      <tr><td>Thứ 2 06:00</td><td><code>system:remind-backup</code></td><td>Việc nhắc backup CSDL</td></tr>
+      <tr><td>08:00 hàng ngày</td><td><code>finance:remind-debts</code></td><td>Nhắc nợ học phí (email / in-app / Zalo)</td></tr>
+      <tr><td>08:15 hàng ngày</td><td><code>crm:remind-lead-followups</code></td><td>Việc follow-up lead</td></tr>
+      <tr><td>Mỗi giờ</td><td><code>crm:remind-interactions</code></td><td>Đồng bộ lịch hẹn CRM → board Công việc</td></tr>
+      <tr><td>Mỗi giờ</td><td><code>crm:remind-stale-sessions</code></td><td>Việc buổi học quá hạn chưa cập nhật</td></tr>
+      <tr><td>Mỗi giờ</td><td><code>crm:remind-empty-journals</code></td><td>Việc nhắc nhật ký buổi hoàn thành</td></tr>
+      <tr><td>15 phút</td><td><code>crm:remind-upcoming-sessions</code></td><td>Email/Zalo HV/PH trước buổi (~2h)</td></tr>
+      <tr><td>Mỗi giờ</td><td><code>tasks:remind-deadlines</code></td><td>Thông báo sắp đến hạn / quá hạn task</td></tr>
+      <tr><td>Ngày 1, 07:00</td><td><code>finance:remind-monthly-invoices</code></td><td>Việc thu học phí tháng</td></tr>
+      <tr><td>Cuối tháng, 07:00</td><td><code>finance:remind-payroll</code></td><td>Việc chốt lương GV + NV (tháng trước)</td></tr>
+      <tr><td>Ngày 28, 07:00</td><td><code>finance:remind-commissions</code></td><td>Việc chốt hoa hồng</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="auto-tasks">4. Việc tự tạo trên board (AutoTaskService)</h2>
+  <p>Các việc này <strong>đã công bố</strong> (<code>is_published</code>), không gửi thêm notification kiểu “task mới”. Trùng <code>source_type + source_id + assignee</code> (và chưa done) thì <strong>cập nhật</strong> thay vì tạo mới.</p>
+  <table>
+    <thead>
+      <tr><th>source_type</th><th>Khi nào</th><th>Giao cho</th><th>Tiêu đề / ghi chú</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>staff_attendance</code></td>
+        <td>05:30, ngày làm việc</td>
+        <td>Quyền <code>system.staff_attendances.manage</code> theo CN</td>
+        <td>Chấm công NV · {CN} · {ngày} — link <code>/admin/staff-attendances</code></td>
+      </tr>
+      <tr>
+        <td><code>session_today</code></td>
+        <td>05:45, buổi <code>scheduled</code> trong ngày</td>
+        <td>GV (email trùng user) hoặc <code>training.classes.manage</code></td>
+        <td>Buổi học hôm nay: {lớp} · giờ</td>
+      </tr>
+      <tr>
+        <td><code>session_status</code></td>
+        <td>Hourly, buổi quá hạn chưa đổi trạng thái</td>
+        <td><code>training.classes.manage</code></td>
+        <td>Cập nhật trạng thái buổi học</td>
+      </tr>
+      <tr>
+        <td><code>session_journal</code></td>
+        <td>Hourly + khi hoàn thành buổi (Notifier)</td>
+        <td>GV / <code>training.journals.manage</code></td>
+        <td>Ghi nhật ký buổi học</td>
+      </tr>
+      <tr>
+        <td><code>lead_followup</code></td>
+        <td>08:15 + khi gán lead</td>
+        <td>Sales được gán</td>
+        <td>Follow-up lead</td>
+      </tr>
+      <tr>
+        <td><code>interaction</code></td>
+        <td>Tạo/sửa lịch hẹn + hourly sync</td>
+        <td>Sales trên tương tác</td>
+        <td>Việc theo lịch hẹn CRM</td>
+      </tr>
+      <tr>
+        <td><code>invoice_debt</code></td>
+        <td><code>finance:remind-debts</code></td>
+        <td>Kế toán / quyền thu nợ</td>
+        <td>Nhắc thu công nợ HĐ</td>
+      </tr>
+      <tr>
+        <td><code>monthly_invoice</code></td>
+        <td>Ngày 1 hàng tháng</td>
+        <td><code>finance.invoices.manage</code></td>
+        <td>Thu học phí tháng</td>
+      </tr>
+      <tr>
+        <td><code>teacher_payroll</code></td>
+        <td>Cuối tháng</td>
+        <td><code>training.teachers.payroll</code></td>
+        <td>Chốt lương giáo viên · tháng trước</td>
+      </tr>
+      <tr>
+        <td><code>staff_payroll</code></td>
+        <td>Cuối tháng</td>
+        <td><code>finance.staff_payroll.view</code></td>
+        <td>Chốt lương nhân viên</td>
+      </tr>
+      <tr>
+        <td><code>commission_month</code></td>
+        <td>Ngày 28</td>
+        <td><code>finance.commissions.manage/view</code></td>
+        <td>Chốt hoa hồng</td>
+      </tr>
+      <tr>
+        <td><code>expense_approve</code> / <code>expense_pay</code></td>
+        <td>Tạo / duyệt chi phí</td>
+        <td>Người duyệt / kế toán</td>
+        <td>Duyệt chi / Chi tiền</td>
+      </tr>
+      <tr>
+        <td><code>refund_approve</code></td>
+        <td>Yêu cầu hoàn tiền</td>
+        <td>Người duyệt</td>
+        <td>Duyệt hoàn tiền</td>
+      </tr>
+      <tr>
+        <td><code>backup</code></td>
+        <td>Thứ 2 hàng tuần</td>
+        <td><code>system.backups.manage</code></td>
+        <td>Backup CSDL</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 id="realtime-tasks">5. Việc tạo ngay khi thao tác</h2>
+  <ul>
+    <li><strong>Lịch hẹn CRM</strong> — <code>InteractionTaskService::sync</code> khi thêm/sửa tương tác.</li>
+    <li><strong>Lead gán Sales</strong> — <code>LeadAssignmentNotifier</code> tạo follow-up.</li>
+    <li><strong>Chi phí / hoàn tiền</strong> — <code>ExpenseService</code>, <code>RefundService</code>.</li>
+    <li><strong>Hoàn thành buổi học</strong> — <code>Notifier::remindSessionJournal</code> tạo việc nhật ký.</li>
+  </ul>
+
+  <h2 id="dong-viec">6. Đóng việc tự động (completeBySource)</h2>
+  <ul>
+    <li>Chấm công xong → đóng <code>staff_attendance</code> của ngày/CN đó.</li>
+    <li>Thu tiền HĐ → đóng <code>invoice_debt</code>.</li>
+    <li>Ghi nhật ký / đổi trạng thái buổi → đóng việc buổi tương ứng.</li>
+    <li>Lead won/lost, backup tạo xong, chi phí duyệt/chi, hoa hồng chốt… → đóng task nguồn tương ứng.</li>
+  </ul>
+
+  <h2 id="nhac-cong-viec">7. Nhắc hạn công việc (task thủ công + auto)</h2>
+  <p><code>tasks:remind-deadlines</code> → <code>TaskReminderService</code> gửi <strong>TaskEventNotification</strong> (in-app) cho người được giao:</p>
+  <ul>
+    <li>Sắp đến hạn ~1 ngày, ~3 giờ</li>
+    <li>Đến hạn trong ngày (khung 07:30–09:00)</li>
+    <li>Quá hạn (tối đa 1 lần/ngày/loại)</li>
+  </ul>
+  <p>Việc tạo tay qua UI: công bố mới gửi thông báo cho assignee/watchers (<code>TaskService::publish</code>).</p>
+
+  <h2 id="thong-bao-khac">8. Thông báo không qua board Công việc</h2>
+  <table>
+    <thead>
+      <tr><th>Kênh</th><th>Ví dụ</th><th>Điều kiện</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Email / Zalo HV-PH</td>
+        <td>Nhắc trước buổi học</td>
+        <td>Mẫu <code>session_reminder</code>, bật SMTP/Zalo trong Cài đặt + Mẫu thông báo</td>
+      </tr>
+      <tr>
+        <td>Email / Zalo / in-app</td>
+        <td>Nhắc nợ học phí</td>
+        <td><code>finance:remind-debts</code>, cấu hình Zalo nợ (<code>zalo_notify_debt</code>)</td>
+      </tr>
+      <tr>
+        <td>Email / Zalo</td>
+        <td>Xác nhận thanh toán</td>
+        <td><code>PaymentNotificationService</code>, <code>zalo_notify_payment</code></td>
+      </tr>
+      <tr>
+        <td>In-app</td>
+        <td>Nhiều sự kiện CRM, lớp, tài chính</td>
+        <td>Laravel Notifications trên user</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 id="thu-cong">9. Chạy tay &amp; xử lý sự cố</h2>
+  <pre><code>php artisan tasks:create-staff-attendance
+php artisan tasks:create-staff-attendance --date=2026-03-07 --force
+php artisan tasks:create-today-sessions
+php artisan finance:remind-payroll
+php artisan schedule:run
+curl -fsS "https://TEN-MIỀN/scheduler/tick?key=SCHEDULER_TICK_TOKEN"</code></pre>
+  <ul>
+    <li>Không thấy việc sáng nay: kiểm tra <strong>ngày làm việc</strong>, user có đủ quyền, chi nhánh active, tick scheduler đã chạy (<code>POST /admin/scheduler/tick</code> JSON trả <code>ran</code>).</li>
+    <li>Hosting tắt cron: cần có người mở app hoặc cron GET tick mỗi phút.</li>
+  </ul>
+
+  <p class="muted"><em>Cập nhật theo mã nguồn CRM Trung Tâm — module Công việc &amp; ReminderScheduler.</em></p>
+
+</body>
+</html>

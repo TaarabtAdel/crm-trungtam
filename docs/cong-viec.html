@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Module Công việc</title>
+  <link rel="stylesheet" href="_style.css">
+</head>
+<body>
+  <p><a href="index.html">← Mục lục</a> · <a href="tu-dong-nhac-viec.html">Việc tự động</a></p>
+  <h1>Module Công việc — <code>/admin/tasks</code></h1>
+
+  <h2>Giao diện</h2>
+  <ul>
+    <li><strong>Board Kanban</strong> — Cần làm / Đang làm / Chờ duyệt / Hoàn thành; kéo thả (nếu có quyền làm việc trên task).</li>
+    <li><strong>Danh sách</strong> — <code>?view=list</code>; lọc từ khóa, trạng thái, ưu tiên, hạn.</li>
+    <li><strong>Admin</strong> lọc theo người thực hiện; user thường chỉ thấy việc mình được giao / tạo / theo dõi (đã công bố).</li>
+    <li>Deep link: <code>?task=ID</code> mở modal chi tiết.</li>
+  </ul>
+
+  <h2>Tạo công việc thủ công</h2>
+  <ol>
+    <li><em>+ Tạo công việc</em> → mặc định <strong>bản nháp</strong> (<code>is_published = false</code>).</li>
+    <li>Điền tiêu đề, mô tả, người thực hiện, hạn, checklist (tuỳ chọn).</li>
+    <li><strong>Công bố</strong> → gửi thông báo cho người thực hiện &amp; người liên quan.</li>
+  </ol>
+
+  <h2>Modal chi tiết</h2>
+  <ul>
+    <li>Mở ở <strong>chế độ xem</strong>: tiêu đề, mô tả (link <code>http</code> và <code>/admin/...</code> bấm được).</li>
+    <li><strong>Người tạo</strong> (hoặc Admin): nút bút chì → sửa tên, mô tả, hạn, người thực hiện, ưu tiên, watcher.</li>
+    <li><strong>Người được giao</strong>: đổi trạng thái, checklist, subtask, đính kèm, bình luận — không sửa tiêu đề/mô tả.</li>
+    <li>Lưu thay đổi ở footer modal.</li>
+  </ul>
+
+  <h2>Quyền (tóm tắt)</h2>
+  <table>
+    <thead><tr><th>Quyền / vai trò</th><th>Ý nghĩa</th></tr></thead>
+    <tbody>
+      <tr><td><code>tasks.view</code></td><td>Vào module, xem task được phép</td></tr>
+      <tr><td><code>tasks.view_all</code></td><td>Xem mọi task trong chi nhánh</td></tr>
+      <tr><td><code>tasks.manage</code></td><td>Tạo, làm việc trên task (theo rule creator/assignee)</td></tr>
+      <tr><td><code>tasks.assign</code></td><td>Giao người khác (khi sửa meta)</td></tr>
+      <tr><td>Admin</td><td>Toàn quyền sửa / xóa (kể cả task đã công bố)</td></tr>
+      <tr><td>Người tạo</td><td>Sửa meta, công bố, xóa bản nháp</td></tr>
+      <tr><td>Người được giao</td><td><code>can_work</code> — trạng thái, checklist, file</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Việc tự động (đã công bố)</h2>
+  <p>Không gửi notification “task mới” kiểu thủ công; xuất hiện trên board. Bảng đầy đủ: <a href="tu-dong-nhac-viec.html#auto-tasks">AutoTaskService</a>.</p>
+
+  <h2>Nhắc hạn task</h2>
+  <p><code>tasks:remind-deadlines</code> — thông báo in-app: ~1 ngày, ~3 giờ, trong ngày, quá hạn.</p>
+</body>
+</html>

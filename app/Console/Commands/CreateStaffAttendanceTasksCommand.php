@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Branch;
 use App\Services\Tasks\AutoTaskService;
 use App\Support\Notifier;
+use App\Support\WorkingDays;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 
@@ -22,8 +23,8 @@ class CreateStaffAttendanceTasksCommand extends Command
             ? Carbon::parse((string) $this->option('date'))->startOfDay()
             : now()->startOfDay();
 
-        if (! $this->option('force') && $date->isWeekend()) {
-            $this->info('Cuối tuần — bỏ qua tạo việc chấm công (dùng --force nếu cần).');
+        if (! $this->option('force') && ! WorkingDays::isWorkingDay($date)) {
+            $this->info('Không phải ngày làm việc theo Cài đặt — bỏ qua tạo việc chấm công (dùng --force nếu cần).');
 
             return self::SUCCESS;
         }

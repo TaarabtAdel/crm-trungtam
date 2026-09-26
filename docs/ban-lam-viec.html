@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bàn làm việc (/home)</title>
+  <link rel="stylesheet" href="_style.css">
+</head>
+<body>
+  <p><a href="index.html">← Mục lục tài liệu</a></p>
+  <h1>Bàn làm việc — <code>/home</code></h1>
+  <p class="muted">Trang đích sau đăng nhập. Gom shortcut tới module theo quyền, thông báo và việc hôm nay.</p>
+
+  <h2>Thành phần giao diện</h2>
+  <ul>
+    <li><strong>Ô tìm kiếm</strong> — lọc nhanh tile ứng dụng trên lưới.</li>
+    <li><strong>Chuông thông báo</strong> — tải qua AJAX; đánh dấu đã đọc; link <code>/admin/notifications</code>.</li>
+    <li><strong>Menu tài khoản</strong> — vào Admin (nếu có quyền), Bảng lương của tôi, đăng xuất.</li>
+    <li><strong>Đồng hồ &amp; lịch</strong> — ngày có công việc đến hạn được đánh dấu trên lịch (theo feed công việc).</li>
+    <li><strong>Việc hôm nay</strong> — danh sách task đến hạn / ưu tiên (refresh ~30 giây).</li>
+    <li><strong>Tile ứng dụng</strong> — chỉ hiện module user được phép; có thể ghim yêu thích (localStorage).</li>
+  </ul>
+
+  <h2>Scheduler tick trên /home</h2>
+  <p>Khi mở bàn làm việc, trình duyệt gọi ngầm <code>POST /admin/scheduler/tick</code> (cùng logic với trang Admin) để chạy nhắc nợ, tạo việc chấm công, đồng bộ lịch hẹn… nếu hosting không có cron. Chi tiết: <a href="tu-dong-nhac-viec.html">Tự động &amp; nhắc việc</a>.</p>
+
+  <h2>Impersonate</h2>
+  <p>Admin “xem với tư cách” user khác: thanh vàng trên cùng + nút <em>Trở lại Admin</em>.</p>
+</body>
+</html>

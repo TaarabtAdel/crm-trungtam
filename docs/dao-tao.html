@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quản trị đào tạo</title>
+  <link rel="stylesheet" href="_style.css">
+</head>
+<body>
+  <p><a href="index.html">← Mục lục</a></p>
+  <h1>Quản trị đào tạo</h1>
+
+  <h2>Môn học — <code>/admin/subjects</code></h2>
+  <p>Danh mục môn / chương trình; gắn với lớp và lead (môn quan tâm).</p>
+
+  <h2>Giáo viên — <code>/admin/teachers</code></h2>
+  <ul>
+    <li>Hồ sơ, email, đơn giá giờ dạy (có thể theo lớp).</li>
+    <li>Tick <em>Tạo tài khoản đăng nhập</em> (role Giáo viên) — email trùng hồ sơ để map buổi dạy / nhật ký.</li>
+    <li>GV chỉ xem lớp mình phụ trách khi đăng nhập.</li>
+  </ul>
+
+  <h2>Lớp học — <code>/admin/classes</code></h2>
+  <ul>
+    <li>Tạo lớp: chi nhánh, môn, GV, phòng, lịch thứ/giờ, học phí, sĩ số.</li>
+    <li>Tab <strong>Học viên</strong> — gắn / gỡ HV; có thể kích hoạt tạo hóa đơn.</li>
+    <li>Tab <strong>Thu học phí</strong> — tạo HĐ theo tháng / buổi / khóa.</li>
+    <li>Tab <strong>Thời khóa biểu</strong> — sinh buổi hàng loạt, buổi lẻ, học bù; xuất PDF.</li>
+  </ul>
+
+  <h2>Buổi học &amp; trạng thái</h2>
+  <table>
+    <thead><tr><th>Trạng thái</th><th>Ý nghĩa</th></tr></thead>
+    <tbody>
+      <tr><td><code>scheduled</code></td><td>Chưa diễn ra — có thể điểm danh khi đến giờ</td></tr>
+      <tr><td><code>completed</code></td><td>Hoàn thành — tính lương GV, tạo nhật ký, đóng việc auto buổi</td></tr>
+      <tr><td><code>cancelled</code></td><td>Hủy — không tính lương</td></tr>
+    </tbody>
+  </table>
+  <div class="warn">
+    Buổi <code>scheduled</code> quá hạn chưa đổi trạng thái → hệ thống tạo việc nhắc (<a href="tu-dong-nhac-viec.html">session_status</a>).
+  </div>
+
+  <h2 id="nhat-ky">Nhật ký buổi học</h2>
+  <ul>
+    <li>Sau khi đánh dấu buổi <em>Hoàn thành</em>, hệ thống tạo bản nhật ký (sĩ số lấy từ điểm danh).</li>
+    <li>GV / Đào tạo điền tên bài, nội dung, nhận xét.</li>
+    <li>Thiếu nhật ký lâu ngày → việc auto <code>session_journal</code> + thông báo in-app.</li>
+  </ul>
+
+  <h2>Việc auto liên quan</h2>
+  <ul>
+    <li><strong>05:45</strong> — <em>Buổi học hôm nay</em> cho GV / Đào tạo.</li>
+    <li>Hoàn thành buổi / ghi nhật ký → đóng task nguồn tương ứng.</li>
+  </ul>
+  <p>Chi tiết: <a href="tu-dong-nhac-viec.html">Tự động &amp; nhắc việc</a>.</p>
+</body>
+</html>

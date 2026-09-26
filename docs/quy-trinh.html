@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quy trình end-to-end</title>
+  <link rel="stylesheet" href="_style.css">
+</head>
+<body>
+  <p><a href="index.html">← Mục lục</a></p>
+  <h1>Quy trình end-to-end</h1>
+  <p class="muted">Từ tiếp nhận khách đến thu học phí và vận hành lớp — các bước tham chiếu module.</p>
+
+  <h2>1. Tuyển sinh</h2>
+  <ol>
+    <li>Tạo lead (hoặc import Excel) — <a href="tuyen-sinh.html">CRM</a>.</li>
+    <li>Gán Sales; Sales liên hệ → ghi lịch hẹn / tương tác.</li>
+    <li>Test đầu vào (placement) → gợi ý lớp.</li>
+    <li>Chốt (<code>won</code>) → tạo hoặc liên kết <strong>học viên</strong>.</li>
+    <li>Tab bàn giao: checklist sang Đào tạo.</li>
+  </ol>
+
+  <h2>2. Xếp lớp &amp; thu phí</h2>
+  <ol>
+    <li>Tạo / chọn lớp — <a href="dao-tao.html">Đào tạo</a>.</li>
+    <li>Gắn HV vào lớp.</li>
+    <li>Tạo hóa đơn học phí (tháng / buổi / khóa) — <a href="tai-chinh.html">Tài chính</a>.</li>
+    <li>Ghi nhận thanh toán → Email/Zalo xác nhận (nếu bật).</li>
+    <li>Hoa hồng Sales phát sinh khi đủ điều kiện.</li>
+  </ol>
+
+  <h2>3. Vận hành buổi học</h2>
+  <ol>
+    <li>Sinh TKB / buổi <code>scheduled</code>.</li>
+    <li>Sáng có việc auto “Buổi học hôm nay” (GV/Đào tạo).</li>
+    <li>Điểm danh — <a href="hoc-vien.html">Học viên</a>.</li>
+    <li>Đánh dấu buổi <em>Hoàn thành</em> → lương GV + nhật ký.</li>
+    <li>GV ghi nhật ký; hệ thống nhắc nếu trễ.</li>
+    <li>~2h trước buổi: Zalo/Email PH (mẫu session_reminder).</li>
+  </ol>
+
+  <h2>4. Hành chính &amp; tài chính định kỳ</h2>
+  <ol>
+    <li>Mỗi ngày làm việc: chấm công NV (<a href="nhan-su.html">Nhân sự</a>).</li>
+    <li>Hàng ngày: nhắc nợ học phí.</li>
+    <li>Ngày 1: việc thu học phí tháng.</li>
+    <li>Cuối tháng: chốt lương GV &amp; NV.</li>
+    <li>Ngày 28: nhắc chốt hoa hồng.</li>
+    <li>Thứ 2: nhắc backup.</li>
+  </ol>
+  <p>Chi tiết lịch: <a href="tu-dong-nhac-viec.html">Tự động &amp; nhắc việc</a>.</p>
+
+  <h2>5. Công việc nội bộ</h2>
+  <p>Mọi nhắc trên (và chi phí duyệt, lead follow-up…) đều có thể xuất hiện trên <a href="cong-viec.html">board Công việc</a> + chuông <a href="ban-lam-viec.html">Bàn làm việc</a>.</p>
+</body>
+</html>

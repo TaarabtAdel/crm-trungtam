@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Học viên &amp; điểm danh</title>
+  <link rel="stylesheet" href="_style.css">
+</head>
+<body>
+  <p><a href="index.html">← Mục lục</a></p>
+  <h1>Học viên &amp; điểm danh</h1>
+
+  <h2>Học sinh — <code>/admin/students</code></h2>
+  <ul>
+    <li>Thông tin HV, phụ huynh, trạng thái (đang học, bảo lưu, nghỉ…).</li>
+    <li>Gắn nhiều lớp; xem lịch sử học phí, điểm danh trên hồ sơ.</li>
+    <li>Nhập Excel hàng loạt.</li>
+    <li>Lead chốt → tạo / liên kết học viên từ CRM.</li>
+  </ul>
+
+  <h2>Điểm danh — <code>/admin/attendance</code></h2>
+  <ul>
+    <li>Chọn lớp + buổi (hoặc theo ngày) → đánh dấu có mặt / vắng / muộn…</li>
+    <li>Dữ liệu điểm danh đổ vào nhật ký và báo cáo chuyên cần.</li>
+  </ul>
+
+  <h2>Thông báo phụ huynh</h2>
+  <p>Khi cấu hình Zalo / Email và bật mẫu tương ứng, vắng hoặc muộn có thể gửi PH/HV. Xem <a href="thong-bao.html">Thông báo</a>.</p>
+
+  <h2>Nhắc trước buổi học</h2>
+  <p>Lệnh <code>crm:remind-upcoming-sessions</code> (~2 giờ trước buổi) gửi Email/Zalo theo mẫu <code>session_reminder</code> — không tạo task board (khác với việc “buổi hôm nay”).</p>
+</body>
+</html>

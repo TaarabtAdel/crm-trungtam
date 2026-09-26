@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nhân sự — chấm công</title>
+  <link rel="stylesheet" href="_style.css">
+</head>
+<body>
+  <p><a href="index.html">← Mục lục</a> · <a href="he-thong.html#ngay-lam-viec">Ngày làm việc</a></p>
+  <h1>Nhân sự — chấm công nhân viên</h1>
+
+  <h2>Chấm công — <code>/admin/staff-attendances</code></h2>
+  <h3>Hai chế độ</h3>
+  <ul>
+    <li><strong>Theo ngày</strong> — chọn ngày, tick nhiều NV, chấm một lần.</li>
+    <li><strong>Theo nhân viên</strong> — chọn NV, lịch tháng, gắn trạng thái hàng loạt.</li>
+  </ul>
+  <h3>Trạng thái ngày công</h3>
+  <p>Có mặt, nửa ngày, vắng… (tùy cấu hình màn hình) — quy đổi vào lương NV tháng.</p>
+
+  <h2>Liên kết lương NV</h2>
+  <ul>
+    <li>Trên hồ sơ user: <strong>lương / ngày công</strong> (đơn giá ngày).</li>
+    <li>Bảng lương NV đọc tổng ngày công đã chấm trong tháng.</li>
+  </ul>
+
+  <h2>Việc auto “Chấm công NV”</h2>
+  <table>
+    <thead><tr><th>Mục</th><th>Chi tiết</th></tr></thead>
+    <tbody>
+      <tr><td>Lệnh</td><td><code>tasks:create-staff-attendance</code> (~05:30)</td></tr>
+      <tr><td>Điều kiện ngày</td><td>Chỉ ngày nằm trong <strong>Cài đặt → Ngày làm việc</strong> (mặc định T2–T6; tick T7/CN nếu trung tâm làm cuối tuần)</td></tr>
+      <tr><td>Giao việc</td><td>User có <code>system.staff_attendances.manage</code> theo từng chi nhánh</td></tr>
+      <tr><td>Hạn việc</td><td>18:00 cùng ngày</td></tr>
+      <tr><td>Đóng việc</td><td>Khi chấm công xong (theo ngày/CN/actor)</td></tr>
+    </tbody>
+  </table>
+  <div class="note">
+    <strong>Thứ 7 không thấy việc?</strong> Vào <code>/admin/settings</code> tick Thứ 7 (và Chủ nhật nếu cần), Lưu. Hoặc chạy tay: <code>php artisan tasks:create-staff-attendance --force</code>.
+  </div>
+  <p>Scheduler &amp; cron: <a href="tu-dong-nhac-viec.html">Tự động &amp; nhắc việc</a>.</p>
+</body>
+</html>
