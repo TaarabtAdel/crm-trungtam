@@ -13,9 +13,9 @@ class CreateStaffAttendanceTasksCommand extends Command
 {
     protected $signature = 'tasks:create-staff-attendance
                             {--date= : Ngày công (Y-m-d), mặc định hôm nay}
-                            {--force : Tạo cả cuối tuần}';
+                            {--force : Bỏ qua kiểm tra ngày làm việc trong Cài đặt}';
 
-    protected $description = 'Tạo việc “Chấm công nhân viên” trên board Công việc (chạy sáng sớm mỗi ngày)';
+    protected $description = 'Tạo việc “Chấm công nhân viên” trên board Công việc (lịch ~05:30 mỗi ngày làm việc)';
 
     public function handle(AutoTaskService $auto): int
     {

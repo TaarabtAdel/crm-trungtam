@@ -19,6 +19,7 @@
                 @else
                     Chọn nhân viên → tick nhiều ngày trên lịch → gắn trạng thái hàng loạt.
                 @endif
+                Ngày làm việc &amp; việc auto chấm công theo <a href="{{ route('admin.settings.edit') }}">Cài đặt → Ngày làm việc</a>.
             </small>
         </div>
         <div class="d-flex align-items-center" style="gap:.5rem">

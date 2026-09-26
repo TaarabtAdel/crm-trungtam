@@ -7,6 +7,7 @@ use App\Models\StaffAttendance;
 use App\Models\User;
 use App\Services\Tasks\AutoTaskService;
 use App\Support\CurrentBranch;
+use App\Support\WorkingDays;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -66,7 +67,7 @@ class StaffAttendanceController extends Controller
                 'date' => $key,
                 'day' => $d->day,
                 'weekday' => $d->dayOfWeek,
-                'is_weekend' => $d->isWeekend(),
+                'is_off_day' => ! WorkingDays::isWorkingDay($d),
                 'is_future' => $d->isFuture(),
                 'attendance' => $att,
             ];

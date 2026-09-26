@@ -29,8 +29,9 @@
   <table>
     <thead><tr><th>Mục</th><th>Chi tiết</th></tr></thead>
     <tbody>
-      <tr><td>Lệnh</td><td><code>tasks:create-staff-attendance</code> (~05:30)</td></tr>
-      <tr><td>Điều kiện ngày</td><td>Chỉ ngày nằm trong <strong>Cài đặt → Ngày làm việc</strong> (mặc định T2–T6; tick T7/CN nếu trung tâm làm cuối tuần)</td></tr>
+      <tr><td>Lệnh</td><td><code>tasks:create-staff-attendance</code></td></tr>
+      <tr><td><strong>Giờ chạy</strong></td><td><strong>05:30</strong> (sau 05:30) mỗi ngày — qua cron hoặc lần tick scheduler đầu tiên sau 05:30 khi có người mở <code>/home</code> / <code>/admin</code>. <em>Không</em> chạy lại mỗi lần bạn mở trang lúc 7h45 nếu job đã chạy thành công trong ngày.</td></tr>
+      <tr><td>Điều kiện ngày</td><td>Chỉ ngày nằm trong <strong>Cài đặt → Ngày làm việc</strong> (mặc định T2–T6; tick T7/CN nếu trung tâm làm cuối tuần). Nên bật đúng ngày <em>trước</em> lần tick đầu trong ngày; nếu sửa cài đặt giữa ngày → <code>php artisan tasks:create-staff-attendance</code>.</td></tr>
       <tr><td>Giao việc</td><td>User có <code>system.staff_attendances.manage</code> theo từng chi nhánh</td></tr>
       <tr><td>Hạn việc</td><td>18:00 cùng ngày</td></tr>
       <tr><td>Đóng việc</td><td>Khi chấm công xong (theo ngày/CN/actor)</td></tr>

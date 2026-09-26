@@ -46,10 +46,24 @@
   <p><a href="index.html">← Mục lục tài liệu</a> · <a href="chuc-nang.html">Danh mục chức năng</a></p>
 
   <h2 id="chay-nen">1. Cách hệ thống “chạy nền”</h2>
+
+  <div class="note">
+    <p class="mb-2"><strong>Tóm tắt (một cơ chế <code>scheduler/tick</code>):</strong></p>
+    <ol class="mb-0">
+      <li><strong>Tick</strong> qua <strong>cron</strong> (<code>GET /scheduler/tick?key=…</code>) hoặc <strong>trình duyệt</strong> khi mở app (<code>POST /admin/scheduler/tick</code> từ <code>/home</code> / <code>/admin</code>).</li>
+      <li>Mỗi lần tick, hệ thống <strong>check tất cả</strong> lệnh trong <code>ReminderScheduler</code>.</li>
+      <li>Lệnh nào <strong>đến lượt</strong> (đúng ngày/giờ) và <strong>chưa chạy</strong> trong chu kỳ → <strong>chạy</strong>.</li>
+      <li>Đã chạy → <strong>đánh dấu</strong> (cache). Ví dụ lệnh <em>sau 05:30</em>: 5h30 chưa mở app thì chưa chạy; <strong>7h45 mở app</strong> → tick chạy lần đầu trong ngày; tick sau cùng ngày thì bỏ qua.</li>
+    </ol>
+  </div>
+
+  <h3>Chi tiết</h3>
   <ul>
-    <li><strong>Cron server</strong> (khuyến nghị): gọi <code>php artisan schedule:run</code> mỗi phút, hoặc <code>GET /scheduler/tick?key=…</code> với token trong <code>.env</code>.</li>
-    <li><strong>Tick trình duyệt</strong>: khi staff mở <code>/home</code> hoặc <code>/admin</code>, JS gọi <code>POST /admin/scheduler/tick</code> (tối đa ~60 giây/lần/trình duyệt). Dùng khi hosting không có cron.</li>
-    <li><strong>ReminderScheduler</strong> (<code>app/Services/ReminderScheduler.php</code>) chạy lần lượt các lệnh Artisan tương ứng lịch bên dưới; mỗi job có cache “đã chạy” để không lặp trong cùng ngày/giờ/tháng.</li>
+    <li>Cron khuyến nghị: gọi <code>GET /scheduler/tick?key=…</code> mỗi phút (<code>SCHEDULER_TICK_TOKEN</code> trong <code>.env</code>).</li>
+    <li>Trình duyệt: tối đa ~60 giây/lần/máy; không cần cron.</li>
+    <li>Danh sách lệnh: <code>app/Services/ReminderScheduler.php</code>.</li>
+    <li>Job hourly / 15 phút: đánh dấu theo giờ hoặc khung 15 phút, không phải “một lần/ngày”.</li>
+    <li>Chấm công bỏ qua (không phải ngày làm việc): vẫn đánh dấu đã chạy trong ngày; sửa Cài đặt cùng ngày thì chạy tay <code>php artisan tasks:create-staff-attendance</code>.</li>
   </ul>
 
   <h2 id="ngay-lam-viec">2. Cài đặt ngày làm việc</h2>

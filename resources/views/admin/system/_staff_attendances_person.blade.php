@@ -80,7 +80,7 @@
             @php $att = $day['attendance']; @endphp
             <button type="button"
                     class="staff-att-cell
-                        {{ $day['is_weekend'] ? 'is-weekend' : '' }}
+                        {{ ($day['is_off_day'] ?? false) ? 'is-weekend' : '' }}
                         {{ $att ? 'has-att status-'.$att->status : '' }}
                         {{ $day['is_future'] ? 'is-future' : '' }}"
                     data-date="{{ $day['date'] }}"
