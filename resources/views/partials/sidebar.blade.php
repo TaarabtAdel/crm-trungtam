@@ -187,6 +187,9 @@
     </a>
     @endif
     @if($u->hasPermission('system.settings.manage'))
+    <a href="{{ route('admin.reminder-matrix.index') }}" class="nav-link {{ request()->routeIs('admin.reminder-matrix.*') ? 'active' : '' }}">
+        <i class="bi bi-grid-3x3-gap mr-2"></i> Ma trận nhắc việc
+    </a>
     <a href="{{ route('admin.settings.edit') }}" class="nav-link {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}">
         <i class="bi bi-gear mr-2"></i> Cài đặt
     </a>

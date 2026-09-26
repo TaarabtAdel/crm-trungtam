@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\ReminderMatrix;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -55,91 +56,7 @@ class ReminderScheduler
      */
     protected function jobs(): array
     {
-        return [
-            [
-                'key' => 'tasks_create_staff_attendance',
-                'command' => 'tasks:create-staff-attendance',
-                'after' => '05:30',
-                'interval' => 'daily',
-            ],
-            [
-                'key' => 'tasks_create_today_sessions',
-                'command' => 'tasks:create-today-sessions',
-                'after' => '05:45',
-                'interval' => 'daily',
-            ],
-            [
-                'key' => 'system_remind_backup',
-                'command' => 'system:remind-backup',
-                'after' => '06:00',
-                'interval' => 'weekly',
-                'weekday' => 1, // Monday
-            ],
-            [
-                'key' => 'finance_remind_debts',
-                'command' => 'finance:remind-debts',
-                'options' => ['--days' => 3],
-                'after' => '08:00',
-                'interval' => 'daily',
-            ],
-            [
-                'key' => 'crm_remind_lead_followups',
-                'command' => 'crm:remind-lead-followups',
-                'options' => ['--days' => 1],
-                'after' => '08:15',
-                'interval' => 'daily',
-            ],
-            [
-                'key' => 'crm_remind_interactions',
-                'command' => 'crm:remind-interactions',
-                'options' => ['--hours' => 48, '--overdue-days' => 3],
-                'interval' => 'hourly',
-            ],
-            [
-                'key' => 'crm_remind_stale_sessions',
-                'command' => 'crm:remind-stale-sessions',
-                'options' => ['--days' => 7],
-                'interval' => 'hourly',
-            ],
-            [
-                'key' => 'crm_remind_empty_journals',
-                'command' => 'crm:remind-empty-journals',
-                'options' => ['--days' => 14],
-                'interval' => 'hourly',
-            ],
-            [
-                'key' => 'crm_remind_upcoming_sessions',
-                'command' => 'crm:remind-upcoming-sessions',
-                'options' => ['--minutes' => 120, '--window' => 12],
-                'interval' => 'every_15m',
-            ],
-            [
-                'key' => 'tasks_remind_deadlines',
-                'command' => 'tasks:remind-deadlines',
-                'interval' => 'hourly',
-            ],
-            [
-                'key' => 'finance_remind_monthly_invoices',
-                'command' => 'finance:remind-monthly-invoices',
-                'after' => '07:00',
-                'interval' => 'monthly',
-                'day' => 1,
-            ],
-            [
-                'key' => 'finance_remind_payroll',
-                'command' => 'finance:remind-payroll',
-                'after' => '07:00',
-                'interval' => 'monthly',
-                'day' => 31, // tháng ngắn hơn → chạy ngày cuối tháng (min với daysInMonth)
-            ],
-            [
-                'key' => 'finance_remind_commissions',
-                'command' => 'finance:remind-commissions',
-                'after' => '07:00',
-                'interval' => 'monthly',
-                'day' => 28,
-            ],
-        ];
+        return ReminderMatrix::schedulerJobs();
     }
 
     /**

@@ -44,9 +44,12 @@
             <h4 class="mb-1 font-weight-bold">Cài đặt hệ thống</h4>
             <p class="text-muted mb-0 small">Thương hiệu, liên hệ, SMTP gửi email và Zalo OA.</p>
         </div>
+        <div class="d-flex align-items-center" style="gap:.5rem">
+        <a href="{{ route('admin.reminder-matrix.index') }}" class="btn btn-sm btn-outline-secondary">Ma trận nhắc việc</a>
         <button class="btn btn-sm btn-outline-info" type="button" data-toggle="modal" data-target="#modalSettingsHelp">
             <i class="bi bi-question-circle"></i> Hướng dẫn
         </button>
+        </div>
     </div>
 
     @if($errors->any())

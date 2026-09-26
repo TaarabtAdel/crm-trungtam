@@ -23,6 +23,7 @@ use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\NotificationTemplateController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RefundController;
+use App\Http\Controllers\Admin\ReminderMatrixController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\SchedulerTickController;
 use App\Http\Controllers\Admin\SettingController;
@@ -334,6 +335,7 @@ Route::middleware(['auth', 'user.branch'])->prefix('admin')->name('admin.')->gro
     Route::put('permissions', [PermissionController::class, 'update'])->middleware('permission:system.permissions.manage')->name('permissions.update');
 
     Route::get('reports', [ReportController::class, 'index'])->middleware('permission:system.reports.view')->name('reports.index');
+    Route::get('reminder-matrix', [ReminderMatrixController::class, 'index'])->middleware('permission:system.settings.manage')->name('reminder-matrix.index');
     Route::get('settings', [SettingController::class, 'edit'])->middleware('permission:system.settings.manage')->name('settings.edit');
     Route::put('settings', [SettingController::class, 'update'])->middleware('permission:system.settings.manage')->name('settings.update');
     Route::post('settings/test-mail', [SettingController::class, 'testMail'])->middleware('permission:system.settings.manage')->name('settings.test-mail');

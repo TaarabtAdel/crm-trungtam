@@ -61,7 +61,7 @@
   <ul>
     <li>Cron khuyến nghị: gọi <code>GET /scheduler/tick?key=…</code> mỗi phút (<code>SCHEDULER_TICK_TOKEN</code> trong <code>.env</code>).</li>
     <li>Trình duyệt: tối đa ~60 giây/lần/máy; không cần cron.</li>
-    <li>Danh sách lệnh: <code>app/Services/ReminderScheduler.php</code>.</li>
+    <li>Danh sách lệnh &amp; ma trận quản lý: <code>config/reminder_matrix.php</code> — xem trên app <code>/admin/reminder-matrix</code> (Cài đặt hệ thống).</li>
     <li>Job hourly / 15 phút: đánh dấu theo giờ hoặc khung 15 phút, không phải “một lần/ngày”.</li>
     <li>Chấm công bỏ qua (không phải ngày làm việc): vẫn đánh dấu đã chạy trong ngày; sửa Cài đặt cùng ngày thì chạy tay <code>php artisan tasks:create-staff-attendance</code>.</li>
   </ul>
