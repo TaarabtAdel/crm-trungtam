@@ -7,6 +7,7 @@ use App\Models\ClassSession;
 use App\Models\CourseClass;
 use App\Models\Invoice;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 
 class AttendanceBillingService
 {
@@ -25,11 +26,20 @@ class AttendanceBillingService
      */
     public function alreadyBilledSessionIds(int $classId, int $studentId): array
     {
-        return Invoice::query()
+        if (! Schema::hasColumn('invoices', 'billed_session_ids')) {
+            return [];
+        }
+
+        $query = Invoice::query()
             ->where('class_id', $classId)
             ->where('student_id', $studentId)
-            ->where('status', '!=', 'cancelled')
-            ->where('fee_type', 'per_session')
+            ->where('status', '!=', 'cancelled');
+
+        if (Schema::hasColumn('invoices', 'fee_type')) {
+            $query->where('fee_type', 'per_session');
+        }
+
+        return $query
             ->get()
             ->flatMap(fn (Invoice $inv) => $inv->billed_session_ids ?? [])
             ->map(fn ($id) => (int) $id)
@@ -55,6 +65,11 @@ class AttendanceBillingService
             return collect();
         }
 
+        $sessions = $sessions->filter(fn (ClassSession $s) => $s->session_date !== null)->values();
+        if ($sessions->isEmpty()) {
+            return collect();
+        }
+
         $dateKeys = $sessions
             ->map(fn (ClassSession $s) => $s->session_date->format('Y-m-d'))
             ->unique()
@@ -66,6 +81,7 @@ class AttendanceBillingService
             ->where('student_id', $studentId)
             ->whereIn('session_date', $dateKeys)
             ->get()
+            ->filter(fn (Attendance $a) => $a->session_date !== null)
             ->keyBy(fn (Attendance $a) => $a->session_date->format('Y-m-d'));
 
         $billed = $excludeAlreadyBilled
@@ -75,6 +91,9 @@ class AttendanceBillingService
 
         return $sessions->filter(function (ClassSession $session) use ($attendances, $statuses, $billed) {
             if (in_array($session->id, $billed, true)) {
+                return false;
+            }
+            if ($session->session_date === null) {
                 return false;
             }
             $dateKey = $session->session_date->format('Y-m-d');

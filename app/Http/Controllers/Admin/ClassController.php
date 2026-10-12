@@ -198,7 +198,10 @@ class ClassController extends Controller
         }
 
         if ($tab === 'tuition') {
-            $billingMonth = $request->get('billing_month', now()->format('Y-m'));
+            $billingMonth = (string) $request->get('billing_month', now()->format('Y-m'));
+            if (! preg_match('/^\d{4}-\d{2}$/', $billingMonth)) {
+                $billingMonth = now()->format('Y-m');
+            }
             $classStudents = $class->students()->orderBy('name')->get();
             $invoices = Invoice::with('student')
                 ->where('class_id', $class->id)
@@ -214,8 +217,13 @@ class ClassController extends Controller
             $suggestion = $billingPreviews[$defaultFeeType];
             $selectableSessions = $class->sessionsInMonth($billingMonth);
             $unitFee = (float) $class->tuition_fee;
-            $billableSessionsByStudent = app(AttendanceBillingService::class)
-                ->billableSessionIdsByStudent($class, $billingMonth);
+            try {
+                $billableSessionsByStudent = app(AttendanceBillingService::class)
+                    ->billableSessionIdsByStudent($class, $billingMonth);
+            } catch (\Throwable $e) {
+                report($e);
+                $billableSessionsByStudent = [];
+            }
         }
 
         if ($tab === 'info') {

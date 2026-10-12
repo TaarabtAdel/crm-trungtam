@@ -119,10 +119,10 @@
                 </div>
 
                 <div class="alert alert-light border small py-2 mb-2" id="tuitionPreviewBox">
-                    <div id="tuitionPreviewDetail">{{ $suggestion['detail'] ?? '—' }}</div>
+                    <div id="tuitionPreviewDetail">{{ data_get($suggestion, 'detail', '—') }}</div>
                     <div class="mt-1">
-                        Số buổi: <strong id="tuitionPreviewSessions">{{ $suggestion['sessions_count'] ?? 0 }}</strong>
-                        · Trước giảm: <strong id="tuitionPreviewGross">{{ number_format((float) ($suggestion['gross_amount'] ?? 0), 0, ',', '.') }} đ</strong>
+                        Số buổi: <strong id="tuitionPreviewSessions">{{ data_get($suggestion, 'sessions_count', 0) }}</strong>
+                        · Trước giảm: <strong id="tuitionPreviewGross">{{ number_format((float) data_get($suggestion, 'gross_amount', 0), 0, ',', '.') }} đ</strong>
                     </div>
                 </div>
 
@@ -157,7 +157,7 @@
                                 <div class="custom-control custom-checkbox mb-1">
                                     <input type="checkbox" class="custom-control-input js-session-pick" id="sess{{ $s->id }}" value="{{ $s->id }}">
                                     <label class="custom-control-label small" for="sess{{ $s->id }}">
-                                        {{ $s->session_date->format('d/m/Y') }}
+                                        {{ optional($s->session_date)->format('d/m/Y') ?: '—' }}
                                         @if($time) · {{ $time }}@endif
                                         <span class="text-muted">· {{ $s->statusLabel() }}</span>
                                         · {{ number_format($unitFee, 0, ',', '.') }} đ
@@ -183,7 +183,7 @@
                             @csrf
                             <input type="hidden" name="fee_type" class="js-fee-type" value="{{ $defaultFeeType }}">
                             <input type="hidden" name="billing_month" class="js-billing-month" value="{{ $billingMonth }}">
-                            <input type="hidden" name="sessions_count" class="js-sessions-count" value="{{ $suggestion['sessions_count'] ?? 0 }}">
+                            <input type="hidden" name="sessions_count" class="js-sessions-count" value="{{ data_get($suggestion, 'sessions_count', 0) }}">
                             <div class="js-session-ids"></div>
 
                             <div class="form-row">
@@ -193,7 +193,7 @@
                                 </div>
                                 <div class="form-group col-md-6">
                                     <label>Thành tiền / HV</label>
-                                    <input type="text" class="form-control js-payable-display" readonly value="{{ number_format((float) ($suggestion['amount'] ?? 0), 0, ',', '.') }} đ">
+                                    <input type="text" class="form-control js-payable-display" readonly value="{{ number_format((float) data_get($suggestion, 'amount', 0), 0, ',', '.') }} đ">
                                 </div>
                             </div>
                             <div class="form-group">
@@ -230,7 +230,7 @@
                                 @csrf
                                 <input type="hidden" name="fee_type" class="js-fee-type" value="{{ $defaultFeeType }}">
                                 <input type="hidden" name="billing_month" class="js-billing-month" value="{{ $billingMonth }}">
-                                <input type="hidden" name="sessions_count" class="js-sessions-count" value="{{ $suggestion['sessions_count'] ?? 0 }}">
+                                <input type="hidden" name="sessions_count" class="js-sessions-count" value="{{ data_get($suggestion, 'sessions_count', 0) }}">
                                 <div class="js-session-ids"></div>
 
                                 <div class="form-group">
@@ -253,7 +253,7 @@
                                     </div>
                                     <div class="form-group col-md-6">
                                         <label>Thành tiền</label>
-                                        <input type="text" class="form-control js-payable-display" readonly value="{{ number_format((float) ($suggestion['amount'] ?? 0), 0, ',', '.') }} đ">
+                                        <input type="text" class="form-control js-payable-display" readonly value="{{ number_format((float) data_get($suggestion, 'amount', 0), 0, ',', '.') }} đ">
                                     </div>
                                 </div>
                                 <div class="form-group">
