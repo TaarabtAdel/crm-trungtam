@@ -241,7 +241,7 @@
                                                 $billCount = count($billableSessionsByStudent[$s->id] ?? []);
                                             @endphp
                                             <option value="{{ $s->id }}">
-                                                {{ $s->name }}@if($billCount > 0) — {{ $billCount }} buổi gợi ý thu@endif
+                                                {{ $s->name }}{{ $billCount > 0 ? ' — '.$billCount.' buổi gợi ý thu' : '' }}
                                             </option>
                                         @endforeach
                                     </select>
