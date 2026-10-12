@@ -54,7 +54,19 @@
             <span class="badge badge-info">{{ $class->status }}</span>
         </div>
     </div>
-    <div class="d-flex align-items-center" style="gap:.5rem">
+    <div class="d-flex align-items-center flex-wrap" style="gap:.5rem">
+        @if(($classSwitcherOptions ?? collect())->count() > 1)
+            <div class="d-flex align-items-center" style="gap:.35rem">
+                <label for="classQuickSwitch" class="small text-muted mb-0 text-nowrap">Chuyển lớp</label>
+                <select id="classQuickSwitch" class="form-control form-control-sm" style="min-width:12rem;max-width:260px" title="Chuyển sang lớp khác, giữ tab và bộ lọc hiện tại">
+                    @foreach($classSwitcherOptions as $opt)
+                        <option value="{{ $opt->id }}" @selected((int) $opt->id === (int) $class->id)>
+                            {{ $opt->name }}@if($opt->code) ({{ $opt->code }})@endif@if($opt->status !== 'active') — {{ $opt->statusLabel() }}@endif
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+        @endif
         <button class="btn btn-sm btn-outline-info" type="button" data-toggle="modal" data-target="#modalClassShowHelp">
             <i class="bi bi-question-circle"></i> Hướng dẫn
         </button>
@@ -105,6 +117,23 @@
 
 @push('scripts')
 <script>
+(function () {
+    var $sw = $('#classQuickSwitch');
+    if (!$sw.length) {
+        return;
+    }
+    var switchQuery = @json($classSwitchQuery ?? ['tab' => $tab ?? 'info']);
+    var showBase = @json(url('/admin/classes'));
+    $sw.on('change', function () {
+        var id = $(this).val();
+        if (!id || String(id) === @json((string) $class->id)) {
+            return;
+        }
+        var q = $.param(switchQuery);
+        window.location = showBase + '/' + id + (q ? '?' + q : '');
+    });
+})();
+
 $(document).on('change', '.js-tuition-type', function () {
     var label = $(this).closest('form').find('.js-tuition-fee-label');
     label.text(this.value === 'per_session' ? 'Học phí / buổi' : 'Học phí / tháng');

@@ -9,7 +9,7 @@
         <strong>Tình hình học tập</strong>
         <p class="small text-muted mb-0">
             Buổi đã học = <em>Có mặt</em> / <em>Muộn</em>.
-            Thiếu buổi = <em>Vắng</em> hoặc chưa điểm danh (buổi đã qua, trong kỳ ghi danh).
+            Cột <strong>Danh sách ngày vắng</strong>: từng ngày điểm danh <em>Vắng</em> (đỏ); phía dưới là buổi <em>chưa điểm danh</em> nếu có.
             @if($month === '')<span class="d-block">Đang xem <strong>tất cả</strong> buổi đã qua trên lịch lớp.</span>@endif
             Sắp xếp bù trên tab <strong>Thời khóa biểu</strong> → thêm buổi → chọn <em>Buổi bù cho</em>.
         </p>
@@ -39,12 +39,13 @@
         <thead class="thead-light">
         <tr>
             <th>Học viên</th>
+            <th>Tên người thân</th>
             <th class="text-center text-nowrap" title="Có mặt + Muộn / tổng buổi đã qua trong tháng">Đã học</th>
             <th class="text-center">Vắng</th>
             <th class="text-center">Vắng CP</th>
             <th class="text-center">Chưa ĐD</th>
             <th class="text-center text-nowrap">Cần bù</th>
-            <th>Buổi thiếu (gợi ý bù)</th>
+            <th style="min-width:9rem">Danh sách ngày vắng</th>
         </tr>
         </thead>
         <tbody>
@@ -54,11 +55,20 @@
                 $attended = (int) ($p['attended'] ?? 0);
                 $eligible = (int) ($p['eligible'] ?? 0);
                 $missing = $p['missing_sessions'] ?? [];
+                $absentDays = collect($missing)
+                    ->filter(fn ($m) => ($m['reason'] ?? '') === 'vắng')
+                    ->sortBy('date')
+                    ->values();
+                $unmarkedDays = collect($missing)
+                    ->filter(fn ($m) => ($m['reason'] ?? '') !== 'vắng')
+                    ->sortBy('date')
+                    ->values();
             @endphp
             <tr>
                 <td>
                     <a href="{{ route('admin.students.show', $student) }}" class="font-weight-bold text-dark">{{ $student->name }}</a>
                 </td>
+                <td class="small">{{ $student->parent_name ?: '—' }}</td>
                 <td class="text-center">
                     <span class="font-weight-bold text-success">{{ $attended }}</span>
                     <span class="text-muted">/ {{ $eligible }}</span>
@@ -74,24 +84,39 @@
                     @endif
                 </td>
                 <td class="small">
-                    @if($missing === [])
+                    @if($absentDays->isEmpty() && $unmarkedDays->isEmpty())
                         <span class="text-muted">—</span>
                     @else
-                        @foreach($missing as $m)
-                            <span class="d-inline-block mr-2 mb-1">
-                                <span class="badge badge-light border {{ !empty($m['has_makeup']) ? 'text-success' : 'text-dark' }}">
-                                    {{ $m['date_label'] }}@if(!empty($m['time'])) · {{ $m['time'] }}@endif
-                                    @if(!empty($m['has_makeup']))
-                                        · đã có lịch bù
-                                    @endif
-                                </span>
-                            </span>
-                        @endforeach
+                        @if($absentDays->isNotEmpty())
+                            <ul class="list-unstyled mb-0 pl-2">
+                                @foreach($absentDays as $m)
+                                    <li class="{{ !empty($m['has_makeup']) ? 'text-success' : 'text-danger' }}">
+                                        {{ $m['date_label'] }}
+                                        @if(!empty($m['time']))<span class="text-muted"> · {{ $m['time'] }}</span>@endif
+                                        @if(!empty($m['has_makeup']))<span class="text-muted"> · đã lên bù</span>@endif
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
+                        @if($unmarkedDays->isNotEmpty())
+                            <div class="text-muted mt-1 {{ $absentDays->isNotEmpty() ? 'border-top pt-1' : '' }}">
+                                <span class="d-block small font-weight-bold text-secondary">Chưa điểm danh</span>
+                                <ul class="list-unstyled mb-0 pl-2">
+                                    @foreach($unmarkedDays as $m)
+                                        <li>
+                                            {{ $m['date_label'] }}
+                                            @if(!empty($m['time'])) · {{ $m['time'] }}@endif
+                                            @if(!empty($m['has_makeup'])) · đã lên bù@endif
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
                     @endif
                 </td>
             </tr>
         @empty
-            <tr><td colspan="7" class="text-center text-muted py-4">Chưa có học viên trong lớp.</td></tr>
+            <tr><td colspan="8" class="text-center text-muted py-4">Chưa có học viên trong lớp.</td></tr>
         @endforelse
         </tbody>
     </table>

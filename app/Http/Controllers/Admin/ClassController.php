@@ -280,6 +280,16 @@ class ClassController extends Controller
             $class->loadCount(['invoices']);
         }
 
+        $classSwitcherOptions = $this->classesForQuickSwitch($request->user())
+            ->get(['id', 'name', 'code', 'status']);
+        $classSwitchQuery = array_merge(
+            ['tab' => $tab],
+            $request->only(['month', 'billing_month', 'period_from', 'period_to'])
+        );
+        if (in_array($tab, ['progress', 'timetable', 'journal'], true) && ! array_key_exists('month', $classSwitchQuery)) {
+            $classSwitchQuery['month'] = $month;
+        }
+
         return view('admin.training.class_show', compact(
             'class', 'tab', 'branches', 'subjects', 'teachers', 'sessionTeachers', 'days',
             'availableStudents', 'classStudents',
@@ -287,7 +297,7 @@ class ClassController extends Controller
             'invoices', 'billingMonth', 'suggestion', 'billingPreviews', 'defaultFeeType',
             'selectableSessions', 'unitFee', 'billableSessionsByStudent',
             'periodFrom', 'periodTo', 'sessionCountsByStudent', 'periodSessionCount',
-            'studentProgressById', 'journals'
+            'studentProgressById', 'journals', 'classSwitcherOptions', 'classSwitchQuery'
         ));
     }
 
@@ -1154,6 +1164,28 @@ class ClassController extends Controller
             : null;
 
         return CurrentBranch::constrainPayload($data);
+    }
+
+    /**
+     * Danh sách lớp cho select chuyển nhanh (cùng quy tắc visibility với danh sách lớp).
+     */
+    protected function classesForQuickSwitch(?\App\Models\User $user): \Illuminate\Database\Eloquent\Builder
+    {
+        return CourseClass::query()
+            ->tap(fn ($query) => CurrentBranch::apply($query))
+            ->when($user?->isRestrictedTeacher(), function ($query) use ($user) {
+                $teacher = $user->linkedTeacher();
+                if (! $teacher) {
+                    $query->whereRaw('1 = 0');
+
+                    return;
+                }
+                $query->where(function ($inner) use ($teacher) {
+                    $inner->where('teacher_id', $teacher->id)
+                        ->orWhereHas('sessions', fn ($s) => $s->where('teacher_id', $teacher->id));
+                });
+            })
+            ->orderBy('name');
     }
 
     protected function authorizeTeacherClassAccess(?\App\Models\User $user, CourseClass $class): void

@@ -173,10 +173,8 @@ class ClassStudentProgressService
     }
 
     /**
-     * @return array<string, mixed>
-     */
-    /**
      * @param  Collection<int, int>  $makeupScheduledFor  keys = origin session ids
+     * @return array<string, mixed>
      */
     protected function missingSessionPayload(ClassSession $session, string $reason, Collection $makeupScheduledFor): array
     {
