@@ -5,6 +5,10 @@
     $selectableSessions = $selectableSessions ?? collect();
     $unitFee = (float) ($unitFee ?? $class->tuition_fee);
     $billableSessionsByStudent = $billableSessionsByStudent ?? [];
+    $periodFrom = $periodFrom ?? now()->startOfMonth()->toDateString();
+    $periodTo = $periodTo ?? now()->endOfMonth()->toDateString();
+    $sessionCountsByStudent = $sessionCountsByStudent ?? [];
+    $periodSessionCount = (int) ($periodSessionCount ?? 0);
 @endphp
 
 <div class="page-card mb-3">
@@ -17,10 +21,15 @@
             </small>
         </div>
         <div class="d-flex align-items-center flex-wrap" style="gap:.5rem">
-            <form method="GET" action="{{ route('admin.classes.show', $class) }}" class="mb-0 d-flex align-items-center" style="gap:.35rem">
+            <form method="GET" action="{{ route('admin.classes.show', $class) }}" class="mb-0 d-flex align-items-center flex-wrap" style="gap:.35rem" id="formTuitionPeriod">
                 <input type="hidden" name="tab" value="tuition">
-                <label class="small mb-0 text-muted">Tháng</label>
-                <input type="month" name="billing_month" class="form-control form-control-sm" style="width:150px" value="{{ $billingMonth }}" onchange="this.form.submit()">
+                <label class="small mb-0 text-muted">Tháng (tham chiếu HĐ)</label>
+                <input type="month" name="billing_month" class="form-control form-control-sm js-billing-month-field" style="width:150px" value="{{ $billingMonth }}">
+                <label class="small mb-0 text-muted">Kỳ thu từ</label>
+                <input type="date" name="period_from" class="form-control form-control-sm js-period-from-field" value="{{ $periodFrom }}">
+                <label class="small mb-0 text-muted">đến</label>
+                <input type="date" name="period_to" class="form-control form-control-sm js-period-to-field" value="{{ $periodTo }}">
+                <button type="submit" class="btn btn-sm btn-outline-primary">Áp dụng</button>
             </form>
             <a href="{{ route('admin.invoices.index') }}" class="btn btn-sm btn-outline-secondary">Tất cả HĐ</a>
             @canPerm('finance.invoices.manage')
@@ -29,6 +38,14 @@
             </button>
             @endcanPerm
         </div>
+    </div>
+    <div class="card-body-custom border-bottom">
+        <p class="small text-muted mb-0">
+            <strong>Kỳ thu</strong> có thể trải nhiều tháng (vd. 15/09–15/10).
+            Hình thức <em>Theo tháng</em>: đơn giá × số buổi trên TKB trong kỳ;
+            mỗi học viên chỉ tính buổi từ <strong>ngày vào học</strong> (tab Học viên — có thể sửa).
+            Hiện có <strong>{{ $periodSessionCount }}</strong> buổi lịch trong kỳ đã chọn.
+        </p>
     </div>
     <div class="card-body-custom p-0">
         <div class="table-responsive">
@@ -138,7 +155,7 @@
                         </div>
                     </div>
                     <p class="small text-muted mb-2 mb-md-2">
-                        Gợi ý: buổi có điểm danh <strong>Có mặt</strong> hoặc <strong>Muộn</strong> trong tháng {{ $billingMonth }},
+                        Gợi ý: buổi có điểm danh <strong>Có mặt</strong> hoặc <strong>Muộn</strong> trong kỳ thu đang chọn,
                         chưa nằm trong hóa đơn thu theo buổi. <strong>Vắng</strong> / <strong>Vắng có phép</strong> không tính.
                     </p>
                     @if($selectableSessions->isEmpty())
@@ -183,8 +200,18 @@
                             @csrf
                             <input type="hidden" name="fee_type" class="js-fee-type" value="{{ $defaultFeeType }}">
                             <input type="hidden" name="billing_month" class="js-billing-month" value="{{ $billingMonth }}">
+                            <input type="hidden" name="period_from" class="js-period-from" value="{{ $periodFrom }}">
+                            <input type="hidden" name="period_to" class="js-period-to" value="{{ $periodTo }}">
                             <input type="hidden" name="sessions_count" class="js-sessions-count" value="{{ data_get($suggestion, 'sessions_count', 0) }}">
                             <div class="js-session-ids"></div>
+
+                            <div class="form-check mb-2 js-pro-rata-wrap">
+                                <input type="hidden" name="pro_rata_enrollment" value="0">
+                                <input type="checkbox" class="form-check-input" name="pro_rata_enrollment" value="1" id="proRataBatch" checked>
+                                <label class="form-check-label" for="proRataBatch">
+                                    Theo tháng: mỗi HV chỉ tính buổi từ <strong>ngày vào học</strong> trong kỳ
+                                </label>
+                            </div>
 
                             <div class="form-row">
                                 <div class="form-group col-md-6">
@@ -230,8 +257,18 @@
                                 @csrf
                                 <input type="hidden" name="fee_type" class="js-fee-type" value="{{ $defaultFeeType }}">
                                 <input type="hidden" name="billing_month" class="js-billing-month" value="{{ $billingMonth }}">
+                                <input type="hidden" name="period_from" class="js-period-from" value="{{ $periodFrom }}">
+                                <input type="hidden" name="period_to" class="js-period-to" value="{{ $periodTo }}">
                                 <input type="hidden" name="sessions_count" class="js-sessions-count" value="{{ data_get($suggestion, 'sessions_count', 0) }}">
                                 <div class="js-session-ids"></div>
+
+                                <div class="form-check mb-2 js-pro-rata-wrap">
+                                    <input type="hidden" name="pro_rata_enrollment" value="0">
+                                    <input type="checkbox" class="form-check-input" name="pro_rata_enrollment" value="1" id="proRataSingle" checked>
+                                    <label class="form-check-label" for="proRataSingle">
+                                        Theo tháng: chỉ tính buổi từ ngày vào học trong kỳ
+                                    </label>
+                                </div>
 
                                 <div class="form-group">
                                     <label>Học viên *</label>
@@ -239,9 +276,16 @@
                                         @foreach($classStudents as $s)
                                             @php
                                                 $billCount = count($billableSessionsByStudent[$s->id] ?? []);
+                                                $periodCount = (int) ($sessionCountsByStudent[$s->id] ?? 0);
                                             @endphp
-                                            <option value="{{ $s->id }}">
-                                                {{ $s->name }}{{ $billCount > 0 ? ' — '.$billCount.' buổi gợi ý thu' : '' }}
+                                            <option value="{{ $s->id }}" data-period-sessions="{{ $periodCount }}">
+                                                {{ $s->name }}
+                                                @if($periodCount > 0)
+                                                    — {{ $periodCount }} buổi trong kỳ
+                                                @endif
+                                                @if($billCount > 0)
+                                                    · {{ $billCount }} buổi gợi ý (điểm danh)
+                                                @endif
                                             </option>
                                         @endforeach
                                     </select>
@@ -283,6 +327,8 @@
 (function () {
     var previews = @json($billingPreviews);
     var billableByStudent = @json($billableSessionsByStudent);
+    var sessionCountsByStudent = @json($sessionCountsByStudent);
+    var periodSessionCount = {{ (int) $periodSessionCount }};
     var unitFee = {{ (float) $unitFee }};
     var fmt = function (n) {
         return Math.round(Number(n) || 0).toLocaleString('vi-VN') + ' đ';
@@ -334,6 +380,31 @@
         return $('#feeTypeToggle input[name="fee_type_ui"]:checked').val() || @json($defaultFeeType);
     }
 
+    function monthlySessionsForActiveForm() {
+        var feeType = currentFeeType();
+        if (feeType !== 'monthly') {
+            return Number((previews.monthly || {}).sessions_count || 0);
+        }
+        var $single = $('#formTuitionSingle');
+        if ($('#paneSingle').hasClass('active') && $single.length) {
+            var proRata = $single.find('[name="pro_rata_enrollment"][value="1"]').is(':checked');
+            var sid = $single.find('.js-tuition-student').val();
+            if (proRata && sid) {
+                var n = sessionCountsByStudent[String(sid)] ?? sessionCountsByStudent[sid];
+                if (n !== undefined) {
+                    return Number(n);
+                }
+            }
+        }
+        if ($('#formTuitionBatch').length && $('#paneBatch').hasClass('active')) {
+            var batchPro = $('#proRataBatch').is(':checked');
+            if (!batchPro) {
+                return periodSessionCount;
+            }
+        }
+        return periodSessionCount;
+    }
+
     function applyPreview() {
         var feeType = currentFeeType();
         var p = previews[feeType] || previews.monthly || {};
@@ -346,11 +417,19 @@
                 ? (unitFee.toLocaleString('vi-VN') + ' đ × ' + sessions + ' buổi đã chọn')
                 : ('Chọn buổi cần thu · ' + unitFee.toLocaleString('vi-VN') + ' đ/buổi');
             $('#sessionPickerWrap').removeClass('d-none');
+            $('.js-pro-rata-wrap').addClass('d-none');
+        } else if (feeType === 'monthly') {
+            sessions = monthlySessionsForActiveForm();
+            gross = unitFee * sessions;
+            detail = unitFee.toLocaleString('vi-VN') + ' đ × ' + sessions + ' buổi (theo kỳ & ngày vào học nếu bật)';
+            $('#sessionPickerWrap').addClass('d-none');
+            $('.js-pro-rata-wrap').removeClass('d-none');
         } else {
             sessions = Number(p.sessions_count || 0);
             gross = Number(p.gross_amount || 0);
             detail = p.detail || '—';
             $('#sessionPickerWrap').addClass('d-none');
+            $('.js-pro-rata-wrap').addClass('d-none');
         }
 
         $('#tuitionPreviewDetail').text(detail);
@@ -404,9 +483,22 @@
         pickSessionsForStudent($sel.val());
     });
     $(document).on('change', '#formTuitionSingle .js-tuition-student', function () {
-        if (currentFeeType() === 'per_session' && $('#paneSingle').hasClass('active')) {
-            // không tự chọn — tránh bất ngờ; user bấm Gợi ý
+        applyPreview();
+    });
+    $(document).on('change', '#proRataBatch, #proRataSingle', applyPreview);
+    $('a[data-toggle="tab"]').on('shown.bs.tab', applyPreview);
+    $('#formTuitionPeriod input[name="billing_month"]').on('change', function () {
+        var ym = $(this).val();
+        if (!ym || ym.indexOf('-') < 0) {
+            return;
         }
+        var parts = ym.split('-');
+        var y = parseInt(parts[0], 10);
+        var m = parseInt(parts[1], 10);
+        var last = new Date(y, m, 0).getDate();
+        var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
+        $('#formTuitionPeriod .js-period-from-field').val(y + '-' + pad(m) + '-01');
+        $('#formTuitionPeriod .js-period-to-field').val(y + '-' + pad(m) + '-' + pad(last));
     });
     $(document).on('change', '#modalClassTuitionCreate .js-session-pick', applyPreview);
     $(document).on('input', '#modalClassTuitionCreate .js-discount', applyPreview);
@@ -433,7 +525,17 @@
         }
     });
 
+    function syncPeriodFieldsToModal() {
+        var from = $('#formTuitionPeriod .js-period-from-field').val() || @json($periodFrom);
+        var to = $('#formTuitionPeriod .js-period-to-field').val() || @json($periodTo);
+        var month = $('#formTuitionPeriod .js-billing-month-field').val() || @json($billingMonth);
+        $('#modalClassTuitionCreate .js-period-from').val(from);
+        $('#modalClassTuitionCreate .js-period-to').val(to);
+        $('#modalClassTuitionCreate .js-billing-month').val(month);
+    }
+
     $('#modalClassTuitionCreate').on('shown.bs.modal', function () {
+        syncPeriodFieldsToModal();
         applyPreview();
         toggleBatchAttendanceUi();
     });

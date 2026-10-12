@@ -188,6 +188,7 @@ Route::middleware(['auth', 'user.branch'])->prefix('admin')->name('admin.')->gro
         Route::delete('classes/{class}', [ClassController::class, 'destroy'])->name('classes.destroy');
         Route::post('classes/{class}/students', [ClassController::class, 'attachStudent'])->name('classes.students.attach');
         Route::delete('classes/{class}/students/{student}', [ClassController::class, 'detachStudent'])->name('classes.students.detach');
+        Route::patch('classes/{class}/students/{student}/enrollment', [ClassController::class, 'updateStudentEnrollment'])->name('classes.students.enrollment');
         Route::post('classes/{class}/invoices/generate', [ClassController::class, 'generateInvoices'])->name('classes.invoices.generate');
         Route::post('classes/{class}/invoices', [ClassController::class, 'storeInvoice'])->name('classes.invoices.store');
         Route::post('classes/{class}/timetable/generate', [ClassController::class, 'generateTimetable'])->name('classes.timetable.generate');

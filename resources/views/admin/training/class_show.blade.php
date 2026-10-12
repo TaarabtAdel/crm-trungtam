@@ -7,6 +7,7 @@
     $tabs = [
         'info' => ['label' => 'Thông tin', 'icon' => 'bi-info-circle'],
         'students' => ['label' => 'Học viên', 'icon' => 'bi-people', 'count' => $class->students_count],
+        'progress' => ['label' => 'Tình hình học tập', 'icon' => 'bi-clipboard-data'],
         'timetable' => ['label' => 'Thời khóa biểu', 'icon' => 'bi-calendar3', 'count' => $class->sessions_count],
         'journal' => ['label' => 'Nhật ký', 'icon' => 'bi-journal-text'],
         'tuition' => ['label' => 'Thu học phí', 'icon' => 'bi-cash-coin'],
@@ -20,6 +21,7 @@
             'body' => '<ul class="mb-0 pl-3">'
                 .'<li><strong>Thông tin</strong>: cấu hình lớp, GV, học phí.</li>'
                 .'<li><strong>Học viên</strong>: ghi danh học viên vào lớp (có thể tự tạo hóa đơn).</li>'
+                .'<li><strong>Tình hình học tập</strong>: số buổi đã học, vắng, buổi thiếu cần bù theo tháng.</li>'
                 .'<li><strong>Thời khóa biểu</strong>: buổi học theo tháng; <em>điểm danh đủ</em> rồi mới đánh dấu hoàn thành (tạo nhật ký).</li>'
                 .'<li><strong>Nhật ký</strong>: sĩ số / vắng / muộn từ điểm danh; GV điền tên bài, nội dung, nhận xét.</li>'
                 .'<li><strong>Thu học phí</strong>: tạo HĐ hàng loạt / từng HV và mở thu tiền.</li>'
@@ -66,7 +68,7 @@
     @foreach($tabs as $key => $meta)
         <li class="nav-item">
             <a class="nav-link {{ $tab === $key ? 'active' : '' }}"
-               href="{{ route('admin.classes.show', ['class' => $class, 'tab' => $key] + (in_array($key, ['timetable', 'journal'], true) ? ['month' => $month ?? now()->format('Y-m')] : []) + ($key === 'tuition' ? ['billing_month' => $billingMonth ?? now()->format('Y-m')] : [])) }}">
+               href="{{ route('admin.classes.show', ['class' => $class, 'tab' => $key] + (in_array($key, ['timetable', 'journal', 'progress'], true) ? ['month' => $month ?? now()->format('Y-m')] : []) + ($key === 'tuition' ? ['billing_month' => $billingMonth ?? now()->format('Y-m')] : [])) }}">
                 <i class="bi {{ $meta['icon'] }} mr-1"></i>{{ $meta['label'] }}
                 @if(!empty($meta['count']))
                     <span class="badge badge-light border ml-1">{{ $meta['count'] }}</span>
@@ -82,6 +84,8 @@
             @include('admin.training.class_tabs.info')
         @elseif($tab === 'students')
             @include('admin.training.class_tabs.students')
+        @elseif($tab === 'progress')
+            @include('admin.training.class_tabs.progress')
         @elseif($tab === 'timetable')
             @include('admin.training.class_tabs.timetable')
         @elseif($tab === 'journal')

@@ -26,7 +26,9 @@ class Student extends Model
 
     public function classes(): BelongsToMany
     {
-        return $this->belongsToMany(CourseClass::class, 'class_student', 'student_id', 'class_id')->withTimestamps();
+        return $this->belongsToMany(CourseClass::class, 'class_student', 'student_id', 'class_id')
+            ->withTimestamps()
+            ->withPivot(['enrolled_from', 'enrolled_to']);
     }
 
     public function attendances(): HasMany

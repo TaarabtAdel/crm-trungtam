@@ -247,7 +247,9 @@ class CourseClass extends Model
 
     public function students(): BelongsToMany
     {
-        return $this->belongsToMany(Student::class, 'class_student', 'class_id', 'student_id')->withTimestamps();
+        return $this->belongsToMany(Student::class, 'class_student', 'class_id', 'student_id')
+            ->withTimestamps()
+            ->withPivot(['enrolled_from', 'enrolled_to']);
     }
 
     public function attendances(): HasMany

@@ -12,14 +12,17 @@ use App\Models\Student;
 use App\Models\Subject;
 use App\Models\Teacher;
 use App\Services\ClassSessionJournalService;
+use App\Services\ClassStudentProgressService;
 use App\Services\ClassTimetableGenerator;
 use App\Services\Finance\AttendanceBillingService;
+use App\Services\Finance\ClassEnrollmentBillingService;
 use App\Services\ScheduleConflictService;
 use App\Support\CurrentBranch;
 use App\Support\Notifier;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class ClassController extends Controller
@@ -72,7 +75,7 @@ class ClassController extends Controller
         $this->authorizeTeacherClassAccess($request->user(), $class);
 
         $tab = $request->get('tab', 'info');
-        if (! in_array($tab, ['info', 'students', 'timetable', 'tuition', 'journal'], true)) {
+        if (! in_array($tab, ['info', 'students', 'progress', 'timetable', 'tuition', 'journal'], true)) {
             $tab = 'info';
         }
 
@@ -107,10 +110,40 @@ class ClassController extends Controller
         $selectableSessions = collect();
         $unitFee = 0;
         $billableSessionsByStudent = [];
+        $periodFrom = '';
+        $periodTo = '';
+        $sessionCountsByStudent = [];
+        $periodSessionCount = 0;
         $journals = collect();
+        $studentProgressById = [];
+
+        if ($tab === 'students' || $tab === 'progress') {
+            $classStudents = $class->students()->orderBy('name')->get();
+        }
 
         if ($tab === 'students') {
-            $classStudents = $class->students()->orderBy('name')->get();
+            $studentProgressById = app(ClassStudentProgressService::class)
+                ->buildProgressReport($class, null)['students'];
+        }
+
+        if ($tab === 'progress') {
+            $month = (string) $request->get('month', now()->format('Y-m'));
+            if ($month !== '' && ! preg_match('/^\d{4}-\d{2}$/', $month)) {
+                $month = now()->format('Y-m');
+            }
+            $availableMonths = $class->sessions()
+                ->selectRaw("DATE_FORMAT(session_date, '%Y-%m') as ym")
+                ->groupBy('ym')
+                ->orderByDesc('ym')
+                ->pluck('ym')
+                ->filter()
+                ->values()
+                ->all();
+            $studentProgressById = app(ClassStudentProgressService::class)
+                ->buildProgressReport($class, $month)['students'];
+            if ($availableMonths === []) {
+                $availableMonths = [$month];
+            }
         }
 
         if ($tab === 'timetable' || $tab === 'journal') {
@@ -202,6 +235,14 @@ class ClassController extends Controller
             if (! preg_match('/^\d{4}-\d{2}$/', $billingMonth)) {
                 $billingMonth = now()->format('Y-m');
             }
+            $period = $this->resolveBillingPeriod([
+                'billing_month' => $billingMonth,
+                'period_from' => $request->get('period_from'),
+                'period_to' => $request->get('period_to'),
+            ]);
+            $periodFrom = $period['period_from'];
+            $periodTo = $period['period_to'];
+
             $classStudents = $class->students()->orderBy('name')->get();
             $invoices = Invoice::with('student')
                 ->where('class_id', $class->id)
@@ -209,17 +250,29 @@ class ClassController extends Controller
                 ->paginate(20)
                 ->withQueryString();
             $defaultFeeType = $class->isPerSessionFee() ? 'per_session' : 'monthly';
+            $enrollmentBilling = app(ClassEnrollmentBillingService::class);
+            $periodSessionCount = $enrollmentBilling->sessionsInPeriod($class, $periodFrom, $periodTo)->count();
+            $sessionCountsByStudent = $enrollmentBilling->sessionCountsByStudent($class, $periodFrom, $periodTo);
+            $unitFee = (float) $class->tuition_fee;
+            $periodLabel = $enrollmentBilling->periodLabel($periodFrom, $periodTo);
+
+            $monthlyBase = $class->suggestInvoiceAmount($billingMonth, 'monthly');
             $billingPreviews = [
-                'monthly' => $class->suggestInvoiceAmount($billingMonth, 'monthly'),
+                'monthly' => array_merge($monthlyBase, [
+                    'sessions_count' => $periodSessionCount,
+                    'gross_amount' => $unitFee * $periodSessionCount,
+                    'amount' => $unitFee * $periodSessionCount,
+                    'detail' => number_format($unitFee, 0, ',', '.').' đ × '.$periodSessionCount.' buổi · Kỳ '.$periodLabel
+                        .' (hàng loạt: mỗi HV theo ngày vào học trong kỳ)',
+                ]),
                 'per_session' => $class->suggestInvoiceAmount($billingMonth, 'per_session'),
                 'course' => $class->suggestInvoiceAmount($billingMonth, 'course'),
             ];
             $suggestion = $billingPreviews[$defaultFeeType];
-            $selectableSessions = $class->sessionsInMonth($billingMonth);
-            $unitFee = (float) $class->tuition_fee;
+            $selectableSessions = $enrollmentBilling->sessionsInPeriod($class, $periodFrom, $periodTo);
             try {
                 $billableSessionsByStudent = app(AttendanceBillingService::class)
-                    ->billableSessionIdsByStudent($class, $billingMonth);
+                    ->billableSessionIdsByStudent($class, $periodFrom, $periodTo);
             } catch (\Throwable $e) {
                 report($e);
                 $billableSessionsByStudent = [];
@@ -235,7 +288,9 @@ class ClassController extends Controller
             'availableStudents', 'classStudents',
             'sessions', 'cancelledSessions', 'month', 'availableMonths', 'attendancesByDate', 'defaultFrom', 'defaultTo',
             'invoices', 'billingMonth', 'suggestion', 'billingPreviews', 'defaultFeeType',
-            'selectableSessions', 'unitFee', 'billableSessionsByStudent', 'journals'
+            'selectableSessions', 'unitFee', 'billableSessionsByStudent',
+            'periodFrom', 'periodTo', 'sessionCountsByStudent', 'periodSessionCount',
+            'studentProgressById', 'journals'
         ));
     }
 
@@ -779,11 +834,42 @@ class ClassController extends Controller
             }
         }
 
-        $class->students()->syncWithoutDetaching($ids);
+        $attach = [];
+        foreach ($ids as $id) {
+            $attach[$id] = Schema::hasColumn('class_student', 'enrolled_from')
+                ? ['enrolled_from' => now()->toDateString()]
+                : [];
+        }
+        $class->students()->syncWithoutDetaching($attach);
 
         return redirect()
             ->route('admin.classes.show', ['class' => $class, 'tab' => 'students'])
             ->with('success', 'Đã thêm '.count($ids).' học viên vào lớp.');
+    }
+
+    public function updateStudentEnrollment(Request $request, CourseClass $class, Student $student)
+    {
+        if (! Schema::hasColumn('class_student', 'enrolled_from')) {
+            return back()->with('error', 'Cần cập nhật cơ sở dữ liệu (cột ngày vào học). Liên hệ quản trị.');
+        }
+
+        if (! $class->students()->whereKey($student->id)->exists()) {
+            return back()->with('error', 'Học viên không thuộc lớp này.');
+        }
+
+        $data = $request->validate([
+            'enrolled_from' => 'required|date',
+            'enrolled_to' => 'nullable|date|after_or_equal:enrolled_from',
+        ]);
+
+        $class->students()->updateExistingPivot($student->id, [
+            'enrolled_from' => $data['enrolled_from'],
+            'enrolled_to' => $data['enrolled_to'] ?? null,
+        ]);
+
+        return redirect()
+            ->route('admin.classes.show', ['class' => $class, 'tab' => 'students'])
+            ->with('success', 'Đã cập nhật ngày vào học.');
     }
 
     public function detachStudent(CourseClass $class, Student $student)
@@ -812,6 +898,9 @@ class ClassController extends Controller
             'status' => 'nullable|in:unpaid,paid,cancelled',
             'note' => 'nullable|string',
             'installment_count' => 'nullable|integer|min:1|max:24',
+            'period_from' => 'nullable|date',
+            'period_to' => 'nullable|date',
+            'pro_rata_enrollment' => 'nullable|boolean',
         ]);
 
         if (! $class->students()->where('students.id', $data['student_id'])->exists()) {
@@ -820,6 +909,15 @@ class ClassController extends Controller
 
         if (($data['fee_type'] ?? '') === 'per_session' && empty($data['session_ids'])) {
             return back()->with('error', 'Thu theo buổi: vui lòng chọn ít nhất một buổi trên lịch.');
+        }
+
+        $student = $class->students()->whereKey($data['student_id'])->first();
+        if ($student && ($data['fee_type'] ?? '') === 'monthly' && $request->boolean('pro_rata_enrollment', true)) {
+            $data = $this->applyEnrollmentBillingToStudentData($class, $student, $data, true);
+        } else {
+            $period = $this->resolveBillingPeriod($data);
+            $data['period_from'] = $period['period_from'];
+            $data['period_to'] = $period['period_to'];
         }
 
         $payload = $this->buildTuitionInvoicePayload($class, $data);
@@ -833,11 +931,15 @@ class ClassController extends Controller
             'received_by' => auth()->id(),
         ]), (int) ($data['installment_count'] ?? 1));
 
+        $period = $this->resolveBillingPeriod($data);
+
         return redirect()
             ->route('admin.classes.show', [
                 'class' => $class,
                 'tab' => 'tuition',
                 'billing_month' => $payload['billing_month'] ?: now()->format('Y-m'),
+                'period_from' => $period['period_from'],
+                'period_to' => $period['period_to'],
             ])
             ->with('success', 'Đã tạo hóa đơn.');
     }
@@ -847,6 +949,8 @@ class ClassController extends Controller
         $data = $request->validate([
             'fee_type' => 'required|in:monthly,per_session,course',
             'billing_month' => 'nullable|string|max:7',
+            'period_from' => 'nullable|date',
+            'period_to' => 'nullable|date',
             'session_ids' => 'nullable|array',
             'session_ids.*' => 'integer|exists:class_sessions,id',
             'sessions_count' => 'nullable|integer|min:0',
@@ -856,10 +960,16 @@ class ClassController extends Controller
             'amount' => 'nullable|numeric|min:0',
             'due_date' => 'nullable|date',
             'skip_existing' => 'nullable|boolean',
+            'pro_rata_enrollment' => 'nullable|boolean',
             'note' => 'nullable|string',
         ]);
 
         $billFromAttendance = $request->boolean('bill_from_attendance');
+        $proRata = $request->boolean('pro_rata_enrollment', true);
+        $period = $this->resolveBillingPeriod($data);
+        $data['period_from'] = $period['period_from'];
+        $data['period_to'] = $period['period_to'];
+        $billingMonth = $period['billing_month'];
 
         if (($data['fee_type'] ?? '') === 'per_session' && ! $billFromAttendance && empty($data['session_ids'])) {
             return back()->with('error', 'Thu theo buổi: vui lòng chọn ít nhất một buổi trên lịch.');
@@ -870,7 +980,6 @@ class ClassController extends Controller
         $created = 0;
         $skipped = 0;
         $noBillable = 0;
-        $billingMonth = $data['billing_month'] ?? now()->format('Y-m');
         $attendanceBilling = app(AttendanceBillingService::class);
 
         foreach ($students as $student) {
@@ -895,7 +1004,12 @@ class ClassController extends Controller
             $studentData = $data;
             if (($data['fee_type'] ?? '') === 'per_session' && $billFromAttendance) {
                 $sessionIds = $attendanceBilling
-                    ->billableSessionsForStudent($class, (int) $student->id, $billingMonth)
+                    ->billableSessionsForStudentInPeriod(
+                        $class,
+                        (int) $student->id,
+                        $period['period_from'],
+                        $period['period_to']
+                    )
                     ->pluck('id')
                     ->all();
                 if ($sessionIds === []) {
@@ -905,6 +1019,12 @@ class ClassController extends Controller
                 $studentData['session_ids'] = $sessionIds;
                 $suffix = 'Buổi theo điểm danh (Có mặt / Muộn)';
                 $studentData['note'] = trim(($studentData['note'] ?? '').' · '.$suffix, ' ·');
+            } elseif (($data['fee_type'] ?? '') === 'monthly' && $proRata) {
+                $studentData = $this->applyEnrollmentBillingToStudentData($class, $student, $studentData, true);
+                if ((int) ($studentData['sessions_count'] ?? 0) <= 0) {
+                    $noBillable++;
+                    continue;
+                }
             }
 
             $payload = $this->buildTuitionInvoicePayload($class, $studentData);
@@ -937,8 +1057,64 @@ class ClassController extends Controller
                 'class' => $class,
                 'tab' => 'tuition',
                 'billing_month' => $billingMonth,
+                'period_from' => $period['period_from'],
+                'period_to' => $period['period_to'],
             ])
             ->with('success', $message);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array{billing_month: string, period_from: string, period_to: string}
+     */
+    protected function resolveBillingPeriod(array $data): array
+    {
+        $billingMonth = (string) ($data['billing_month'] ?? now()->format('Y-m'));
+        if (! preg_match('/^\d{4}-\d{2}$/', $billingMonth)) {
+            $billingMonth = now()->format('Y-m');
+        }
+
+        $monthStart = Carbon::createFromFormat('Y-m', $billingMonth)->startOfMonth();
+        $periodFrom = (string) ($data['period_from'] ?? $monthStart->toDateString());
+        $periodTo = (string) ($data['period_to'] ?? $monthStart->copy()->endOfMonth()->toDateString());
+
+        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $periodFrom)) {
+            $periodFrom = $monthStart->toDateString();
+        }
+        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $periodTo)) {
+            $periodTo = $monthStart->copy()->endOfMonth()->toDateString();
+        }
+        if ($periodFrom > $periodTo) {
+            [$periodFrom, $periodTo] = [$periodTo, $periodFrom];
+        }
+
+        return [
+            'billing_month' => $billingMonth,
+            'period_from' => $periodFrom,
+            'period_to' => $periodTo,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function applyEnrollmentBillingToStudentData(
+        CourseClass $class,
+        Student $student,
+        array $data,
+        bool $proRata
+    ): array {
+        $period = $this->resolveBillingPeriod($data);
+        $data['period_from'] = $period['period_from'];
+        $data['period_to'] = $period['period_to'];
+
+        if (($data['fee_type'] ?? '') === 'monthly' && $proRata) {
+            $data['sessions_count'] = app(ClassEnrollmentBillingService::class)
+                ->sessionCountForStudent($class, $student, $period['period_from'], $period['period_to']);
+        }
+
+        return $data;
     }
 
     /**

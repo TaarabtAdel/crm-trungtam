@@ -194,6 +194,14 @@ class InvoiceService
             $note = $note !== '' ? $note.' · '.$suffix : $suffix;
         }
 
+        $periodFrom = $data['period_from'] ?? null;
+        $periodTo = $data['period_to'] ?? null;
+        if ($periodFrom && $periodTo && in_array($feeType, ['monthly', 'per_session'], true)) {
+            $periodLabel = app(ClassEnrollmentBillingService::class)->periodLabel($periodFrom, $periodTo);
+            $periodSuffix = 'Kỳ '.$periodLabel.' · '.$sessions.' buổi';
+            $note = $note !== '' ? $note.' · '.$periodSuffix : $periodSuffix;
+        }
+
         return [
             'fee_type' => $feeType,
             'billing_month' => $billingMonth,

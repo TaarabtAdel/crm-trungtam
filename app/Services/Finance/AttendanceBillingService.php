@@ -49,18 +49,57 @@ class AttendanceBillingService
             ->all();
     }
 
-    /**
-     * Buổi trong tháng có điểm danh Có mặt / Muộn, chưa nằm trong HĐ theo buổi.
-     *
-     * @return Collection<int, ClassSession>
-     */
     public function billableSessionsForStudent(
         CourseClass $class,
         int $studentId,
         string $billingMonth,
         bool $excludeAlreadyBilled = true
     ): Collection {
-        $sessions = $class->sessionsInMonth($billingMonth);
+        if (! preg_match('/^\d{4}-\d{2}$/', $billingMonth)) {
+            return collect();
+        }
+        $from = \Carbon\Carbon::createFromFormat('Y-m', $billingMonth)->startOfMonth()->toDateString();
+        $to = \Carbon\Carbon::createFromFormat('Y-m', $billingMonth)->endOfMonth()->toDateString();
+
+        return $this->billableSessionsForStudentInPeriod($class, $studentId, $from, $to, $excludeAlreadyBilled);
+    }
+
+    /**
+     * @return array<int, list<int>> student_id => session ids
+     */
+    public function billableSessionIdsByStudent(
+        CourseClass $class,
+        string $periodFrom,
+        string $periodTo
+    ): array {
+        $class->loadMissing('students');
+        $map = [];
+
+        foreach ($class->students as $student) {
+            $ids = $this->billableSessionsForStudentInPeriod($class, (int) $student->id, $periodFrom, $periodTo)
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+            if ($ids !== []) {
+                $map[(int) $student->id] = $ids;
+            }
+        }
+
+        return $map;
+    }
+
+    /**
+     * @return Collection<int, ClassSession>
+     */
+    public function billableSessionsForStudentInPeriod(
+        CourseClass $class,
+        int $studentId,
+        string $periodFrom,
+        string $periodTo,
+        bool $excludeAlreadyBilled = true
+    ): Collection {
+        $sessions = app(ClassEnrollmentBillingService::class)
+            ->sessionsInPeriod($class, $periodFrom, $periodTo);
         if ($sessions->isEmpty()) {
             return collect();
         }
@@ -101,26 +140,5 @@ class AttendanceBillingService
 
             return $att && in_array($att->status, $statuses, true);
         })->values();
-    }
-
-    /**
-     * @return array<int, list<int>> student_id => session ids
-     */
-    public function billableSessionIdsByStudent(CourseClass $class, string $billingMonth): array
-    {
-        $class->loadMissing('students');
-        $map = [];
-
-        foreach ($class->students as $student) {
-            $ids = $this->billableSessionsForStudent($class, (int) $student->id, $billingMonth)
-                ->pluck('id')
-                ->map(fn ($id) => (int) $id)
-                ->all();
-            if ($ids !== []) {
-                $map[(int) $student->id] = $ids;
-            }
-        }
-
-        return $map;
     }
 }
