@@ -60,9 +60,16 @@
                 <label for="classQuickSwitch" class="small text-muted mb-0 text-nowrap">Chuyển lớp</label>
                 <select id="classQuickSwitch" class="form-control form-control-sm" style="min-width:12rem;max-width:260px" title="Chuyển sang lớp khác, giữ tab và bộ lọc hiện tại">
                     @foreach($classSwitcherOptions as $opt)
-                        <option value="{{ $opt->id }}" @selected((int) $opt->id === (int) $class->id)>
-                            {{ $opt->name }}@if($opt->code) ({{ $opt->code }})@endif@if($opt->status !== 'active') — {{ $opt->statusLabel() }}@endif
-                        </option>
+                        @php
+                            $switchLabel = $opt->name;
+                            if ($opt->code) {
+                                $switchLabel .= ' ('.$opt->code.')';
+                            }
+                            if ($opt->status !== 'active') {
+                                $switchLabel .= ' — '.$opt->statusLabel();
+                            }
+                        @endphp
+                        <option value="{{ $opt->id }}" @selected((int) $opt->id === (int) $class->id)>{{ $switchLabel }}</option>
                     @endforeach
                 </select>
             </div>
