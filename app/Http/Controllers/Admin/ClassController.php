@@ -127,9 +127,9 @@ class ClassController extends Controller
         }
 
         if ($tab === 'progress') {
-            $month = (string) $request->get('month', now()->format('Y-m'));
+            $month = (string) $request->get('month', '');
             if ($month !== '' && ! preg_match('/^\d{4}-\d{2}$/', $month)) {
-                $month = now()->format('Y-m');
+                $month = '';
             }
             $availableMonths = $class->sessions()
                 ->selectRaw("DATE_FORMAT(session_date, '%Y-%m') as ym")
@@ -140,10 +140,7 @@ class ClassController extends Controller
                 ->values()
                 ->all();
             $studentProgressById = app(ClassStudentProgressService::class)
-                ->buildProgressReport($class, $month)['students'];
-            if ($availableMonths === []) {
-                $availableMonths = [$month];
-            }
+                ->buildProgressReport($class, $month !== '' ? $month : null)['students'];
         }
 
         if ($tab === 'timetable' || $tab === 'journal') {

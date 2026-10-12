@@ -1,6 +1,6 @@
 @php
     $studentProgressById = $studentProgressById ?? [];
-    $month = $month ?? now()->format('Y-m');
+    $month = $month ?? '';
     $availableMonths = $availableMonths ?? [];
 @endphp
 
@@ -10,6 +10,7 @@
         <p class="small text-muted mb-0">
             Buổi đã học = <em>Có mặt</em> / <em>Muộn</em>.
             Thiếu buổi = <em>Vắng</em> hoặc chưa điểm danh (buổi đã qua, trong kỳ ghi danh).
+            @if($month === '')<span class="d-block">Đang xem <strong>tất cả</strong> buổi đã qua trên lịch lớp.</span>@endif
             Sắp xếp bù trên tab <strong>Thời khóa biểu</strong> → thêm buổi → chọn <em>Buổi bù cho</em>.
         </p>
     </div>
@@ -17,6 +18,7 @@
         <input type="hidden" name="tab" value="progress">
         <label class="small text-muted mb-0">Tháng</label>
         <select name="month" class="form-control form-control-sm" style="width:170px" onchange="this.form.submit()">
+            <option value="" @selected($month === '')>Tất cả</option>
             @foreach($availableMonths as $ym)
                 <option value="{{ $ym }}" @selected($month === $ym)>
                     {{ \Carbon\Carbon::createFromFormat('Y-m', $ym)->format('m/Y') }}
@@ -26,8 +28,8 @@
                 <option value="{{ $month }}" selected>{{ \Carbon\Carbon::createFromFormat('Y-m', $month)->format('m/Y') }}</option>
             @endif
         </select>
-        <a href="{{ route('admin.classes.show', ['class' => $class, 'tab' => 'timetable', 'month' => $month]) }}" class="btn btn-sm btn-outline-primary">
-            <i class="bi bi-calendar-plus"></i> TKB tháng này
+        <a href="{{ route('admin.classes.show', array_filter(['class' => $class, 'tab' => 'timetable', 'month' => $month !== '' ? $month : null])) }}" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-calendar-plus"></i> {{ $month !== '' ? 'TKB tháng này' : 'TKB' }}
         </a>
     </form>
 </div>
