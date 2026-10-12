@@ -53,9 +53,6 @@
                 <td class="text-nowrap small">
                     @php
                         $enrolledFrom = $student->pivot->enrolled_from ?? null;
-                        if (! $enrolledFrom && $student->pivot?->created_at) {
-                            $enrolledFrom = \Carbon\Carbon::parse($student->pivot->created_at)->toDateString();
-                        }
                     @endphp
                     @canPerm('training.classes.manage')
                         @if($canEditEnrollment)

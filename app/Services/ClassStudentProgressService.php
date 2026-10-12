@@ -152,14 +152,14 @@ class ClassStudentProgressService
             'absent' => $absent,
             'excused' => $excused,
             'not_marked' => $notMarked,
-            'needs_makeup' => $absent + $notMarked,
+            'needs_makeup' => max(0, $eligible - $attended - $excused),
             'missing_sessions' => $missingSessions,
         ];
     }
 
     protected function isEnrolledOnDate(CourseClass $class, Student $student, Carbon $sessionDay): bool
     {
-        $from = $this->enrollmentBilling->enrollmentFrom($student, $class);
+        $from = $this->enrollmentBilling->enrollmentFromForProgress($student, $class);
         $to = $this->enrollmentBilling->enrollmentTo($student, $class);
 
         if ($from && $sessionDay->lt($from)) {

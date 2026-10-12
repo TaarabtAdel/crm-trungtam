@@ -35,21 +35,6 @@ class Ver6
                 });
             }
 
-            if (Schema::hasColumn('class_student', 'enrolled_from')
-                && Schema::hasColumn('class_student', 'created_at')) {
-                DB::table('class_student')
-                    ->whereNull('enrolled_from')
-                    ->orderBy('id')
-                    ->chunkById(200, function ($rows) {
-                        foreach ($rows as $row) {
-                            $from = $row->created_at
-                                ? \Carbon\Carbon::parse($row->created_at)->toDateString()
-                                : now()->toDateString();
-                            DB::table('class_student')->where('id', $row->id)->update(['enrolled_from' => $from]);
-                        }
-                    });
-            }
-
             return ['success' => true, 'message' => ''];
         } catch (\Throwable $e) {
             report($e);

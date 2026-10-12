@@ -843,9 +843,7 @@ class ClassController extends Controller
 
         $attach = [];
         foreach ($ids as $id) {
-            $attach[$id] = Schema::hasColumn('class_student', 'enrolled_from')
-                ? ['enrolled_from' => now()->toDateString()]
-                : [];
+            $attach[$id] = [];
         }
         $class->students()->syncWithoutDetaching($attach);
 
@@ -865,12 +863,12 @@ class ClassController extends Controller
         }
 
         $data = $request->validate([
-            'enrolled_from' => 'required|date',
+            'enrolled_from' => 'nullable|date',
             'enrolled_to' => 'nullable|date|after_or_equal:enrolled_from',
         ]);
 
         $class->students()->updateExistingPivot($student->id, [
-            'enrolled_from' => $data['enrolled_from'],
+            'enrolled_from' => $data['enrolled_from'] ?? null,
             'enrolled_to' => $data['enrolled_to'] ?? null,
         ]);
 

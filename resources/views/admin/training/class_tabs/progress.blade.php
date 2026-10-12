@@ -44,7 +44,7 @@
             <th class="text-center">Vắng</th>
             <th class="text-center">Vắng CP</th>
             <th class="text-center">Chưa ĐD</th>
-            <th class="text-center text-nowrap">Cần bù</th>
+            <th class="text-center text-nowrap" title="Buổi vắng hoặc chưa điểm danh (không tính vắng có phép)">Cần bù</th>
             <th style="min-width:9rem">Danh sách ngày vắng</th>
         </tr>
         </thead>

@@ -25,7 +25,10 @@ class ClassEnrollmentBillingService
             ->get();
     }
 
-    public function enrollmentFrom(Student $student, CourseClass $class): ?Carbon
+    /**
+     * @param  bool  $fallbackCreatedAt  Khi chưa có ngày vào học: dùng ngày gắn lớp (phù hợp học phí). Tắt cho báo cáo điểm danh khi chưa khai báo ngày vào học.
+     */
+    public function enrollmentFrom(Student $student, CourseClass $class, bool $fallbackCreatedAt = true): ?Carbon
     {
         $pivot = $student->pivot;
         if ($pivot && $this->hasEnrollmentColumns()) {
@@ -33,11 +36,36 @@ class ClassEnrollmentBillingService
                 return Carbon::parse($pivot->enrolled_from)->startOfDay();
             }
         }
-        if ($pivot?->created_at) {
+        if ($fallbackCreatedAt && $pivot?->created_at) {
             return Carbon::parse($pivot->created_at)->startOfDay();
         }
 
         return null;
+    }
+
+    /**
+     * Ngày vào học cho báo cái điểm danh: chỉ dùng ngày admin khai báo rõ, không dùng ngày gắn lớp mặc định.
+     */
+    public function enrollmentFromForProgress(Student $student, CourseClass $class): ?Carbon
+    {
+        if (! $this->hasEnrollmentColumns()) {
+            return null;
+        }
+
+        $pivot = $student->pivot;
+        if (! $pivot || empty($pivot->enrolled_from)) {
+            return null;
+        }
+
+        $from = Carbon::parse($pivot->enrolled_from)->startOfDay();
+        if ($pivot->created_at) {
+            $attachedDay = Carbon::parse($pivot->created_at)->startOfDay();
+            if ($from->equalTo($attachedDay)) {
+                return null;
+            }
+        }
+
+        return $from;
     }
 
     public function enrollmentTo(Student $student, CourseClass $class): ?Carbon
