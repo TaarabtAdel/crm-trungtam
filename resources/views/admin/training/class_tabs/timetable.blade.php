@@ -334,6 +334,7 @@
                 @if($classStudents->isEmpty())
                     <p class="text-muted mb-0">Lớp chưa có học viên. Thêm học viên ở tab <strong>Học viên</strong> trước.</p>
                 @else
+                    <p class="small text-muted mb-2">Chưa lưu: mặc định <strong>Vắng</strong> — chỉ đánh dấu học viên có mặt / muộn / vắng có phép.</p>
                     <div class="table-responsive">
                         <table class="table table-sm table-hover mb-0">
                             <thead>
@@ -349,7 +350,7 @@
                             @foreach($classStudents as $student)
                                 @php
                                     $row = $dayAtt->get($student->id);
-                                    $st = $row?->status ?? 'present';
+                                    $st = $row?->status ?? 'absent';
                                     $note = $row?->note ?? '';
                                 @endphp
                                 <tr>

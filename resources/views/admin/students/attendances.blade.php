@@ -60,6 +60,7 @@
                 @csrf
                 <input type="hidden" name="class_id" value="{{ $courseClass->id }}">
                 <input type="hidden" name="session_date" value="{{ $date }}">
+                <p class="small text-muted mb-2">Chưa lưu: mặc định <strong>Vắng</strong> — chỉ đánh dấu học viên có mặt / muộn / vắng có phép.</p>
                 <div class="table-responsive">
                     <table class="table table-hover mb-0 attendances-table">
                         <thead>
@@ -75,7 +76,7 @@
                         @forelse($courseClass->students as $student)
                             @php
                                 $row = $attendances->get($student->id);
-                                $st = $row?->status ?? 'present';
+                                $st = $row?->status ?? 'absent';
                                 $note = $row?->note ?? '';
                             @endphp
                             <tr>

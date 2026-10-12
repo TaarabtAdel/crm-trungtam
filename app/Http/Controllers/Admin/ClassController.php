@@ -13,6 +13,7 @@ use App\Models\Subject;
 use App\Models\Teacher;
 use App\Services\ClassSessionJournalService;
 use App\Services\ClassTimetableGenerator;
+use App\Services\Finance\AttendanceBillingService;
 use App\Services\ScheduleConflictService;
 use App\Support\CurrentBranch;
 use App\Support\Notifier;
@@ -105,6 +106,7 @@ class ClassController extends Controller
         $defaultFeeType = 'monthly';
         $selectableSessions = collect();
         $unitFee = 0;
+        $billableSessionsByStudent = [];
         $journals = collect();
 
         if ($tab === 'students') {
@@ -212,6 +214,8 @@ class ClassController extends Controller
             $suggestion = $billingPreviews[$defaultFeeType];
             $selectableSessions = $class->sessionsInMonth($billingMonth);
             $unitFee = (float) $class->tuition_fee;
+            $billableSessionsByStudent = app(AttendanceBillingService::class)
+                ->billableSessionIdsByStudent($class, $billingMonth);
         }
 
         if ($tab === 'info') {
@@ -223,7 +227,7 @@ class ClassController extends Controller
             'availableStudents', 'classStudents',
             'sessions', 'cancelledSessions', 'month', 'availableMonths', 'attendancesByDate', 'defaultFrom', 'defaultTo',
             'invoices', 'billingMonth', 'suggestion', 'billingPreviews', 'defaultFeeType',
-            'selectableSessions', 'unitFee', 'journals'
+            'selectableSessions', 'unitFee', 'billableSessionsByStudent', 'journals'
         ));
     }
 
@@ -847,15 +851,19 @@ class ClassController extends Controller
             'note' => 'nullable|string',
         ]);
 
-        if (($data['fee_type'] ?? '') === 'per_session' && empty($data['session_ids'])) {
+        $billFromAttendance = $request->boolean('bill_from_attendance');
+
+        if (($data['fee_type'] ?? '') === 'per_session' && ! $billFromAttendance && empty($data['session_ids'])) {
             return back()->with('error', 'Thu theo buổi: vui lòng chọn ít nhất một buổi trên lịch.');
         }
 
         $data['note'] = trim((string) ($data['note'] ?? '')) ?: 'Tạo hàng loạt từ lớp';
-        $payload = $this->buildTuitionInvoicePayload($class, $data);
         $students = $class->students()->get();
         $created = 0;
         $skipped = 0;
+        $noBillable = 0;
+        $billingMonth = $data['billing_month'] ?? now()->format('Y-m');
+        $attendanceBilling = app(AttendanceBillingService::class);
 
         foreach ($students as $student) {
             if ($request->boolean('skip_existing', true)) {
@@ -864,10 +872,10 @@ class ClassController extends Controller
                     ->where('student_id', $student->id)
                     ->where('status', '!=', 'cancelled');
 
-                if (($payload['fee_type'] ?? '') === 'course') {
+                if (($data['fee_type'] ?? '') === 'course') {
                     $existsQuery->where('fee_type', 'course');
                 } else {
-                    $existsQuery->where('billing_month', $payload['billing_month']);
+                    $existsQuery->where('billing_month', $billingMonth);
                 }
 
                 if ($existsQuery->exists()) {
@@ -875,6 +883,23 @@ class ClassController extends Controller
                     continue;
                 }
             }
+
+            $studentData = $data;
+            if (($data['fee_type'] ?? '') === 'per_session' && $billFromAttendance) {
+                $sessionIds = $attendanceBilling
+                    ->billableSessionsForStudent($class, (int) $student->id, $billingMonth)
+                    ->pluck('id')
+                    ->all();
+                if ($sessionIds === []) {
+                    $noBillable++;
+                    continue;
+                }
+                $studentData['session_ids'] = $sessionIds;
+                $suffix = 'Buổi theo điểm danh (Có mặt / Muộn)';
+                $studentData['note'] = trim(($studentData['note'] ?? '').' · '.$suffix, ' ·');
+            }
+
+            $payload = $this->buildTuitionInvoicePayload($class, $studentData);
 
             app(\App\Services\Finance\InvoiceService::class)->create(array_merge($payload, [
                 'student_id' => $student->id,
@@ -886,13 +911,26 @@ class ClassController extends Controller
             $created++;
         }
 
+        $message = "Đã tạo {$created} hóa đơn";
+        $extras = [];
+        if ($skipped > 0) {
+            $extras[] = "bỏ qua {$skipped} học viên đã có HĐ";
+        }
+        if ($noBillable > 0) {
+            $extras[] = "{$noBillable} HV không có buổi cần thu (chưa điểm danh có mặt/muộn hoặc đã thu hết buổi)";
+        }
+        if ($extras !== []) {
+            $message .= ', '.implode(', ', $extras);
+        }
+        $message .= '.';
+
         return redirect()
             ->route('admin.classes.show', [
                 'class' => $class,
                 'tab' => 'tuition',
-                'billing_month' => $payload['billing_month'] ?: now()->format('Y-m'),
+                'billing_month' => $billingMonth,
             ])
-            ->with('success', "Đã tạo {$created} hóa đơn".($skipped ? ", bỏ qua {$skipped} học viên đã có HĐ" : '').'.');
+            ->with('success', $message);
     }
 
     /**

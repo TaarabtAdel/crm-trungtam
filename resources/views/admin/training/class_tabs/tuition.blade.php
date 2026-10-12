@@ -4,6 +4,7 @@
     $suggestion = $suggestion ?? ($billingPreviews[$defaultFeeType] ?? null);
     $selectableSessions = $selectableSessions ?? collect();
     $unitFee = (float) ($unitFee ?? $class->tuition_fee);
+    $billableSessionsByStudent = $billableSessionsByStudent ?? [];
 @endphp
 
 <div class="page-card mb-3">
@@ -126,13 +127,20 @@
                 </div>
 
                 <div id="sessionPickerWrap" class="border rounded p-2 mb-3 {{ $defaultFeeType === 'per_session' ? '' : 'd-none' }}">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap" style="gap:.35rem">
                         <label class="small font-weight-bold mb-0">Chọn buổi cần thu</label>
-                        <div>
-                            <button type="button" class="btn btn-link btn-sm p-0 mr-2" id="selectAllSessions">Chọn tất cả</button>
+                        <div class="d-flex align-items-center flex-wrap" style="gap:.25rem">
+                            <button type="button" class="btn btn-outline-success btn-sm py-0 js-pick-attendance-single" title="Tab 1 học viên">
+                                <i class="bi bi-clipboard-check"></i> Gợi ý từ điểm danh
+                            </button>
+                            <button type="button" class="btn btn-link btn-sm p-0" id="selectAllSessions">Chọn tất cả</button>
                             <button type="button" class="btn btn-link btn-sm p-0" id="clearAllSessions">Bỏ chọn</button>
                         </div>
                     </div>
+                    <p class="small text-muted mb-2 mb-md-2">
+                        Gợi ý: buổi có điểm danh <strong>Có mặt</strong> hoặc <strong>Muộn</strong> trong tháng {{ $billingMonth }},
+                        chưa nằm trong hóa đơn thu theo buổi. <strong>Vắng</strong> / <strong>Vắng có phép</strong> không tính.
+                    </p>
                     @if($selectableSessions->isEmpty())
                         <p class="small text-muted mb-0">Tháng này chưa có buổi trên lịch (hoặc toàn bộ đã Hủy). Hãy tạo TKB hoặc đổi tháng.</p>
                     @else
@@ -196,10 +204,17 @@
                                 <label>Hạn thanh toán</label>
                                 <input type="date" name="due_date" class="form-control" value="{{ now()->endOfMonth()->toDateString() }}">
                             </div>
-                            <div class="form-check mb-3">
+                            <div class="form-check mb-2">
                                 <input type="hidden" name="skip_existing" value="0">
                                 <input type="checkbox" class="form-check-input" name="skip_existing" value="1" id="skipExisting" checked>
                                 <label class="form-check-label" for="skipExisting">Bỏ qua học viên đã có hóa đơn (cùng tháng / cùng khóa)</label>
+                            </div>
+                            <div class="form-check mb-3 js-batch-attendance-wrap d-none">
+                                <input type="hidden" name="bill_from_attendance" value="0">
+                                <input type="checkbox" class="form-check-input" name="bill_from_attendance" value="1" id="billFromAttendance">
+                                <label class="form-check-label" for="billFromAttendance">
+                                    Thu theo buổi <strong>theo điểm danh từng học viên</strong> (mỗi HĐ khác số buổi; bỏ qua danh sách chọn buổi chung phía trên)
+                                </label>
                             </div>
                             <button class="btn btn-success" {{ $classStudents->isEmpty() ? 'disabled' : '' }}>
                                 <i class="bi bi-receipt"></i> Tạo HĐ cho {{ $classStudents->count() }} học viên
@@ -220,9 +235,14 @@
 
                                 <div class="form-group">
                                     <label>Học viên *</label>
-                                    <select name="student_id" class="form-control" required>
+                                    <select name="student_id" class="form-control js-tuition-student" required>
                                         @foreach($classStudents as $s)
-                                            <option value="{{ $s->id }}">{{ $s->name }}</option>
+                                            @php
+                                                $billCount = count($billableSessionsByStudent[$s->id] ?? []);
+                                            @endphp
+                                            <option value="{{ $s->id }}">
+                                                {{ $s->name }}@if($billCount > 0) — {{ $billCount }} buổi gợi ý thu@endif
+                                            </option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -262,6 +282,7 @@
 <script>
 (function () {
     var previews = @json($billingPreviews);
+    var billableByStudent = @json($billableSessionsByStudent);
     var unitFee = {{ (float) $unitFee }};
     var fmt = function (n) {
         return Math.round(Number(n) || 0).toLocaleString('vi-VN') + ' đ';
@@ -269,6 +290,33 @@
 
     function selectedSessionIds() {
         return $('#modalClassTuitionCreate .js-session-pick:checked').map(function () { return $(this).val(); }).get();
+    }
+
+    function pickSessionsForStudent(studentId) {
+        var ids = billableByStudent[String(studentId)] || billableByStudent[studentId] || [];
+        $('#modalClassTuitionCreate .js-session-pick').prop('checked', false);
+        ids.forEach(function (id) {
+            $('#sess' + id).prop('checked', true);
+        });
+        if (ids.length === 0) {
+            alert('Không có buổi gợi ý: chưa điểm danh Có mặt/Muộn trong tháng, hoặc các buổi đó đã thu.');
+        }
+        applyPreview();
+    }
+
+    function batchUsesAttendance() {
+        return $('#billFromAttendance').is(':checked');
+    }
+
+    function toggleBatchAttendanceUi() {
+        var perSession = currentFeeType() === 'per_session';
+        $('.js-batch-attendance-wrap').toggleClass('d-none', !perSession);
+        if (!perSession) {
+            $('#billFromAttendance').prop('checked', false);
+        }
+        var dim = perSession && batchUsesAttendance();
+        $('#sessionPickerWrap').toggleClass('opacity-50', dim);
+        $('#modalClassTuitionCreate .js-session-pick').prop('disabled', dim);
     }
 
     function syncSessionIdsToForms() {
@@ -337,7 +385,29 @@
         $form.find('.js-payable-display').val(fmt(payable));
     }
 
-    $('#feeTypeToggle input[name="fee_type_ui"]').on('change', applyPreview);
+    $('#feeTypeToggle input[name="fee_type_ui"]').on('change', function () {
+        applyPreview();
+        toggleBatchAttendanceUi();
+    });
+    $('#billFromAttendance').on('change', toggleBatchAttendanceUi);
+    $('.js-pick-attendance-single').on('click', function () {
+        if (currentFeeType() !== 'per_session') {
+            alert('Chọn hình thức thu Theo buổi trước.');
+            return;
+        }
+        var $sel = $('#formTuitionSingle .js-tuition-student');
+        if (!$sel.length) {
+            alert('Dùng tab 1 học viên để gợi ý theo từng em.');
+            return;
+        }
+        $('#tab-single').tab('show');
+        pickSessionsForStudent($sel.val());
+    });
+    $(document).on('change', '#formTuitionSingle .js-tuition-student', function () {
+        if (currentFeeType() === 'per_session' && $('#paneSingle').hasClass('active')) {
+            // không tự chọn — tránh bất ngờ; user bấm Gợi ý
+        }
+    });
     $(document).on('change', '#modalClassTuitionCreate .js-session-pick', applyPreview);
     $(document).on('input', '#modalClassTuitionCreate .js-discount', applyPreview);
     $('#selectAllSessions').on('click', function () {
@@ -350,15 +420,25 @@
     });
 
     $('#modalClassTuitionCreate .js-tuition-form').on('submit', function () {
+        var $form = $(this);
         syncSessionIdsToForms();
-        if (currentFeeType() === 'per_session' && selectedSessionIds().length === 0) {
-            alert('Thu theo buổi: vui lòng chọn ít nhất một buổi.');
-            return false;
+        if (currentFeeType() === 'per_session') {
+            if ($form.is('#formTuitionBatch') && batchUsesAttendance()) {
+                return true;
+            }
+            if (selectedSessionIds().length === 0) {
+                alert('Thu theo buổi: vui lòng chọn ít nhất một buổi (hoặc bấm Gợi ý từ điểm danh).');
+                return false;
+            }
         }
     });
 
-    $('#modalClassTuitionCreate').on('shown.bs.modal', applyPreview);
+    $('#modalClassTuitionCreate').on('shown.bs.modal', function () {
+        applyPreview();
+        toggleBatchAttendanceUi();
+    });
     applyPreview();
+    toggleBatchAttendanceUi();
 
     $(document).on('click', '.js-ajax-delete-invoice', function () {
         var $btn = $(this);

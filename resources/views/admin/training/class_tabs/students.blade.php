@@ -27,6 +27,7 @@
             <th>Họ tên</th>
             <th>Người thân</th>
             <th>SĐT</th>
+            <th class="text-nowrap">Ngày vào học</th>
             <th>Trạng thái</th>
             <th></th>
         </tr>
@@ -40,6 +41,13 @@
                 </td>
                 <td>{{ $student->parent_name ?: '—' }}</td>
                 <td>{{ $student->phone ?: ($student->parent_phone ?: '—') }}</td>
+                <td class="text-nowrap small">
+                    @if($student->pivot?->created_at)
+                        {{ \Carbon\Carbon::parse($student->pivot->created_at)->format('d/m/Y') }}
+                    @else
+                        —
+                    @endif
+                </td>
                 <td><span class="badge lead-status {{ $student->statusBadgeClass() }}">{{ $student->statusLabel() }}</span></td>
                 <td class="text-right">
                     @canPerm('training.classes.manage')
@@ -51,7 +59,7 @@
                 </td>
             </tr>
         @empty
-            <tr><td colspan="6" class="text-center text-muted py-4">Chưa có học viên trong lớp.</td></tr>
+            <tr><td colspan="7" class="text-center text-muted py-4">Chưa có học viên trong lớp.</td></tr>
         @endforelse
         </tbody>
     </table>
