@@ -130,6 +130,7 @@ class ClassStudentProgressService
 
             if ($status === 'excused') {
                 $excused++;
+                $missingSessions[] = $this->missingSessionPayload($session, 'vắng có phép', $makeupScheduledFor);
 
                 continue;
             }
@@ -152,7 +153,7 @@ class ClassStudentProgressService
             'absent' => $absent,
             'excused' => $excused,
             'not_marked' => $notMarked,
-            'needs_makeup' => max(0, $eligible - $attended - $excused),
+            'needs_makeup' => max(0, $eligible - $attended),
             'missing_sessions' => $missingSessions,
         ];
     }

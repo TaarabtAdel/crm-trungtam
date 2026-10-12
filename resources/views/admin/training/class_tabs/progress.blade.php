@@ -9,7 +9,7 @@
         <strong>Tình hình học tập</strong>
         <p class="small text-muted mb-0">
             Buổi đã học = <em>Có mặt</em> / <em>Muộn</em>.
-            Cột <strong>Danh sách ngày vắng</strong>: từng ngày điểm danh <em>Vắng</em> (đỏ); phía dưới là buổi <em>chưa điểm danh</em> nếu có.
+            Cột <strong>Danh sách ngày vắng</strong>: <em>Vắng</em> / <em>Vắng có phép</em> (cần bù); phía dưới là buổi <em>chưa điểm danh</em> nếu có.
             @if($month === '')<span class="d-block">Đang xem <strong>tất cả</strong> buổi đã qua trên lịch lớp.</span>@endif
             Sắp xếp bù trên tab <strong>Thời khóa biểu</strong> → thêm buổi → chọn <em>Buổi bù cho</em>.
         </p>
@@ -44,7 +44,7 @@
             <th class="text-center">Vắng</th>
             <th class="text-center">Vắng CP</th>
             <th class="text-center">Chưa ĐD</th>
-            <th class="text-center text-nowrap" title="Buổi vắng hoặc chưa điểm danh (không tính vắng có phép)">Cần bù</th>
+            <th class="text-center text-nowrap" title="Vắng, vắng có phép hoặc chưa điểm danh">Cần bù</th>
             <th style="min-width:9rem">Danh sách ngày vắng</th>
         </tr>
         </thead>
@@ -56,11 +56,11 @@
                 $eligible = (int) ($p['eligible'] ?? 0);
                 $missing = $p['missing_sessions'] ?? [];
                 $absentDays = collect($missing)
-                    ->filter(fn ($m) => ($m['reason'] ?? '') === 'vắng')
+                    ->filter(fn ($m) => in_array($m['reason'] ?? '', ['vắng', 'vắng có phép'], true))
                     ->sortBy('date')
                     ->values();
                 $unmarkedDays = collect($missing)
-                    ->filter(fn ($m) => ($m['reason'] ?? '') !== 'vắng')
+                    ->filter(fn ($m) => ! in_array($m['reason'] ?? '', ['vắng', 'vắng có phép'], true))
                     ->sortBy('date')
                     ->values();
             @endphp
@@ -90,9 +90,16 @@
                         @if($absentDays->isNotEmpty())
                             <ul class="list-unstyled mb-0 pl-2">
                                 @foreach($absentDays as $m)
-                                    <li class="{{ !empty($m['has_makeup']) ? 'text-success' : 'text-danger' }}">
+                                    @php
+                                        $isExcused = ($m['reason'] ?? '') === 'vắng có phép';
+                                        $liClass = !empty($m['has_makeup'])
+                                            ? 'text-success'
+                                            : ($isExcused ? 'text-warning' : 'text-danger');
+                                    @endphp
+                                    <li class="{{ $liClass }}">
                                         {{ $m['date_label'] }}
                                         @if(!empty($m['time']))<span class="text-muted"> · {{ $m['time'] }}</span>@endif
+                                        @if($isExcused)<span class="text-muted"> · CP</span>@endif
                                         @if(!empty($m['has_makeup']))<span class="text-muted"> · đã lên bù</span>@endif
                                     </li>
                                 @endforeach

@@ -74,7 +74,7 @@
                 <td class="text-center text-nowrap small">
                     <span class="font-weight-bold">{{ (int) ($prog['attended'] ?? 0) }}</span><span class="text-muted">/{{ (int) ($prog['eligible'] ?? 0) }}</span>
                     @if(($prog['needs_makeup'] ?? 0) > 0)
-                        <br><span class="badge badge-warning" title="Vắng hoặc chưa điểm danh">{{ $prog['needs_makeup'] }} thiếu</span>
+                        <br><span class="badge badge-warning" title="Vắng, vắng có phép hoặc chưa điểm danh">{{ $prog['needs_makeup'] }} cần bù</span>
                     @endif
                 </td>
                 <td><span class="badge lead-status {{ $student->statusBadgeClass() }}">{{ $student->statusLabel() }}</span></td>
